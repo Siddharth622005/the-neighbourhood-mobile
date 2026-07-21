@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "The Neighbourhood",
+    "slug": "the-neighbourhood-mobile",
+    "scheme": "theneighbourhood",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#E8DDD1",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.theneighbourhood.app"
+    },
+    "android": {
+      "package": "com.theneighbourhood.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E8DDD1",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font",
+      "expo-splash-screen",
+      "@react-native-community/datetimepicker"
+    ]
+  }
+}
