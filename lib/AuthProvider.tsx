@@ -78,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (newSession?.user?.id) {
         fetchFamily(newSession.user.id);
       } else {
+        // Signing out must clear the family, or the next visitor to this
+        // device sees the previous parent's child.
         setParentName(null);
         setChild(null);
       }
