@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { OnboardingScreen } from "../../components/onboarding";
 import { useAuth } from "../../lib/AuthProvider";
+import { childFromDraft, saveLocalFamily } from "../../lib/localProfile";
 import { useOnboarding } from "../../lib/OnboardingProvider";
 import { supabase } from "../../lib/supabase";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
@@ -91,27 +92,38 @@ export default function Making() {
 
     const navTimer = setTimeout(() => router.replace("/home"), NAVIGATE_AT);
 
-    // Best-effort save, decoupled from the on-screen timing — the promise
-    // to the parent is "ready in under 5 seconds", not "as slow as the
-    // network". Dashboard already handles a not-yet-loaded child profile.
+    // Save, decoupled from the on-screen timing — the promise to the
+    // parent is "ready in under 5 seconds", not "as slow as the network".
     (async () => {
-      if (!session?.user?.id) return;
-      try {
-        await supabase
-          .from("parents")
-          .update({ phone: draft.mobile, full_name: draft.parentName })
-          .eq("id", session.user.id);
-        await supabase.from("children").insert({
-          parent_id: session.user.id,
-          name: draft.childName,
-          date_of_birth: draft.dateOfBirth,
-          gender: draft.gender,
-        });
-        await refreshFamily();
-        await clear();
-      } catch {
-        // Swallowed intentionally — see comment above.
+      // Device first, and unconditionally. With auth off this is the only
+      // store; with auth on it means Home has something to render even if
+      // the network write is slow or fails.
+      await saveLocalFamily({
+        parentName: draft.parentName,
+        child: childFromDraft(draft.childName, draft.dateOfBirth),
+      });
+
+      if (session?.user?.id) {
+        try {
+          await supabase
+            .from("parents")
+            .update({ phone: draft.mobile, full_name: draft.parentName })
+            .eq("id", session.user.id);
+          await supabase.from("children").insert({
+            parent_id: session.user.id,
+            name: draft.childName,
+            date_of_birth: draft.dateOfBirth,
+            gender: draft.gender,
+          });
+        } catch {
+          // Swallowed intentionally — the local save above already
+          // guarantees the parent lands on a working Home screen.
+        }
       }
+
+      // Reads the server when there's a session, the device otherwise.
+      await refreshFamily();
+      await clear();
     })();
 
     return () => {

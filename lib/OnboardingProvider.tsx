@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { AUTH_ENABLED } from "./authMode";
 
 /**
  * The onboarding draft — collected BEFORE the parent ever creates an account.
@@ -37,7 +38,7 @@ const STORAGE_KEY = "tn.onboarding.draft.v2";
 // The linear order of the flow. Used only to decide where to resume a
 // half-finished draft — never shown to the parent as "step N of M".
 export const ONBOARDING_STEPS = [
-  "/onboarding/contact",
+  ...(AUTH_ENABLED ? (["/onboarding/contact"] as const) : []),
   "/onboarding/parent-name",
   "/onboarding/child-name",
   "/onboarding/birthday",
@@ -57,7 +58,7 @@ type OnboardingContextValue = {
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 function resumeFromDraft(d: OnboardingDraft): (typeof ONBOARDING_STEPS)[number] {
-  if (!d.mobile || !d.email) return "/onboarding/contact";
+  if (AUTH_ENABLED && (!d.mobile || !d.email)) return "/onboarding/contact";
   if (!d.parentName) return "/onboarding/parent-name";
   if (!d.childName) return "/onboarding/child-name";
   if (!d.dateOfBirth) return "/onboarding/birthday";
@@ -90,7 +91,13 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     await AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
   };
 
-  const hasProgress = Boolean(draft.mobile || draft.email);
+  // Any field the CURRENT flow actually collects. Keying this off
+  // mobile/email alone meant it was permanently false with auth off,
+  // since those screens no longer run — so a parent who quit halfway was
+  // never offered their place back.
+  const hasProgress = Boolean(
+    draft.mobile || draft.email || draft.parentName || draft.childName || draft.dateOfBirth
+  );
 
   return (
     <OnboardingContext.Provider

@@ -5,11 +5,16 @@ import { colors } from "../lib/theme";
 
 /**
  * The entry route. Decides, once, where a visitor actually belongs:
- *   no session          -> /welcome (starts pre-auth onboarding)
- *   session, no child    -> /onboarding/parent-name
- *   session, child exists -> /home — today's plan, inside the tab shell
- * A connection error (e.g. the backend is unreachable) is shown here
- * rather than leaving the app on an infinite spinner.
+ *   no child yet -> /welcome, which opens onboarding (resuming mid-way
+ *                   if they left a draft behind)
+ *   child exists -> /home — today's plan, inside the tab shell
+ *
+ * Gating on the CHILD rather than a session is what lets the same code
+ * serve both auth modes: with auth off the child comes from the device,
+ * with auth on it comes from the server, and either way "do we know this
+ * family?" is the only question that decides the route.
+ *
+ * A connection error is shown here rather than leaving the app spinning.
  */
 export default function Index() {
   const { session, loading, familyLoading, child, connectionError } = useAuth();
@@ -22,16 +27,10 @@ export default function Index() {
     );
   }
 
-  // No session yet → the value-first welcome, which opens the pre-auth
-  // onboarding flow (we earn the account at the end, not the front door).
-  if (!session) return <Redirect href="/welcome" />;
+  // Only meaningful when a session exists — it's set by the server fetch.
+  if (session && connectionError) return <Redirect href="/connection-error" />;
 
-  if (connectionError) return <Redirect href="/connection-error" />;
-
-  // Authed but no child profile (e.g. returning on a fresh device before
-  // sync, or an interrupted flush) → let them complete onboarding, from
-  // the first name step since nothing about the family is known yet.
-  if (!child) return <Redirect href="/onboarding/parent-name" />;
+  if (!child) return <Redirect href="/welcome" />;
 
   return <Redirect href="/home" />;
 }

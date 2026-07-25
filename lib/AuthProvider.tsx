@@ -1,5 +1,6 @@
 import { Session } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { clearLocalFamily, getLocalFamily } from "./localProfile";
 import { supabase } from "./supabase";
 
 export type Child = {
@@ -62,26 +63,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /** The device-local family — the only source while auth is off. */
+  const loadLocalFamily = async () => {
+    const local = await getLocalFamily();
+    setParentName(local?.parentName ?? null);
+    setChild(local?.child ?? null);
+  };
+
   const refreshFamily = async () => {
+    // Server wins whenever there's a session; otherwise fall back to the
+    // device, which is where onboarding just wrote.
     if (session?.user?.id) await fetchFamily(session.user.id);
+    else await loadLocalFamily();
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
       setSession(data.session);
+      if (data.session?.user?.id) {
+        fetchFamily(data.session.user.id);
+      } else {
+        // Must finish before `loading` drops, or the entry route briefly
+        // sees no child and bounces an existing family out to /welcome.
+        await loadLocalFamily();
+      }
       setLoading(false);
-      if (data.session?.user?.id) fetchFamily(data.session.user.id);
-    });
+    })();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       if (newSession?.user?.id) {
         fetchFamily(newSession.user.id);
       } else {
-        // Signing out must clear the family, or the next visitor to this
-        // device sees the previous parent's child.
-        setParentName(null);
-        setChild(null);
+        // Not necessarily a sign-out — this also fires on first load with
+        // auth off. Re-read the device rather than blanking state, and let
+        // signOut() do the actual clearing.
+        loadLocalFamily();
       }
     });
 
@@ -89,6 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Clear the device first: the auth listener re-reads local storage, so
+    // wiping it afterwards would just be read back in.
+    await clearLocalFamily();
+    setParentName(null);
+    setChild(null);
     await supabase.auth.signOut();
   };
 

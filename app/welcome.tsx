@@ -2,6 +2,7 @@ import { Link, useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../components/ui";
 import { FadeIn, OnboardingScreen } from "../components/onboarding";
+import { AUTH_ENABLED } from "../lib/authMode";
 import { useOnboarding } from "../lib/OnboardingProvider";
 import { colors, fonts, spacing, typeScale } from "../lib/theme";
 
@@ -17,7 +18,9 @@ export default function Welcome() {
             title={hasProgress ? "Pick up where you left off" : "Meet your Neighbourhood"}
             onPress={() => router.push(resumeHref)}
           />
-          {!hasProgress && (
+          {/* Hidden while auth is off — there's no account to sign in to,
+              and offering one would dead-end on the OTP screen. */}
+          {AUTH_ENABLED && !hasProgress && (
             <Link href="/sign-in" asChild>
               <Text style={styles.signIn}>Already a neighbour? Sign in</Text>
             </Link>

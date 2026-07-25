@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GhostButton } from "../components/ui";
 import { useAuth } from "../lib/AuthProvider";
+import { AUTH_ENABLED } from "../lib/authMode";
 import { computeAge } from "../lib/childAge";
 import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
 
@@ -35,7 +36,12 @@ export default function Profile() {
         )}
 
         <View style={styles.signOut}>
-          <GhostButton title="Sign out" onPress={signOut} />
+          {/* Without an account there's nothing to sign out OF — the honest
+              description is that this wipes the family on this device. */}
+          <GhostButton
+            title={AUTH_ENABLED ? "Sign out" : "Start over on this device"}
+            onPress={signOut}
+          />
         </View>
       </View>
     </SafeAreaView>
