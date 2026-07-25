@@ -1,4 +1,4 @@
-/** Age math shared across onboarding and the dashboard. */
+/** Age math shared across onboarding and the Home tab. */
 
 export type ChildAge = {
   totalMonths: number;
@@ -39,7 +39,7 @@ function plural(n: number, unit: string): string {
   return `${n} ${unit}${n === 1 ? "" : "s"}`;
 }
 
-/** A warm, non-clinical stage name for the dashboard greeting — never a percentile, just a word. */
+/** A warm, non-clinical stage name for the Home greeting — never a percentile, just a word. */
 export function stageLabel(totalMonths: number): string {
   if (totalMonths <= 3) return "the newborn days";
   if (totalMonths <= 11) return "the infant stage";

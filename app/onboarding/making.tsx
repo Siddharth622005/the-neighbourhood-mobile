@@ -89,7 +89,7 @@ export default function Making() {
       }).start();
     }, BAR_DURATION);
 
-    const navTimer = setTimeout(() => router.replace("/dashboard"), NAVIGATE_AT);
+    const navTimer = setTimeout(() => router.replace("/home"), NAVIGATE_AT);
 
     // Best-effort save, decoupled from the on-screen timing — the promise
     // to the parent is "ready in under 5 seconds", not "as slow as the
