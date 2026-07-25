@@ -45,7 +45,7 @@ export default function Verify() {
       // Even if the profile fetch hiccups, the session is valid — the
       // entry route will route to onboarding/connection-error as needed.
     }
-    router.replace(mode === "onboard" ? "/onboarding/birthday" : "/");
+    router.replace(mode === "onboard" ? "/onboarding/parent-name" : "/");
   };
 
   const resend = async () => {

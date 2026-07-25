@@ -6,7 +6,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { PlayfairDisplay_400Regular_Italic } from "@expo-google-fonts/playfair-display";
 import { useFonts } from "expo-font";
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -36,7 +36,17 @@ export default function RootLayout() {
       <AuthProvider>
         <OnboardingProvider>
           <StatusBar style="dark" />
-          <Slot />
+          {/* Headers are owned by each area: the tab navigator draws its
+              own, onboarding uses its bespoke OnboardingScreen chrome.
+              Profile is a modal rather than a route inside (tabs), so
+              account settings never occupy one of the three tab slots. */}
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="profile"
+              options={{ presentation: "modal" }}
+            />
+          </Stack>
         </OnboardingProvider>
       </AuthProvider>
     </SafeAreaProvider>

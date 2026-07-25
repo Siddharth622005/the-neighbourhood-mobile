@@ -3,13 +3,20 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 /**
  * The onboarding draft — collected BEFORE the parent ever creates an account.
- * The flow is mobile+email → (auth) → birthday → gender: short enough to
- * finish in under 30 seconds. The draft is mirrored to AsyncStorage so a
- * parent who closes the app mid-flow resumes exactly where they left off.
+ * The flow is mobile+email → (auth) → parent name → child name → birthday
+ * → gender: one question per screen, short enough to finish in under 30
+ * seconds. The draft is mirrored to AsyncStorage so a parent who closes
+ * the app mid-flow resumes exactly where they left off.
+ *
+ * These four child/parent facts are the ONLY profiling the app ever does.
+ * Everything else — interests, goals, temperament — is learned from usage
+ * (activities completed, notes, copilot questions), never from a form.
  */
 export type OnboardingDraft = {
   mobile: string;
   email: string;
+  parentName: string;
+  childName: string;
   dateOfBirth: string; // YYYY-MM-DD
   gender: string; // Boy | Girl | Prefer not to say
 };
@@ -17,16 +24,22 @@ export type OnboardingDraft = {
 const EMPTY: OnboardingDraft = {
   mobile: "",
   email: "",
+  parentName: "",
+  childName: "",
   dateOfBirth: "",
   gender: "",
 };
 
-const STORAGE_KEY = "tn.onboarding.draft.v1";
+// Bumped from v1: the draft shape gained parentName/childName, and a
+// half-finished v1 draft would resume into a screen expecting them.
+const STORAGE_KEY = "tn.onboarding.draft.v2";
 
 // The linear order of the flow. Used only to decide where to resume a
 // half-finished draft — never shown to the parent as "step N of M".
 export const ONBOARDING_STEPS = [
   "/onboarding/contact",
+  "/onboarding/parent-name",
+  "/onboarding/child-name",
   "/onboarding/birthday",
   "/onboarding/gender",
 ] as const;
@@ -45,6 +58,8 @@ const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 function resumeFromDraft(d: OnboardingDraft): (typeof ONBOARDING_STEPS)[number] {
   if (!d.mobile || !d.email) return "/onboarding/contact";
+  if (!d.parentName) return "/onboarding/parent-name";
+  if (!d.childName) return "/onboarding/child-name";
   if (!d.dateOfBirth) return "/onboarding/birthday";
   return "/onboarding/gender";
 }

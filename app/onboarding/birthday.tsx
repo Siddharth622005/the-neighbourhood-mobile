@@ -1,122 +1,101 @@
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { PrimaryButton } from "../../components/ui";
+import { DateWheel, MONTHS, isComplete, type DateParts } from "../../components/DateWheel";
 import { FadeIn, Hint, OnboardingScreen, Prompt } from "../../components/onboarding";
 import { computeAge } from "../../lib/childAge";
 import { useOnboarding } from "../../lib/OnboardingProvider";
 import { colors, fonts, spacing, typeScale } from "../../lib/theme";
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
 // Local-date safe — avoids the UTC day-shift that Date#toISOString() can
 // introduce when the device's timezone is ahead of UTC.
-function toISO(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function formatDisplay(d: Date): string {
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+function toISO(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 const TODAY = new Date();
-const EARLIEST = new Date(TODAY.getFullYear() - 12, TODAY.getMonth(), TODAY.getDate());
-const DEFAULT_DATE = new Date(TODAY.getFullYear(), TODAY.getMonth() - 18, TODAY.getDate()); // a plausible toddler age
+const LATEST_YEAR = TODAY.getFullYear();
+const EARLIEST_YEAR = LATEST_YEAR - 12; // the product covers birth to seven
 
 export default function Birthday() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
-  const [date, setDate] = useState<Date | null>(() => {
-    if (!draft.dateOfBirth) return null;
+
+  const [parts, setParts] = useState<DateParts>(() => {
+    if (!draft.dateOfBirth) return { year: null, month: null, day: null };
     const [y, m, d] = draft.dateOfBirth.split("-").map(Number);
-    return new Date(y, m - 1, d);
+    return { year: y, month: m - 1, day: d };
   });
-  const [showPicker, setShowPicker] = useState(false);
 
-  const age = date ? computeAge(toISO(date)) : null;
+  const complete = isComplete(parts);
+  const iso = complete ? toISO(parts.year, parts.month, parts.day) : null;
+  const age = iso ? computeAge(iso) : null;
 
-  const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === "android") setShowPicker(false);
-    if (event.type === "dismissed") return;
-    if (selected) setDate(selected);
-  };
+  // A date in the future is the one nonsensical answer this picker can
+  // still produce (e.g. a day later this month), so it's blocked here.
+  const inFuture = iso ? new Date(iso + "T00:00:00").getTime() > TODAY.getTime() : false;
+  const ready = complete && !inFuture;
 
   const handleContinue = () => {
-    if (!date) return;
-    update({ dateOfBirth: toISO(date) });
+    if (!iso || !ready) return;
+    update({ dateOfBirth: iso });
     router.push("/onboarding/gender");
   };
 
   return (
     <OnboardingScreen
-      progress={2 / 3}
+      progress={4 / 5}
       scroll
-      footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!date} />}
+      footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!ready} />}
     >
       <FadeIn>
-        <Prompt>When was your child born?</Prompt>
+        <Prompt>When was {draft.childName || "your child"} born?</Prompt>
         <Hint>
           We use their date of birth to personalize developmental milestones and activities to
           their exact age.
         </Hint>
 
-        <Pressable
-          onPress={() => setShowPicker((v) => !v)}
-          style={styles.field}
-          accessibilityRole="button"
-          accessibilityLabel="Select date of birth"
-        >
-          <Text style={date ? styles.fieldValue : styles.fieldPlaceholder}>
-            {date ? formatDisplay(date) : "Select date of birth"}
-          </Text>
-        </Pressable>
+        <DateWheel
+          value={parts}
+          onChange={setParts}
+          earliestYear={EARLIEST_YEAR}
+          latestYear={LATEST_YEAR}
+        />
 
-        {showPicker && (
-          <DateTimePicker
-            value={date ?? DEFAULT_DATE}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            maximumDate={TODAY}
-            minimumDate={EARLIEST}
-            onChange={handleChange}
-            themeVariant="light"
-          />
+        {complete && (
+          <Text style={styles.selected}>
+            {parts.day} {MONTHS[parts.month]} {parts.year}
+          </Text>
         )}
 
-        {age && <Text style={styles.echo}>That makes them {age.label}.</Text>}
+        {inFuture ? (
+          <Text style={styles.error}>That date hasn&rsquo;t happened yet.</Text>
+        ) : (
+          age && <Text style={styles.echo}>That makes them {age.label}.</Text>
+        )}
       </FadeIn>
     </OnboardingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  field: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  fieldValue: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 30,
+  selected: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.h3,
     color: colors.charcoal,
-  },
-  fieldPlaceholder: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 30,
-    color: colors.textMuted,
+    marginTop: spacing.lg,
   },
   echo: {
     fontFamily: fonts.bodyMedium,
     fontSize: typeScale.body,
     color: colors.warmTaupe,
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
+  },
+  error: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.body,
+    color: colors.error,
+    marginTop: spacing.sm,
   },
 });

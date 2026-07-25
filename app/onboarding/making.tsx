@@ -97,9 +97,13 @@ export default function Making() {
     (async () => {
       if (!session?.user?.id) return;
       try {
-        await supabase.from("parents").update({ phone: draft.mobile }).eq("id", session.user.id);
+        await supabase
+          .from("parents")
+          .update({ phone: draft.mobile, full_name: draft.parentName })
+          .eq("id", session.user.id);
         await supabase.from("children").insert({
           parent_id: session.user.id,
+          name: draft.childName,
           date_of_birth: draft.dateOfBirth,
           gender: draft.gender,
         });

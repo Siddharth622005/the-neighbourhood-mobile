@@ -38,3 +38,13 @@ export function computeAge(dateOfBirth: string, now: Date = new Date()): ChildAg
 function plural(n: number, unit: string): string {
   return `${n} ${unit}${n === 1 ? "" : "s"}`;
 }
+
+/** A warm, non-clinical stage name for the dashboard greeting — never a percentile, just a word. */
+export function stageLabel(totalMonths: number): string {
+  if (totalMonths <= 3) return "the newborn days";
+  if (totalMonths <= 11) return "the infant stage";
+  if (totalMonths <= 23) return "the toddler stage";
+  if (totalMonths <= 35) return "early exploring";
+  if (totalMonths <= 59) return "the preschool years";
+  return "the school-age years";
+}

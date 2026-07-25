@@ -6,8 +6,8 @@ import { colors } from "../lib/theme";
 /**
  * The entry route. Decides, once, where a visitor actually belongs:
  *   no session          -> /welcome (starts pre-auth onboarding)
- *   session, no child    -> /onboarding/birthday
- *   session, child exists -> /dashboard
+ *   session, no child    -> /onboarding/parent-name
+ *   session, child exists -> /home — today's plan, inside the tab shell
  * A connection error (e.g. the backend is unreachable) is shown here
  * rather than leaving the app on an infinite spinner.
  */
@@ -29,8 +29,9 @@ export default function Index() {
   if (connectionError) return <Redirect href="/connection-error" />;
 
   // Authed but no child profile (e.g. returning on a fresh device before
-  // sync, or an interrupted flush) → let them complete onboarding.
-  if (!child) return <Redirect href="/onboarding/birthday" />;
+  // sync, or an interrupted flush) → let them complete onboarding, from
+  // the first name step since nothing about the family is known yet.
+  if (!child) return <Redirect href="/onboarding/parent-name" />;
 
-  return <Redirect href="/dashboard" />;
+  return <Redirect href="/home" />;
 }

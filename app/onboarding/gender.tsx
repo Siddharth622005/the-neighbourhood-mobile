@@ -12,6 +12,7 @@ export default function Gender() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
   const [gender, setGender] = useState(draft.gender);
+  const childName = draft.childName || "your child";
 
   const handleContinue = () => {
     if (!gender) return;
@@ -21,11 +22,11 @@ export default function Gender() {
 
   return (
     <OnboardingScreen
-      progress={3 / 3}
+      progress={5 / 5}
       footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!gender} />}
     >
       <FadeIn>
-        <Prompt>What&rsquo;s your child&rsquo;s gender?</Prompt>
+        <Prompt>What&rsquo;s {childName}&rsquo;s gender?</Prompt>
         <Hint>This helps us personalize content where relevant.</Hint>
         <View style={styles.stack}>
           {GENDER_OPTIONS.map((option) => {
