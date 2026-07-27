@@ -25,7 +25,7 @@ const NAVIGATE_AT = BAR_DURATION + READY_HOLD; // 4500ms — comfortably under 5
 export default function Making() {
   const router = useRouter();
   const { refreshFamily } = useAuth();
-  const { draft, clear } = useOnboarding();
+  const { draft, clear, resumeHref } = useOnboarding();
   const [factIndex, setFactIndex] = useState(0);
   const [ready, setReady] = useState(false);
   /**
@@ -122,6 +122,17 @@ export default function Making() {
   const save = async () => {
     setSaveError(null);
     try {
+      // This screen can be reached with an incomplete draft — a restored
+      // dev route, a deep link, or a resumed session whose storage was
+      // cleared. Writing anyway produced a raw Postgres error ("invalid
+      // input syntax for type date"), which is both meaningless to a
+      // parent and impossible to act on. Send them back to the step
+      // that's actually missing instead.
+      if (!draft.parentName || !draft.childName || !draft.dateOfBirth) {
+        router.replace(resumeHref);
+        return;
+      }
+
       const userId = await ensureSession();
 
       await family.updateProfile(userId, {
