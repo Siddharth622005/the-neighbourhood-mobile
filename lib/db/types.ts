@@ -115,6 +115,16 @@ export type DailyPlan = {
   swaps: Partial<Record<Domain, number>>;
 };
 
+/**
+ * One row per activity per day. Created on Start, updated on Complete.
+ *
+ *   started_at set, completed_at null  -> in progress, or abandoned
+ *   both set                           -> done
+ *   started_at null, completed_at set  -> marked done without starting
+ *
+ * Only rows with `completed_at` count as done. Anything reading progress
+ * must filter on that, not on the row existing.
+ */
 export type ActivityLogEntry = {
   id: string;
   child_id: string;
@@ -124,7 +134,8 @@ export type ActivityLogEntry = {
   title: string;
   age_band: AgeBand;
   plan_date: string | null;
-  completed_at: string;
+  started_at: string | null;
+  completed_at: string | null;
   note: string | null;
   photo_path: string | null;
 };

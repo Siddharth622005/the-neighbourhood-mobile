@@ -170,6 +170,14 @@ create index daily_plans_child_date_idx on daily_plans (child_id, plan_date desc
 -- report. activity_id stays as a nullable pointer for analytics joins and
 -- is deliberately ON DELETE SET NULL — losing the pointer is fine, losing
 -- the record is not.
+--
+-- The row is created on START, not on completion, so abandonment is
+-- observable:
+--   started_at set, completed_at null  -> started and not finished
+--   both set                           -> done
+--   started_at null, completed_at set  -> marked done without starting
+-- Started-but-abandoned is the earliest signal that an activity is too
+-- long or too complex, which is why completed_at is nullable.
 create table activity_log (
   id uuid primary key default gen_random_uuid (),
   child_id uuid not null references children (id) on delete cascade,
@@ -178,16 +186,28 @@ create table activity_log (
   title text not null,
   age_band age_band not null,
   plan_date date, -- the plan this belonged to, if any
-  completed_at timestamptz not null default now(),
+  started_at timestamptz,
+  completed_at timestamptz,
   note text,
   -- Storage path, wired later. Column exists now so adding photos doesn't
   -- need a migration against a table that by then holds real history.
-  photo_path text
+  photo_path text,
+  -- One row per activity per day, so Start then Complete update the same
+  -- record instead of racing to create two. Postgres treats NULLs as
+  -- distinct, so ad-hoc completions with no plan_date are unconstrained.
+  constraint activity_log_unique_per_day unique (child_id, activity_id, plan_date)
 );
 
+-- Ordered by completion for history views; nulls (in progress) sort first
+-- under DESC, which is what "still open" wants anyway.
 create index activity_log_child_time_idx on activity_log (child_id, completed_at desc);
 
 create index activity_log_child_domain_idx on activity_log (child_id, domain, completed_at desc);
+
+-- Abandonment lookups: started, never finished.
+create index activity_log_abandoned_idx on activity_log (child_id, started_at)
+where
+  completed_at is null;
 
 create table child_milestones (
   id uuid primary key default gen_random_uuid (),

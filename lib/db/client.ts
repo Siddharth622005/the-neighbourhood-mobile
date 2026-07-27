@@ -22,25 +22,34 @@ export class DbError extends Error {
   }
 }
 
-/** Unwraps a Supabase result, throwing a labelled error on failure. */
+/**
+ * Unwraps a Supabase result, throwing a labelled error on failure.
+ *
+ * `data` is taken as `unknown` and cast to the caller's T. Without
+ * generated database types, postgrest-js infers loose shapes (and widens
+ * them further through filters like `.not()`), so constraining the
+ * parameter to `T | null` fails to compile at every call site. The type
+ * safety that matters lives in each DAL function's explicit return type;
+ * swapping in `supabase gen types` later makes this genuinely checked.
+ */
 export function unwrap<T>(
   operation: string,
-  result: { data: T | null; error: PostgrestError | null }
+  result: { data: unknown; error: PostgrestError | null }
 ): T {
   if (result.error) throw new DbError(operation, result.error);
-  if (result.data === null) {
+  if (result.data === null || result.data === undefined) {
     throw new DbError(operation, new Error("no data returned"));
   }
-  return result.data;
+  return result.data as T;
 }
 
 /** Same, but null is a legitimate answer (e.g. "no row yet"). */
 export function unwrapMaybe<T>(
   operation: string,
-  result: { data: T | null; error: PostgrestError | null }
+  result: { data: unknown; error: PostgrestError | null }
 ): T | null {
   if (result.error) throw new DbError(operation, result.error);
-  return result.data;
+  return (result.data ?? null) as T | null;
 }
 
 export { supabase };
