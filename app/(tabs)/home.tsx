@@ -5,14 +5,8 @@ import Svg, { Path } from "react-native-svg";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
-import {
-  completeActivity,
-  getTodayState,
-  startActivity,
-  swapDomain,
-  type TodayState,
-} from "../../lib/todayState";
-import { planForChild, poolSize, type Activity, type Domain } from "../../lib/todaysPlan";
+import { DOMAIN_LABEL, type Activity, type Domain } from "../../lib/db/types";
+import { useTodaysPlan } from "../../lib/useTodaysPlan";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 function greetingWord(hour: number): string {
@@ -40,9 +34,13 @@ export default function Home() {
   const router = useRouter();
   const { child, parentName } = useAuth();
 
-  const [state, setState] = useState<TodayState | null>(null);
   /** Set only when the parent taps a row open ahead of its turn. */
   const [openedEarly, setOpenedEarly] = useState<Domain | null>(null);
+
+  // The plan now comes from the database, cached locally so this renders
+  // immediately and completions never wait on the network.
+  const { plan, completed, inProgress, loading, error, start, complete, swap } =
+    useTodaysPlan(child?.id ?? null);
 
   const entrance = useRef(new Animated.Value(0)).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
@@ -56,15 +54,11 @@ export default function Home() {
     }).start();
   }, [entrance]);
 
-  useEffect(() => {
-    getTodayState().then(setState);
-  }, []);
-
   const fadeSwap = useCallback(
-    (mutate: () => Promise<TodayState>) => {
+    (domain: Domain, run: () => Promise<void>) => {
       Animated.timing(cardOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(
         async () => {
-          setState(await mutate());
+          await run();
           Animated.timing(cardOpacity, {
             toValue: 1,
             duration: 220,
@@ -77,7 +71,7 @@ export default function Home() {
     [cardOpacity]
   );
 
-  if (!child || !state) {
+  if (!child || (loading && !plan)) {
     return (
       <View style={styles.screen}>
         <View style={styles.inner}>
@@ -87,16 +81,30 @@ export default function Home() {
     );
   }
 
-  const plan = planForChild(child, { swaps: state.swaps });
+  // Only reached when there's genuinely nothing to show — a cached plan
+  // takes precedence over reporting a network problem.
+  if (error && !plan) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.inner}>
+          <Text style={styles.loading}>
+            We couldn&rsquo;t load today&rsquo;s plan. It&rsquo;ll be here when
+            you&rsquo;re back online.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const activities = plan?.activities ?? [];
   const age = computeAge(child.date_of_birth);
-  const doneCount = state.completed.length;
-  const allDone = doneCount === plan.length;
+  const allDone = activities.length > 0 && completed.length === activities.length;
 
   // The expanded card is the first incomplete activity, unless the parent
   // has deliberately opened another one early.
-  const firstIncomplete = plan.find((a) => !state.completed.includes(a.domain))?.domain ?? null;
+  const firstIncomplete = activities.find((a) => !completed.includes(a.domain))?.domain ?? null;
   const expanded =
-    openedEarly && !state.completed.includes(openedEarly) ? openedEarly : firstIncomplete;
+    openedEarly && !completed.includes(openedEarly) ? openedEarly : firstIncomplete;
 
   return (
     <View style={styles.screen}>
@@ -119,11 +127,11 @@ export default function Home() {
             {child.name} is {age?.label ?? "growing"} — right in {stageLabel(age?.totalMonths ?? 0)}.
           </Text>
 
-          <ProgressSegments plan={plan} completed={state.completed} expanded={expanded} />
+          <ProgressSegments plan={activities} completed={completed} expanded={expanded} />
 
           <View style={styles.list}>
-            {plan.map((activity) => {
-              const isDone = state.completed.includes(activity.domain);
+            {activities.map((activity) => {
+              const isDone = completed.includes(activity.domain);
               if (isDone) return <DoneRow key={activity.domain} activity={activity} />;
 
               if (activity.domain === expanded) {
@@ -131,11 +139,11 @@ export default function Home() {
                   <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
                     <ExpandedCard
                       activity={activity}
-                      inProgress={state.inProgress?.domain === activity.domain}
-                      canSwap={poolSize(child, activity.domain) > 1}
-                      onStart={() => startActivity(activity.domain).then(setState)}
-                      onComplete={() => completeActivity(activity.domain).then(setState)}
-                      onSwap={() => fadeSwap(() => swapDomain(activity.domain))}
+                      inProgress={inProgress.includes(activity.domain)}
+                      canSwap
+                      onStart={() => start(activity)}
+                      onComplete={() => complete(activity)}
+                      onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
                     />
                   </Animated.View>
                 );
@@ -225,7 +233,7 @@ function ExpandedCard({
 }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.domainLabel}>{activity.domain.toUpperCase()}</Text>
+      <Text style={styles.domainLabel}>{DOMAIN_LABEL[activity.domain].toUpperCase()}</Text>
       <Text style={styles.title}>{activity.title}</Text>
       <Text style={styles.why}>{activity.why}</Text>
 
@@ -233,7 +241,7 @@ function ExpandedCard({
         <View style={styles.metaRow}>
           <ClockIcon />
           <Text style={styles.metaText} numberOfLines={1}>
-            {activity.durationMins} min
+            {activity.duration_minutes} min
           </Text>
         </View>
         <View style={styles.metaRow}>
@@ -274,7 +282,7 @@ function DoneRow({ activity }: { activity: Activity }) {
     <View style={[styles.row, styles.rowDone]}>
       <CheckIcon />
       <View style={styles.rowText}>
-        <Text style={styles.rowDomainDone}>{activity.domain}</Text>
+        <Text style={styles.rowDomainDone}>{DOMAIN_LABEL[activity.domain]}</Text>
         <Text style={styles.rowTitleDone} numberOfLines={1}>
           {activity.title}
         </Text>
@@ -294,7 +302,7 @@ function UpcomingRow({ activity, onPress }: { activity: Activity; onPress: () =>
     >
       <View style={styles.rowDot} />
       <View style={styles.rowText}>
-        <Text style={styles.rowDomain}>{activity.domain}</Text>
+        <Text style={styles.rowDomain}>{DOMAIN_LABEL[activity.domain]}</Text>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {activity.title}
         </Text>

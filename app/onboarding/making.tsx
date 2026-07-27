@@ -2,10 +2,11 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { OnboardingScreen } from "../../components/onboarding";
+import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
-import { childFromDraft, saveLocalFamily } from "../../lib/localProfile";
+import * as family from "../../lib/db/family";
+import { ensureSession } from "../../lib/db/session";
 import { useOnboarding } from "../../lib/OnboardingProvider";
-import { supabase } from "../../lib/supabase";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 // Calm, human facts — never fake-technical. Rotate underneath a real
@@ -23,10 +24,19 @@ const NAVIGATE_AT = BAR_DURATION + READY_HOLD; // 4500ms — comfortably under 5
 
 export default function Making() {
   const router = useRouter();
-  const { session, refreshFamily } = useAuth();
+  const { refreshFamily } = useAuth();
   const { draft, clear } = useOnboarding();
   const [factIndex, setFactIndex] = useState(0);
   const [ready, setReady] = useState(false);
+  /**
+   * A failed save is NOT survivable: a parent who finishes onboarding with
+   * no child row has a broken account and an app that can't plan anything.
+   * So this screen holds rather than navigating on, and offers a retry.
+   */
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startedAtRef = useRef(Date.now());
 
   const barProgress = useRef(new Animated.Value(0)).current;
   const entrance = useRef(new Animated.Value(0)).current;
@@ -90,49 +100,69 @@ export default function Making() {
       }).start();
     }, BAR_DURATION);
 
-    const navTimer = setTimeout(() => router.replace("/home"), NAVIGATE_AT);
-
-    // Save, decoupled from the on-screen timing — the promise to the
-    // parent is "ready in under 5 seconds", not "as slow as the network".
-    (async () => {
-      // Device first, and unconditionally. With auth off this is the only
-      // store; with auth on it means Home has something to render even if
-      // the network write is slow or fails.
-      await saveLocalFamily({
-        parentName: draft.parentName,
-        child: childFromDraft(draft.childName, draft.dateOfBirth),
-      });
-
-      if (session?.user?.id) {
-        try {
-          await supabase
-            .from("parents")
-            .update({ phone: draft.mobile, full_name: draft.parentName })
-            .eq("id", session.user.id);
-          await supabase.from("children").insert({
-            parent_id: session.user.id,
-            name: draft.childName,
-            date_of_birth: draft.dateOfBirth,
-            gender: draft.gender,
-          });
-        } catch {
-          // Swallowed intentionally — the local save above already
-          // guarantees the parent lands on a working Home screen.
-        }
-      }
-
-      // Reads the server when there's a session, the device otherwise.
-      await refreshFamily();
-      await clear();
-    })();
+    void save();
 
     return () => {
       factTimers.forEach(clearTimeout);
       clearTimeout(readyTimer);
-      clearTimeout(navTimer);
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * The real commit: a profiles row and a children row.
+   *
+   * Runs alongside the animation rather than after it — the promise to the
+   * parent is "ready in under 5 seconds", not "as slow as the network" —
+   * but navigation waits for it to succeed. Failures are surfaced, never
+   * swallowed, because landing on Home with no child is a broken account
+   * that looks like a working one.
+   */
+  const save = async () => {
+    setSaveError(null);
+    try {
+      const userId = await ensureSession();
+
+      await family.updateProfile(userId, {
+        parent_name: draft.parentName,
+        // Captured once, here. Every "today" in the product — which plan
+        // is current, when it rolls over — is derived from this.
+        timezone: family.deviceTimezone(),
+        ...(draft.mobile ? { phone: draft.mobile } : {}),
+      });
+
+      // Only create a child if this account somehow doesn't have one, so a
+      // retry after a partial failure doesn't produce a duplicate sibling.
+      const existing = await family.getPrimaryChild(userId);
+      if (!existing) {
+        await family.createChild({
+          parentId: userId,
+          name: draft.childName,
+          dateOfBirth: draft.dateOfBirth,
+          gender: draft.gender || null,
+        });
+      }
+
+      await refreshFamily();
+      await clear();
+
+      // Hold the "Ready." beat if the save finished early.
+      const elapsed = Date.now() - startedAtRef.current;
+      navTimerRef.current = setTimeout(
+        () => router.replace("/home"),
+        Math.max(0, NAVIGATE_AT - elapsed)
+      );
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Something went wrong.");
+    }
+  };
+
+  const retry = async () => {
+    setRetrying(true);
+    await save();
+    setRetrying(false);
+  };
 
   const barWidth = barProgress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
 
@@ -154,7 +184,12 @@ export default function Making() {
         </View>
 
         <View style={styles.factSlot}>
-          {!ready ? (
+          {saveError ? (
+            <Text style={styles.errorText}>
+              We couldn&rsquo;t finish setting up your family. Nothing is lost — your
+              answers are still here.
+            </Text>
+          ) : !ready ? (
             <Animated.Text
               style={[
                 styles.fact,
@@ -167,6 +202,20 @@ export default function Making() {
             <Animated.Text style={[styles.ready, { opacity: readyOpacity }]}>Ready.</Animated.Text>
           )}
         </View>
+
+        {saveError && (
+          <View style={styles.retryWrap}>
+            <PrimaryButton
+              tone="taupe"
+              title="Try again"
+              onPress={retry}
+              loading={retrying}
+            />
+            {/* The underlying cause, kept small. Useful while this is in
+                testing; the sentence above is what actually matters. */}
+            <Text style={styles.errorDetail}>{saveError}</Text>
+          </View>
+        )}
       </Animated.View>
     </OnboardingScreen>
   );
@@ -213,5 +262,23 @@ const styles = StyleSheet.create({
     fontSize: typeScale.h1,
     color: colors.warmTaupe,
     textAlign: "center",
+  },
+  errorText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.body * 1.5,
+    color: colors.charcoal,
+    textAlign: "center",
+  },
+  retryWrap: {
+    width: "100%",
+    marginTop: spacing.lg,
+  },
+  errorDetail: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: spacing.sm,
   },
 });

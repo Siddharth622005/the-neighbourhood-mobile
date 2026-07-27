@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { AUTH_ENABLED } from "./authMode";
+import { EMAIL_AUTH_ENABLED } from "./authMode";
 
 /**
  * The onboarding draft — collected BEFORE the parent ever creates an account.
@@ -38,7 +38,7 @@ const STORAGE_KEY = "tn.onboarding.draft.v2";
 // The linear order of the flow. Used only to decide where to resume a
 // half-finished draft — never shown to the parent as "step N of M".
 export const ONBOARDING_STEPS = [
-  ...(AUTH_ENABLED ? (["/onboarding/contact"] as const) : []),
+  ...(EMAIL_AUTH_ENABLED ? (["/onboarding/contact"] as const) : []),
   "/onboarding/parent-name",
   "/onboarding/child-name",
   "/onboarding/birthday",
@@ -58,7 +58,7 @@ type OnboardingContextValue = {
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 function resumeFromDraft(d: OnboardingDraft): (typeof ONBOARDING_STEPS)[number] {
-  if (AUTH_ENABLED && (!d.mobile || !d.email)) return "/onboarding/contact";
+  if (EMAIL_AUTH_ENABLED && (!d.mobile || !d.email)) return "/onboarding/contact";
   if (!d.parentName) return "/onboarding/parent-name";
   if (!d.childName) return "/onboarding/child-name";
   if (!d.dateOfBirth) return "/onboarding/birthday";

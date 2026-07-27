@@ -1,20 +1,30 @@
 import { Session } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { clearLocalFamily, getLocalFamily } from "./localProfile";
+import * as family from "./db/family";
+import type { Child } from "./db/types";
 import { supabase } from "./supabase";
 
-export type Child = {
-  id: number;
-  name: string;
-  date_of_birth: string;
-  interests: string[];
-  goals: string[];
-};
+/**
+ * The signed-in family.
+ *
+ * The database is the source of truth: `child` comes from the `children`
+ * table, not from device storage. That's what makes the same family
+ * appear on a reinstall once the account is linked to an email, and it's
+ * why lib/localProfile.ts is gone.
+ *
+ * `Child` is re-exported from lib/db/types so screens keep importing it
+ * from here — its shape now matches the table exactly (uuid id, no
+ * interests/goals columns; those are learned from activity_log instead of
+ * being stored on the child).
+ */
+export type { Child };
 
 type AuthState = {
   session: Session | null;
-  loading: boolean; // still resolving the initial session
-  familyLoading: boolean; // fetching parent/child rows
+  /** Still resolving the initial session. */
+  loading: boolean;
+  /** Fetching profile/children rows. */
+  familyLoading: boolean;
   parentName: string | null;
   child: Child | null;
   connectionError: string | null;
@@ -36,25 +46,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setFamilyLoading(true);
     setConnectionError(null);
     try {
-      const [{ data: parent, error: parentError }, { data: kids, error: childError }] =
-        await Promise.all([
-          supabase.from("parents").select("full_name").eq("id", userId).single(),
-          supabase
-            .from("children")
-            .select("id, name, date_of_birth, interests, goals")
-            .eq("parent_id", userId)
-            .order("created_at", { ascending: true })
-            .limit(1),
-        ]);
-
-      if (parentError && parentError.code !== "PGRST116") throw parentError;
-      if (childError) throw childError;
-
-      setParentName(parent?.full_name ?? null);
-      setChild(kids && kids.length > 0 ? (kids[0] as Child) : null);
-    } catch (err) {
-      // Network/DNS failures land here too — surface a calm message
-      // instead of leaving the app stuck on a spinner forever.
+      const [profile, primary] = await Promise.all([
+        family.getProfile(userId),
+        family.getPrimaryChild(userId),
+      ]);
+      setParentName(profile?.parent_name ?? null);
+      setChild(primary);
+    } catch {
+      // Network/DNS failures land here too — surface a calm message rather
+      // than leaving the app stuck on a spinner forever.
       setConnectionError(
         "We couldn't reach The Neighbourhood right now. Please check your connection and try again."
       );
@@ -63,18 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  /** The device-local family — the only source while auth is off. */
-  const loadLocalFamily = async () => {
-    const local = await getLocalFamily();
-    setParentName(local?.parentName ?? null);
-    setChild(local?.child ?? null);
-  };
-
   const refreshFamily = async () => {
-    // Server wins whenever there's a session; otherwise fall back to the
-    // device, which is where onboarding just wrote.
-    if (session?.user?.id) await fetchFamily(session.user.id);
-    else await loadLocalFamily();
+    const { data } = await supabase.auth.getSession();
+    const userId = data.session?.user?.id;
+    // Keep session in step: onboarding may have created one since mount.
+    setSession(data.session);
+    if (userId) await fetchFamily(userId);
   };
 
   useEffect(() => {
@@ -82,11 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
       if (data.session?.user?.id) {
-        fetchFamily(data.session.user.id);
-      } else {
-        // Must finish before `loading` drops, or the entry route briefly
-        // sees no child and bounces an existing family out to /welcome.
-        await loadLocalFamily();
+        await fetchFamily(data.session.user.id);
       }
       setLoading(false);
     })();
@@ -96,10 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (newSession?.user?.id) {
         fetchFamily(newSession.user.id);
       } else {
-        // Not necessarily a sign-out — this also fires on first load with
-        // auth off. Re-read the device rather than blanking state, and let
-        // signOut() do the actual clearing.
-        loadLocalFamily();
+        // Signed out — clear, or the next person on this device inherits
+        // the previous family.
+        setParentName(null);
+        setChild(null);
       }
     });
 
@@ -107,9 +97,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    // Clear the device first: the auth listener re-reads local storage, so
-    // wiping it afterwards would just be read back in.
-    await clearLocalFamily();
     setParentName(null);
     setChild(null);
     await supabase.auth.signOut();

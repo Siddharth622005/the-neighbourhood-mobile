@@ -1,20 +1,36 @@
 /**
- * Auth kill switch.
+ * How a parent gets a session.
  *
- * OFF for now: Supabase's email templates send a magic link rather than
- * the six-digit code `verify.tsx` expects, so nobody could get past the
- * OTP screen. Rather than block testing on a dashboard change, onboarding
- * skips the account step entirely and the family lives on the device.
+ * "anonymous" — onboarding silently creates a real Supabase user via
+ *   signInAnonymously. There is still a genuine auth.uid(), so every RLS
+ *   policy works and profiles/children/plans are real database rows; the
+ *   parent just never sees an account step. This matches the product's
+ *   "we earn the account at the end, not the front door" stance, and it's
+ *   what unblocked Phase 2 while the email templates are still wrong
+ *   (Supabase sends a magic link, verify.tsx expects a six-digit code).
  *
- * Flip this back to `true` once the Confirm signup and Magic Link
- * templates include {{ .Token }}. Nothing was deleted to turn auth off —
- * contact.tsx, verify.tsx and sign-in.tsx are all still here and wired;
- * this flag just routes around them.
+ *   Trade-off: the account lives on the device. Reinstall or a second
+ *   phone starts a new family until it's linked to an email.
  *
- * What's different while it's off:
- *   · no account, no session, no email
- *   · the profile is AsyncStorage-only, so it's per-device and per-browser
- *   · nothing reaches Supabase — RLS needs auth.uid() for parents/children
- *   · clearing site data (or a new device) starts a fresh family
+ * "email" — the designed flow: contact → OTP → verify. Requires the
+ *   Confirm signup AND Magic Link templates to include {{ .Token }}.
+ *   Switching back is this one constant; contact.tsx, verify.tsx and
+ *   sign-in.tsx were never deleted.
+ *
+ * Upgrading an anonymous account to a permanent one later is supported by
+ * Supabase (updateUser with an email, then verify) and keeps the same
+ * user id — so no data migration is needed when that day comes.
  */
-export const AUTH_ENABLED: boolean = false;
+export type AuthMode = "anonymous" | "email";
+
+export const AUTH_MODE: AuthMode = "anonymous";
+
+/**
+ * Whether the email/OTP screens are part of onboarding.
+ *
+ * The cast is load-bearing: TypeScript narrows a `const` to its initializer's
+ * literal type for comparisons, so without it this reads as comparing
+ * "anonymous" to "email" and fails to compile — even though AUTH_MODE is
+ * declared as the union and is meant to be edited.
+ */
+export const EMAIL_AUTH_ENABLED: boolean = (AUTH_MODE as string) === "email";
