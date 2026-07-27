@@ -2,8 +2,10 @@
 -- Regenerate after any content change:  node scripts/gen-seed.mjs
 --
 -- activities: 56   milestones: 199
-
-begin;
+--
+-- Idempotent: every statement upserts, so re-pushing after a content
+-- edit updates rows in place. No begin/commit — the CLI already wraps
+-- each migration in a transaction.
 
 -- Activities ---------------------------------------------------------
 insert into activities (id, domain, age_band, title, why, duration_minutes, materials) values
@@ -273,4 +275,3 @@ on conflict (id) do update set domain = excluded.domain, age_band = excluded.age
 -- and an immunisation schedule must come from a sourced IAP reference
 -- rather than being reconstructed. Seed before shipping Vaccinations.
 
-commit;
