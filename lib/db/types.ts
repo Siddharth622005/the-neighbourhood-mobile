@@ -65,12 +65,43 @@ export type Milestone = {
   guide: { try?: string; watch?: string; see?: string } | null;
 };
 
+/**
+ * How a vaccine is positioned for a parent.
+ *
+ *   essential   — India's Universal Immunisation Programme. Free at
+ *                 government facilities; the baseline every child gets.
+ *   recommended — IAP advises it beyond the UIP, for broader protection.
+ *   situational — only for specific geography, risk or medical need, and
+ *                 never presented as something a typical child is missing.
+ */
+export const VACCINE_TIERS = ["essential", "recommended", "situational"] as const;
+export type VaccineTier = (typeof VACCINE_TIERS)[number];
+
+export const VACCINE_TIER_LABEL: Record<VaccineTier, string> = {
+  essential: "Essential",
+  recommended: "Recommended",
+  situational: "Situational",
+};
+
+export const VACCINE_TIER_BLURB: Record<VaccineTier, string> = {
+  essential: "Part of India's Universal Immunisation Programme — free at government centres.",
+  recommended: "Advised by the Indian Academy of Pediatrics for broader protection.",
+  situational: "Only needed for specific risks, places or medical conditions. Ask your doctor.",
+};
+
 export type VaccinationScheduleItem = {
   id: string;
   vaccine_name: string;
+  tier: VaccineTier;
+  /** Display string — real schedules are ranges ("16–24 months"). */
+  age_label: string;
+  /** Exact age in days; the sort key. */
+  age_days: number;
   recommended_age_months: number;
   dose_label: string | null;
   notes: string | null;
+  /** "NIS" (government) or "IAP" — every row is traceable. */
+  source: string | null;
 };
 
 // --- Family data ------------------------------------------------------

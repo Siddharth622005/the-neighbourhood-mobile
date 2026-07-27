@@ -85,10 +85,14 @@ export async function unmarkMilestone(childId: string, milestoneId: string): Pro
 // --- Vaccinations -----------------------------------------------------
 
 /**
- * NOTE: vaccination_schedule is seeded EMPTY. No sourced dataset exists in
- * the codebase, and an immunisation schedule isn't something to
- * reconstruct from memory. These functions are correct and will simply
- * return nothing until a real IAP schedule is loaded.
+ * The full schedule, earliest first.
+ *
+ * Ordered by age_days, not recommended_age_months: the infant series
+ * lands at 6/10/14 WEEKS, which collapses to a meaningless 1/2/3 in whole
+ * months and sorts wrongly against "9–12 months".
+ *
+ * Seeded from the National Immunization Schedule (UIP) and the IAP-ACVIP
+ * 2023 schedule. Each row carries a `tier` and a `source`.
  */
 export async function getVaccinationSchedule(): Promise<VaccinationScheduleItem[]> {
   return unwrap<VaccinationScheduleItem[]>(
@@ -96,7 +100,8 @@ export async function getVaccinationSchedule(): Promise<VaccinationScheduleItem[
     await supabase
       .from("vaccination_schedule")
       .select("*")
-      .order("recommended_age_months", { ascending: true })
+      .order("age_days", { ascending: true })
+      .order("vaccine_name", { ascending: true })
   );
 }
 
@@ -111,6 +116,19 @@ export async function getAdministeredVaccinations(
       .eq("child_id", childId)
       .order("administered_on", { ascending: false })
   );
+}
+
+/** Undoes a recording — a mistaken tap must be correctable. */
+export async function removeVaccination(
+  childId: string,
+  vaccinationId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("child_vaccinations")
+    .delete()
+    .eq("child_id", childId)
+    .eq("vaccination_id", vaccinationId);
+  if (error) throw error;
 }
 
 export async function recordVaccination(input: {
