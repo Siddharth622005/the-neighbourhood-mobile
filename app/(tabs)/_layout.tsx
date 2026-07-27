@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { AvatarButton } from "../../components/AvatarButton";
+import { LogoMark } from "../../components/Logo";
 import { CopilotIcon, GrowthIcon, HomeIcon } from "../../components/TabIcons";
 import { colors, fonts, spacing } from "../../lib/theme";
 
@@ -57,9 +58,9 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Home",
-          // Home writes its own greeting as the first line of the screen;
-          // a second title bar above it would just repeat the same beat.
-          headerTitle: "",
+          // The greeting below already says who this is for, so the header
+          // carries the mark instead of a title that would repeat it.
+          headerTitle: () => <LogoMark size={26} />,
           tabBarIcon: ({ color, focused }) => <HomeIcon color={color} focused={focused} />,
         }}
       />

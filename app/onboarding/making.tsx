@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { OnboardingScreen } from "../../components/onboarding";
+import { LogoMark } from "../../components/Logo";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
 import * as family from "../../lib/db/family";
@@ -188,6 +189,8 @@ export default function Making() {
           },
         ]}
       >
+        <LogoMark size={44} />
+
         <Text style={styles.headline}>Getting everything ready for your family.</Text>
 
         <View style={styles.track}>
@@ -237,6 +240,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headline: {
+    marginTop: spacing.lg,
     fontFamily: fonts.bodySemiBold,
     fontSize: typeScale.h3,
     lineHeight: typeScale.h3 * 1.4,

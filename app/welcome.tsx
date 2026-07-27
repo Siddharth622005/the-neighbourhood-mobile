@@ -1,5 +1,6 @@
 import { Link, useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
+import { LogoMark } from "../components/Logo";
 import { PrimaryButton } from "../components/ui";
 import { FadeIn, OnboardingScreen } from "../components/onboarding";
 import { EMAIL_AUTH_ENABLED } from "../lib/authMode";
@@ -28,13 +29,20 @@ export default function Welcome() {
         </FadeIn>
       }
     >
+      {/* The mark introduces itself before the promise does — this is the
+          one screen where the brand should be stated, not just present. */}
       <FadeIn>
+        <View style={styles.brand}>
+          <LogoMark size={54} />
+        </View>
+      </FadeIn>
+      <FadeIn delay={80}>
         <Text style={styles.headline}>
           Raising a child was never{"\n"}meant to be{" "}
           <Text style={styles.headlineAccent}>done alone.</Text>
         </Text>
       </FadeIn>
-      <FadeIn delay={140}>
+      <FadeIn delay={200}>
         <Text style={styles.sub}>
           The Neighbourhood learns your child, and tells you what today is for.
         </Text>
@@ -45,6 +53,9 @@ export default function Welcome() {
 }
 
 const styles = StyleSheet.create({
+  brand: {
+    marginBottom: spacing.lg,
+  },
   headline: {
     fontFamily: fonts.bodyBold,
     fontSize: 34,

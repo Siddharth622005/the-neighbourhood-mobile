@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LogoMark } from "../components/Logo";
 import { GhostButton } from "../components/ui";
 import { useAuth } from "../lib/AuthProvider";
 import { EMAIL_AUTH_ENABLED } from "../lib/authMode";
@@ -24,6 +25,10 @@ export default function Profile() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.close}>
           <Text style={styles.closeLabel}>Done</Text>
         </Pressable>
+
+        <View style={styles.brand}>
+          <LogoMark size={30} />
+        </View>
 
         <Text style={styles.eyebrow}>FAMILY</Text>
         <Text style={styles.title}>{parentName ?? "You"}</Text>
@@ -60,6 +65,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: typeScale.body,
     color: colors.warmTaupe,
+  },
+  brand: {
+    marginBottom: spacing.md,
   },
   eyebrow: {
     fontFamily: fonts.bodySemiBold,
