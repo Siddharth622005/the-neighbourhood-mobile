@@ -33,6 +33,30 @@ export async function getMilestonesForAge(
   );
 }
 
+export async function getAllMilestones(): Promise<Milestone[]> {
+  return unwrap<Milestone[]>(
+    "growth.getAllMilestones",
+    await supabase
+      .from("milestones")
+      .select("*")
+      .order("typical_age_min_months", { ascending: true })
+      .order("domain", { ascending: true })
+  );
+}
+
+export async function getMilestonesForCurrentAge(ageMonths: number): Promise<Milestone[]> {
+  return unwrap<Milestone[]>(
+    "growth.getMilestonesForCurrentAge",
+    await supabase
+      .from("milestones")
+      .select("*")
+      .lte("typical_age_min_months", ageMonths)
+      .gte("typical_age_max_months", ageMonths)
+      .order("typical_age_min_months", { ascending: true })
+      .order("domain", { ascending: true })
+  );
+}
+
 export async function getAchievedMilestones(childId: string): Promise<ChildMilestone[]> {
   return unwrap<ChildMilestone[]>(
     "growth.getAchievedMilestones",

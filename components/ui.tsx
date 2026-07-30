@@ -130,12 +130,12 @@ const styles = StyleSheet.create({
   screenInner: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
   },
   eyebrow: {
     fontFamily: fonts.bodySemiBold,
     fontSize: typeScale.caption,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     textTransform: "uppercase",
     color: colors.warmTaupe,
     marginBottom: spacing.sm,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: typeScale.h1,
     color: colors.charcoal,
-    lineHeight: typeScale.h1 * 1.25,
+    lineHeight: typeScale.h1 * 1.2,
     marginBottom: spacing.sm,
   },
   subtitle: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: typeScale.body,
     color: colors.charcoal,
-    lineHeight: typeScale.body * 1.5,
+    lineHeight: typeScale.body * 1.55,
   },
   bodyMuted: {
     color: colors.textMuted,
@@ -185,15 +185,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 3,
   },
   primaryButton: {
     backgroundColor: colors.charcoal,
     borderRadius: radius.pill,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 52, // large touch target, per PRD 9.6
+    minHeight: 48,
   },
   primaryButtonTaupe: {
     backgroundColor: colors.warmTaupe,

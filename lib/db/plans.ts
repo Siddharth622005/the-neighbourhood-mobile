@@ -63,6 +63,25 @@ export async function getTodaysPlan(childId: string): Promise<DailyPlan> {
   return hydrate(row);
 }
 
+/**
+ * Remove the current plan after a child birthday change so the next read is
+ * generated from the child's new age band rather than yesterday's profile.
+ */
+export async function invalidateTodaysPlan(childId: string): Promise<void> {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const today = `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
+  const { error } = await supabase
+    .from("daily_plans")
+    .delete()
+    .eq("child_id", childId)
+    .eq("plan_date", today);
+  if (error) throw error;
+}
+
 /** Rotates one domain to its next activity, staying inside the age band. */
 export async function swapDomain(childId: string, domain: Domain): Promise<DailyPlan> {
   const row = unwrap<DailyPlanRow>(

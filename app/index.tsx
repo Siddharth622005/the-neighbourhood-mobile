@@ -1,6 +1,8 @@
 import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../lib/AuthProvider";
+import { hasCompletedFirstRun } from "../lib/firstRun";
 import { colors } from "../lib/theme";
 
 /**
@@ -18,8 +20,35 @@ import { colors } from "../lib/theme";
  */
 export default function Index() {
   const { session, loading, familyLoading, child, connectionError } = useAuth();
+  const [firstRunChecked, setFirstRunChecked] = useState(false);
+  const [firstRunComplete, setFirstRunComplete] = useState(false);
 
-  if (loading || (session && familyLoading)) {
+  useEffect(() => {
+    let alive = true;
+    if (!child) {
+      setFirstRunChecked(true);
+      setFirstRunComplete(false);
+      return;
+    }
+    setFirstRunChecked(false);
+    hasCompletedFirstRun()
+      .then((complete) => {
+        if (!alive) return;
+        setFirstRunComplete(complete);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setFirstRunComplete(false);
+      })
+      .finally(() => {
+        if (alive) setFirstRunChecked(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [child]);
+
+  if (loading || (session && familyLoading) || (child && !firstRunChecked)) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.cream }}>
         <ActivityIndicator color={colors.warmTaupe} />
@@ -31,6 +60,8 @@ export default function Index() {
   if (session && connectionError) return <Redirect href="/connection-error" />;
 
   if (!child) return <Redirect href="/welcome" />;
+
+  if (!firstRunComplete) return <Redirect href="/onboarding/first-run" />;
 
   return <Redirect href="/home" />;
 }

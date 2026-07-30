@@ -14,7 +14,7 @@
  */
 export type GrowthSection = {
   /** Route segment under app/(tabs)/growth/ */
-  slug: "milestones" | "kit" | "vaccinations" | "reports" | "products";
+  slug: "milestones" | "guide" | "kit" | "vaccinations" | "reports" | "products";
   title: string;
   /** One line, shown under the title on the Growth landing list. */
   blurb: string;
@@ -25,6 +25,11 @@ export const GROWTH_SECTIONS: GrowthSection[] = [
     slug: "milestones",
     title: "Milestones",
     blurb: "What's typical now, what's coming, and what they've already done.",
+  },
+  {
+    slug: "guide",
+    title: "The Guide",
+    blurb: "Expert-backed articles, videos, and calm parenting explainers.",
   },
   {
     slug: "kit",

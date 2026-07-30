@@ -28,6 +28,7 @@ type AuthState = {
   parentName: string | null;
   child: Child | null;
   connectionError: string | null;
+  hydrateFamily: (input: { parentName: string | null; child: Child }) => void;
   refreshFamily: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -51,7 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         family.getPrimaryChild(userId),
       ]);
       setParentName(profile?.parent_name ?? null);
-      setChild(primary);
+      // Anonymous signup can fire an auth-state fetch before onboarding has
+      // inserted the child row. If that slower "no child yet" response lands
+      // after onboarding has already hydrated the created child locally, do
+      // not erase the dashboard's source of truth for this session.
+      setChild((current) => primary ?? current);
     } catch {
       // Network/DNS failures land here too — surface a calm message rather
       // than leaving the app stuck on a spinner forever.
@@ -102,6 +107,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const hydrateFamily = (input: { parentName: string | null; child: Child }) => {
+    setParentName(input.parentName);
+    setChild(input.child);
+    setConnectionError(null);
+    setFamilyLoading(false);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -111,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         parentName,
         child,
         connectionError,
+        hydrateFamily,
         refreshFamily,
         signOut,
       }}

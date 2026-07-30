@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useScreenFocus } from "../../lib/useScreenFocus";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,8 +11,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge } from "../../lib/childAge";
+import { markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 /**
@@ -34,10 +38,35 @@ type Message = {
 };
 
 export default function Copilot() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ guidedTour?: string; next?: string; prompt?: string }>();
   const { child } = useAuth();
+  // See guide.tsx: only the focused screen may show a tour dialog.
+  const isFocused = useScreenFocus();
+  const guidedTour = params.guidedTour === "1" && isFocused;
+  const afterOnboardingTour = params.next === "milestones";
+  const tourNext = afterOnboardingTour ? "&next=milestones" : "";
+  const finishGuidedTour = async () => {
+    await markHomeCoachComplete().catch(() => {});
+    if (afterOnboardingTour) {
+      router.replace("/growth/milestones?initial=1&afterTour=1");
+      return;
+    }
+    await markFirstRunComplete().catch(() => {});
+    router.replace("/home?tourComplete=1");
+  };
+
+  const skipGuidedTour = async () => {
+    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+    router.replace("/home");
+  };
   const age = child ? computeAge(child.date_of_birth) : null;
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    if (params.prompt) setDraft(params.prompt);
+  }, [params.prompt]);
 
   const send = () => {
     const text = draft.trim();
@@ -68,12 +97,12 @@ export default function Copilot() {
         {messages.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>
-              The question you&rsquo;d text a friend at 11pm.
+              A quiet place for the questions that arrive late.
             </Text>
             <Text style={styles.emptyBody}>
               {child?.name && age
-                ? `Ask anything — sleep, feeding, a tricky moment. Answers will know ${child.name} is ${age.label} old.`
-                : "Ask anything — sleep, feeding, a tricky moment."}
+                ? `Sleep, feeding, or a tricky moment. We'll keep ${child.name} in mind.`
+                : "Sleep, feeding, or a tricky moment. Start wherever you are."}
             </Text>
           </View>
         ) : (
@@ -90,12 +119,12 @@ export default function Copilot() {
         )}
       </ScrollView>
 
-      <View style={styles.composer}>
+      <View style={[styles.composer, guidedTour && styles.tourHighlight]}>
         <TextInput
           style={styles.input}
           value={draft}
           onChangeText={setDraft}
-          placeholder="Ask anything…"
+          placeholder="What's on your mind?"
           placeholderTextColor={colors.textMuted}
           multiline
           onSubmitEditing={send}
@@ -110,6 +139,19 @@ export default function Copilot() {
           <Text style={styles.sendLabel}>Ask</Text>
         </Pressable>
       </View>
+      {guidedTour && (
+        <GuidedTourDialog
+          eyebrow="Parenting Companion"
+          focus="The message composer"
+          title="Ask when you need a second voice."
+          body="Supportive guidance for everyday questions, never a replacement for expert care."
+          step={3}
+          total={4}
+          primaryTitle="Begin"
+          onPrimary={finishGuidedTour}
+          onSkip={skipGuidedTour}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -130,12 +172,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: typeScale.h1,
     color: colors.charcoal,
-    lineHeight: typeScale.h1 * 1.25,
+    lineHeight: typeScale.h1 * 1.2,
   },
   emptyBody: {
     fontFamily: fonts.body,
     fontSize: typeScale.body,
-    lineHeight: typeScale.body * 1.5,
+    lineHeight: typeScale.body * 1.55,
     color: colors.textMuted,
     marginTop: spacing.md,
   },
@@ -143,7 +185,7 @@ const styles = StyleSheet.create({
     maxWidth: "85%",
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
   },
   parentBubble: {
     alignSelf: "flex-end",
@@ -152,7 +194,7 @@ const styles = StyleSheet.create({
   },
   copilotBubble: {
     alignSelf: "flex-start",
-    backgroundColor: colors.white,
+    backgroundColor: "rgba(255, 253, 252, 0.82)",
     borderBottomLeftRadius: radius.sm / 2,
   },
   parentText: {
@@ -177,6 +219,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.cream,
+  },
+  tourHighlight: {
+    borderTopColor: colors.warmTaupe,
+    backgroundColor: colors.white,
+    shadowColor: colors.charcoal,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 4,
   },
   input: {
     flex: 1,

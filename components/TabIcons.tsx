@@ -53,20 +53,39 @@ export function CopilotIcon({ color, focused }: IconProps) {
   );
 }
 
-/** Growth — an uneven rising line with marked moments. Never a chart. */
+/** Your Child — a heart. Care, plainly. */
 export function GrowthIcon({ color, focused }: IconProps) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M4 19c3-6 5-9 8-9s5 3 8 9"
+        d="M12 19.5c0 0-8-5-8-11.2C4 5 6.2 3 9 3c1.4 0 2.7.7 3 1.8C12.3 3.7 13.6 3 15 3c2.8 0 5 2 5 5.3 0 6.2-8 11.2-8 11.2Z"
         stroke={color}
         strokeWidth={w(focused)}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx="4" cy="19" r="1.4" fill={color} />
-      <Circle cx="12" cy="10" r="1.4" fill={color} />
-      <Circle cx="20" cy="19" r="1.4" fill={color} />
+    </Svg>
+  );
+}
+
+/** Community — two overlapping figures standing together. */
+export function CommunityIcon({ color, focused }: IconProps) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Circle cx="9" cy="7" r="3" stroke={color} strokeWidth={w(focused)} />
+      <Path
+        d="M3 18c0-3 2.7-5 6-5s6 2 6 5"
+        stroke={color}
+        strokeWidth={w(focused)}
+        strokeLinecap="round"
+      />
+      <Circle cx="16.5" cy="8.5" r="2.3" stroke={color} strokeWidth={w(focused)} />
+      <Path
+        d="M14 18c.3-1.8 1.8-3 3.8-3 1.4 0 2.6.6 3.2 1.8"
+        stroke={color}
+        strokeWidth={w(focused)}
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }

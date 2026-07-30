@@ -1,11 +1,16 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useScreenFocus } from "../lib/useScreenFocus";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GuidedTourDialog } from "../components/GuidedTourDialog";
 import { LogoMark } from "../components/Logo";
+import { ReplayTourDialog } from "../components/ReplayTourDialog";
 import { GhostButton } from "../components/ui";
 import { useAuth } from "../lib/AuthProvider";
 import { EMAIL_AUTH_ENABLED } from "../lib/authMode";
 import { computeAge } from "../lib/childAge";
+import { markFirstRunComplete, markHomeCoachComplete } from "../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
 
 /**
@@ -16,8 +21,29 @@ import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
  */
 export default function Profile() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ guidedTour?: string; next?: string }>();
   const { parentName, child, signOut } = useAuth();
   const age = child ? computeAge(child.date_of_birth) : null;
+  // See guide.tsx: only the focused screen may show a tour dialog.
+  const isFocused = useScreenFocus();
+  const guidedTour = params.guidedTour === "1" && isFocused;
+  const afterOnboardingTour = params.next === "milestones";
+  const [showReplayDialog, setShowReplayDialog] = useState(false);
+
+  const finishTour = async () => {
+    await markHomeCoachComplete().catch(() => {});
+    if (afterOnboardingTour) {
+      router.replace("/growth/milestones?initial=1&afterTour=1");
+      return;
+    }
+    await markFirstRunComplete().catch(() => {});
+    router.replace("/home?tourComplete=1");
+  };
+
+  const replayTour = () => {
+    setShowReplayDialog(false);
+    router.replace("/home?guidedTour=1&step=0&replay=1");
+  };
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -34,11 +60,32 @@ export default function Profile() {
         <Text style={styles.title}>{parentName ?? "You"}</Text>
 
         {child && (
-          <View style={styles.card}>
+          <View style={[styles.card, guidedTour && styles.tourHighlight]}>
             <Text style={styles.childName}>{child.name}</Text>
             <Text style={styles.childMeta}>{age?.label ?? "—"} old</Text>
           </View>
         )}
+
+        <View style={styles.settingsList}>
+          <View style={styles.settingRow}>
+            <View>
+              <Text style={styles.settingTitle}>Child details</Text>
+              <Text style={styles.settingBody}>Name, birthday, and family preferences.</Text>
+            </View>
+          </View>
+          <View style={styles.settingRow}>
+            <View>
+              <Text style={styles.settingTitle}>Notifications</Text>
+              <Text style={styles.settingBody}>Gentle reminders for daily plans.</Text>
+            </View>
+          </View>
+          <Pressable onPress={() => setShowReplayDialog(true)} style={styles.settingRow} accessibilityRole="button">
+            <View>
+              <Text style={styles.settingTitle}>Take the tour again</Text>
+              <Text style={styles.settingBody}>A quick refresher whenever you need it.</Text>
+            </View>
+          </Pressable>
+        </View>
 
         <View style={styles.signOut}>
           {/* Without an account there's nothing to sign out OF — the honest
@@ -49,6 +96,24 @@ export default function Profile() {
           />
         </View>
       </View>
+      {guidedTour && (
+        <GuidedTourDialog
+          eyebrow="Profile"
+          focus="Family settings"
+          title="Keep family details here."
+          body="Update child information, notifications, and replay this tour anytime."
+          step={4}
+          total={5}
+          primaryTitle="Begin"
+          onPrimary={finishTour}
+          onSkip={finishTour}
+        />
+      )}
+      <ReplayTourDialog
+        visible={showReplayDialog}
+        onDismiss={() => setShowReplayDialog(false)}
+        onConfirm={replayTour}
+      />
     </SafeAreaView>
   );
 }
@@ -87,6 +152,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
   },
+  tourHighlight: {
+    borderWidth: 1,
+    borderColor: colors.warmTaupe,
+    shadowColor: colors.charcoal,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 4,
+  },
   childName: {
     fontFamily: fonts.bodySemiBold,
     fontSize: typeScale.h3,
@@ -102,5 +176,26 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     marginBottom: spacing.lg,
     alignItems: "center",
+  },
+  settingsList: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  settingRow: {
+    backgroundColor: "rgba(255, 255, 255, 0.58)",
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  settingTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
+    color: colors.charcoal,
+  },
+  settingBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.45,
+    color: colors.textMuted,
+    marginTop: 2,
   },
 });

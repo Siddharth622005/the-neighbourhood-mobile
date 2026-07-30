@@ -82,3 +82,14 @@ export async function createChild(input: {
       .single()
   );
 }
+
+/** Update the MVP child when onboarding is completed again. */
+export async function updateChild(
+  childId: string,
+  patch: Partial<Pick<Child, "name" | "date_of_birth" | "gender">>
+): Promise<Child> {
+  return unwrap<Child>(
+    "family.updateChild",
+    await supabase.from("children").update(patch).eq("id", childId).select().single()
+  );
+}

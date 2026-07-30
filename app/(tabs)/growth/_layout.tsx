@@ -4,7 +4,7 @@ import { GROWTH_SECTIONS } from "../../../lib/growthSections";
 import { colors, fonts } from "../../../lib/theme";
 
 /**
- * Growth is a Stack, not a flat screen, so its five sections push over the
+ * Your Child is a Stack, not a flat screen, so its sections push over the
  * timeline with a real back button instead of becoming destinations of
  * their own. The tab bar stays visible throughout — a parent is never
  * more than one tap from Home or Copilot, even three levels into Growth.
@@ -29,7 +29,7 @@ export default function GrowthLayout() {
     >
       <Stack.Screen
         name="index"
-        options={{ title: "Growth", headerRight: () => <AvatarButton /> }}
+        options={{ title: "Your Child", headerRight: () => <AvatarButton /> }}
       />
       {GROWTH_SECTIONS.map((section) => (
         <Stack.Screen

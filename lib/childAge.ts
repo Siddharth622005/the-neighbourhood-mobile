@@ -1,5 +1,11 @@
 /** Age math shared across onboarding and the Home tab. */
 
+export const MILESTONES_START_MONTHS = 3;
+
+export function canShowMilestones(totalMonths: number): boolean {
+  return totalMonths >= MILESTONES_START_MONTHS;
+}
+
 export type ChildAge = {
   totalMonths: number;
   years: number;

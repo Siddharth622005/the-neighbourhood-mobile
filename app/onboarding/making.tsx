@@ -6,6 +6,7 @@ import { LogoMark } from "../../components/Logo";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
 import * as family from "../../lib/db/family";
+import * as plans from "../../lib/db/plans";
 import { ensureSession } from "../../lib/db/session";
 import { useOnboarding } from "../../lib/OnboardingProvider";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
@@ -25,7 +26,7 @@ const NAVIGATE_AT = BAR_DURATION + READY_HOLD; // 4500ms — comfortably under 5
 
 export default function Making() {
   const router = useRouter();
-  const { refreshFamily } = useAuth();
+  const { hydrateFamily, refreshFamily } = useAuth();
   const { draft, clear, resumeHref } = useOnboarding();
   const [factIndex, setFactIndex] = useState(0);
   const [ready, setReady] = useState(false);
@@ -136,7 +137,7 @@ export default function Making() {
 
       const userId = await ensureSession();
 
-      await family.updateProfile(userId, {
+      const profile = await family.updateProfile(userId, {
         parent_name: draft.parentName,
         // Captured once, here. Every "today" in the product — which plan
         // is current, when it rolls over — is derived from this.
@@ -144,25 +145,39 @@ export default function Making() {
         ...(draft.mobile ? { phone: draft.mobile } : {}),
       });
 
-      // Only create a child if this account somehow doesn't have one, so a
-      // retry after a partial failure doesn't produce a duplicate sibling.
+      // Reuse the MVP child when onboarding is completed again. Keeping the
+      // old row here meant a new name or birthday silently disappeared from
+      // Home and the age-aware milestone experience.
       const existing = await family.getPrimaryChild(userId);
-      if (!existing) {
-        await family.createChild({
-          parentId: userId,
-          name: draft.childName,
-          dateOfBirth: draft.dateOfBirth,
-          gender: draft.gender || null,
-        });
-      }
+      const savedChild =
+        existing
+          ? await family.updateChild(existing.id, {
+              name: draft.childName,
+              date_of_birth: draft.dateOfBirth,
+              gender: draft.gender || null,
+            })
+          : await family.createChild({
+              parentId: userId,
+              name: draft.childName,
+              dateOfBirth: draft.dateOfBirth,
+              gender: draft.gender || null,
+            });
 
+      // A plan is persisted for the day. Clear today's copy when the child
+      // profile changes so recommendations are regenerated for the new age.
+      if (existing) await plans.invalidateTodaysPlan(savedChild.id).catch(() => {});
+
+      hydrateFamily({
+        parentName: profile.parent_name ?? draft.parentName,
+        child: savedChild,
+      });
       await refreshFamily();
       await clear();
 
       // Hold the "Ready." beat if the save finished early.
       const elapsed = Date.now() - startedAtRef.current;
       navTimerRef.current = setTimeout(
-        () => router.replace("/home"),
+        () => router.replace("/home?guidedTour=1&step=0&next=milestones"),
         Math.max(0, NAVIGATE_AT - elapsed)
       );
     } catch (err) {

@@ -28,7 +28,7 @@ export function SectionScaffold({
       <Text style={styles.body}>{body}</Text>
 
       <View style={styles.needsBox}>
-        <Text style={styles.needsLabel}>Not built yet — still needs</Text>
+        <Text style={styles.needsLabel}>Coming next</Text>
         {needs.map((n) => (
           <Text key={n} style={styles.needsItem}>
             · {n}
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
   },
   eyebrow: {
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: typeScale.h1,
     color: colors.charcoal,
-    lineHeight: typeScale.h1 * 1.25,
+    lineHeight: typeScale.h1 * 1.2,
   },
   body: {
     fontFamily: fonts.body,
@@ -67,11 +67,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   needsBox: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderStyle: "dashed",
+    borderStyle: "solid",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     borderColor: colors.border,
     gap: 4,
   },

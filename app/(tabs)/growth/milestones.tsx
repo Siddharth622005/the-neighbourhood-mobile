@@ -1,90 +1,213 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useScreenFocus } from "../../../lib/useScreenFocus";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  KeyboardAvoidingView,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { GuidedTourDialog } from "../../../components/GuidedTourDialog";
+import { GhostButton, PrimaryButton } from "../../../components/ui";
 import { useAuth } from "../../../lib/AuthProvider";
-import { computeAge } from "../../../lib/childAge";
+import { canShowMilestones, computeAge, MILESTONES_START_MONTHS } from "../../../lib/childAge";
 import * as growth from "../../../lib/db/growth";
-import { DOMAIN_LABEL, type Milestone } from "../../../lib/db/types";
+import * as plans from "../../../lib/db/plans";
+import { DOMAIN_LABEL, DOMAINS, type Activity, type DailyPlan, type Milestone, type Domain } from "../../../lib/db/types";
+import { markFirstRunComplete, markHomeCoachComplete } from "../../../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../../../lib/theme";
 
-/**
- * Milestones — library, upcoming, and mark-achieved. Two taps from Home.
- *
- * Ordered by typical_age_min_months rather than age_band: the band is a
- * lossy 7-way bucket over a 15-stage dataset, so it's right for filtering
- * and wrong for display order.
- *
- * Never a percentile and never a comparison. A milestone not yet marked is
- * simply not marked — it is never "missing" or "behind".
- */
+// Enable LayoutAnimation for Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const STAGE_ORDER = [
+  "0–3 months",
+  "4–6 months",
+  "7–9 months",
+  "10–12 months",
+  "1–2 years",
+  "2–3 years",
+  "3–4 years",
+  "4–5 years",
+  "5–6 years",
+];
+
+type InitialPhase = "check" | "celebrate" | "recommendations";
+
+function getStageLabelForAge(months: number): string {
+  if (months <= 3) return "0–3 months";
+  if (months <= 6) return "4–6 months";
+  if (months <= 9) return "7–9 months";
+  if (months <= 12) return "10–12 months";
+  if (months <= 24) return "1–2 years";
+  if (months <= 35) return "2–3 years";
+  if (months <= 47) return "3–4 years";
+  if (months <= 59) return "4–5 years";
+  return "5–6 years";
+}
+
+function getNextStageLabel(currentLabel: string): string | null {
+  const idx = STAGE_ORDER.indexOf(currentLabel);
+  if (idx !== -1 && idx < STAGE_ORDER.length - 1) {
+    return STAGE_ORDER[idx + 1];
+  }
+  return null;
+}
+
 export default function Milestones() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ afterTour?: string; guidedTour?: string; initial?: string }>();
   const { child } = useAuth();
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [achieved, setAchieved] = useState<Set<string>>(new Set());
+  // See guide.tsx: only the focused screen may show a tour dialog.
+  const isFocused = useScreenFocus();
+  const guidedTour = params.guidedTour === "1" && isFocused;
+  const initialCheck = params.initial === "1";
+  const afterTour = params.afterTour === "1";
+  const [initialPhase, setInitialPhase] = useState<InitialPhase>("check");
+  const [initialTransition, setInitialTransition] = useState(false);
+  const [recommendationPlan, setRecommendationPlan] = useState<DailyPlan | null>(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState(false);
+  const finishGuidedTour = async () => {
+    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+    router.replace("/home?tourComplete=1");
+  };
+  const skipGuidedTour = async () => {
+    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+    router.replace("/home");
+  };
+  const [allMilestones, setAllMilestones] = useState<Milestone[]>([]);
+  const [achievedMap, setAchievedMap] = useState<Map<string, { note: string | null; achieved_at: string }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // UI States
+  const [activeTab, setActiveTab] = useState<"journey" | "explore">("journey");
+  const [selectedExploreStage, setSelectedExploreStage] = useState<string>("");
+  const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
+  const milestonesAvailable = canShowMilestones(ageMonths);
+  const currentStage = getStageLabelForAge(ageMonths);
+  const nextStage = getNextStageLabel(currentStage);
 
   const load = useCallback(async () => {
     if (!child) return;
+    if (!milestonesAvailable) {
+      setAllMilestones([]);
+      setAchievedMap(new Map());
+      setSelectedExploreStage(`${MILESTONES_START_MONTHS}+ months`);
+      setLoading(false);
+      setError(false);
+      return;
+    }
     setLoading(true);
     setError(false);
     try {
       const [library, marked] = await Promise.all([
-        growth.getMilestonesForAge(ageMonths),
+        initialCheck ? growth.getMilestonesForAge(ageMonths, 6) : growth.getAllMilestones(),
         growth.getAchievedMilestones(child.id),
       ]);
-      setMilestones(library);
-      setAchieved(new Set(marked.map((m) => m.milestone_id)));
-    } catch {
+      setAllMilestones(library);
+      
+      const aMap = new Map();
+      marked.forEach((m) => {
+        aMap.set(m.milestone_id, { note: m.note, achieved_at: m.achieved_at });
+      });
+      setAchievedMap(aMap);
+
+      if (!selectedExploreStage) {
+        setSelectedExploreStage(currentStage);
+      }
+    } catch (err) {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [child, ageMonths]);
+  }, [child, currentStage, selectedExploreStage, initialCheck, ageMonths, milestonesAvailable]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  /** Optimistic: the tick lands immediately, the write follows. */
-  const toggle = async (milestone: Milestone) => {
-    if (!child) return;
-    const wasAchieved = achieved.has(milestone.id);
+  // If this is the initial onboarding check and milestones aren't available yet
+  // (child under 3 months), skip the milestone screen entirely and go straight
+  // to the next step in the onboarding flow.
+  useEffect(() => {
+    if (!loading && initialCheck && !milestonesAvailable) {
+      void Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+      router.replace(afterTour ? "/home?tourComplete=1" : "/home?guidedTour=1&step=0");
+    }
+  }, [loading, initialCheck, milestonesAvailable, afterTour, router]);
 
-    setAchieved((prev) => {
-      const next = new Set(prev);
-      if (wasAchieved) next.delete(milestone.id);
-      else next.add(milestone.id);
+  const toggleMilestone = async (milestone: Milestone, forceAchieved = false, customNote?: string | null) => {
+    if (!child) return;
+    
+    const wasAchieved = achievedMap.has(milestone.id);
+    const shouldBeAchieved = forceAchieved || !wasAchieved;
+
+    // Local state backup for rollback
+    const prevMap = new Map(achievedMap);
+
+    // Apply LayoutAnimation for smooth transition
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    setAchievedMap((prev) => {
+      const next = new Map(prev);
+      if (shouldBeAchieved) {
+        const existing = prev.get(milestone.id);
+        next.set(milestone.id, {
+          note: customNote !== undefined ? customNote : (existing?.note ?? null),
+          achieved_at: existing?.achieved_at ?? new Date().toISOString().split("T")[0],
+        });
+      } else {
+        next.delete(milestone.id);
+      }
       return next;
     });
 
     try {
-      if (wasAchieved) {
-        await growth.unmarkMilestone(child.id, milestone.id);
-      } else {
+      if (shouldBeAchieved) {
         await growth.markMilestoneAchieved({
           childId: child.id,
           milestoneId: milestone.id,
+          note: customNote !== undefined ? customNote : (achievedMap.get(milestone.id)?.note ?? null),
         });
+      } else {
+        await growth.unmarkMilestone(child.id, milestone.id);
       }
     } catch {
-      // Put it back — showing a milestone as reached when it wasn't saved
-      // would be a quiet lie about the child's record.
-      setAchieved((prev) => {
-        const next = new Set(prev);
-        if (wasAchieved) next.add(milestone.id);
-        else next.delete(milestone.id);
-        return next;
-      });
+      // Rollback on failure
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setAchievedMap(prevMap);
+    }
+  };
+
+  const handleSaveNote = async (milestone: Milestone, noteText: string) => {
+    if (!child) return;
+    setSavingNoteId(milestone.id);
+    try {
+      await toggleMilestone(milestone, true, noteText);
+    } finally {
+      setSavingNoteId(null);
     }
   };
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.warmTaupe} />
+        <ActivityIndicator color={colors.warmTaupe} size="large" />
       </View>
     );
   }
@@ -98,92 +221,502 @@ export default function Milestones() {
     );
   }
 
-  /**
-   * Genuinely empty for children over five: the source dataset stops at
-   * six years, so the 5–7 band has no milestones at all. That's a content
-   * gap, and it should read as "nothing here yet", never as a broken
-   * screen or a child who has fallen behind.
-   */
-  if (milestones.length === 0) {
-    return (
-      <EmptyState
-        title="Nothing to track at this age yet."
-        body={
-          ageMonths >= 60
-            ? `Our milestone library currently runs to age five. We're still writing the ones for ${child?.name ?? "older children"} — they'll appear here when they're ready.`
-            : "Milestones for this age will appear here soon."
-        }
-      />
-    );
-  }
+  const beginGuidedTour = () => {
+    setInitialTransition(true);
+    setTimeout(() => router.replace("/home?guidedTour=1&step=0"), 650);
+  };
 
-  // Group by the dataset's own stage label, which is finer than age_band.
-  const groups = milestones.reduce<Record<string, Milestone[]>>((acc, m) => {
-    (acc[m.stage_label] ??= []).push(m);
+  const finishOnboarding = async () => {
+    setInitialTransition(true);
+    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+    router.replace("/home?tourComplete=1");
+  };
+
+  const skipProductTour = async () => {
+    setInitialTransition(true);
+    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+    router.replace("/home");
+  };
+
+  const prepareRecommendations = async () => {
+    if (!child) return;
+    setRecommendationLoading(true);
+    setRecommendationError(false);
+    try {
+      setRecommendationPlan(await plans.getTodaysPlan(child.id));
+    } catch {
+      setRecommendationError(true);
+    } finally {
+      setRecommendationLoading(false);
+    }
+  };
+
+  // Derived milestones lists
+  const currentStageMilestones = allMilestones.filter((m) => m.stage_label === currentStage);
+  const nextStageMilestones = nextStage ? allMilestones.filter((m) => m.stage_label === nextStage) : [];
+
+  const focusMilestones = currentStageMilestones.filter((m) => !achievedMap.has(m.id));
+  const recentlyAchieved = allMilestones
+    .filter((m) => achievedMap.has(m.id))
+    .map((m) => ({
+      ...m,
+      achievedDetails: achievedMap.get(m.id),
+    }))
+    .sort((a, b) => {
+      const dateA = a.achievedDetails?.achieved_at ?? "";
+      const dateB = b.achievedDetails?.achieved_at ?? "";
+      return dateB.localeCompare(dateA); // Sort latest first
+    });
+
+  const exploreStageMilestones = allMilestones.filter((m) => m.stage_label === selectedExploreStage);
+  const exploreGroups = exploreStageMilestones.reduce<Record<string, Milestone[]>>((acc, m) => {
+    (acc[m.domain] ??= []).push(m);
     return acc;
   }, {});
 
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.intro}>
-        What&rsquo;s typical around {child?.name ?? "this age"} right now. Tap one you&rsquo;ve
-        seen — there&rsquo;s no rush, and nothing here is a test.
-      </Text>
+  const totalAchievedCount = achievedMap.size;
 
-      {Object.entries(groups).map(([stage, items]) => (
-        <View key={stage} style={styles.group}>
-          <Text style={styles.stageLabel}>{stage.toUpperCase()}</Text>
-          {items.map((m) => {
-            const isAchieved = achieved.has(m.id);
-            return (
-              <Pressable
-                key={m.id}
-                onPress={() => toggle(m)}
-                style={({ pressed }) => [
-                  styles.row,
-                  isAchieved && styles.rowAchieved,
-                  pressed && { opacity: 0.7 },
-                ]}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: isAchieved }}
-                accessibilityLabel={m.description}
-              >
-                <View style={[styles.check, isAchieved && styles.checkOn]}>
-                  {isAchieved && <Tick />}
-                </View>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowDomain}>{DOMAIN_LABEL[m.domain]}</Text>
-                  <Text style={[styles.rowDesc, isAchieved && styles.rowDescDone]}>
-                    {m.description}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
+  // Children under 3 months: handled by the auto-navigation useEffect above.
+  // Nothing to render here — the effect redirects before this point is reached.
+
+  if (initialCheck && initialPhase === "celebrate") {
+    const stageCount = currentStageMilestones.filter((milestone) => achievedMap.has(milestone.id)).length;
+
+    return (
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.celebrationContent}>
+          <View style={styles.celebrationMark}>
+            <CheckIcon />
+          </View>
+          <Text style={styles.initialEyebrow}>A beautiful beginning</Text>
+          <Text style={styles.initialCelebrationTitle}>
+            Look how much {child?.name ?? "your little one"} has already discovered.
+          </Text>
+          <Text style={styles.initialCelebrationBody}>
+            Every moment you noticed is part of a bigger story. There is no right number to reach, and no pressure to mark everything today.
+          </Text>
+
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Moments celebrated</Text>
+              <Text style={styles.summaryValue}>{stageCount}</Text>
+            </View>
+            <View style={styles.summaryRule} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Current stage</Text>
+              <Text style={styles.summaryValue}>{currentStage}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.celebrationNote}>
+            We've used this starting point to prepare a few simple activities for today. You can update milestones anytime.
+          </Text>
+        </ScrollView>
+        <View style={styles.initialFooter}>
+          <PrimaryButton
+            tone="taupe"
+            title="See today's recommendations"
+            onPress={() => {
+              setInitialPhase("recommendations");
+              void prepareRecommendations();
+            }}
+          />
         </View>
-      ))}
-    </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (initialCheck && initialPhase === "recommendations") {
+    const recommendationActivities = recommendationPlan?.activities.slice(0, 3) ?? [];
+
+    return (
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+      >
+        <ScrollView contentContainerStyle={styles.recommendationContent}>
+          <Text style={styles.initialEyebrow}>Made for your family</Text>
+          <Text style={styles.initialTitle}>A gentle plan for {child?.name ?? "your child"}.</Text>
+          <Text style={styles.initialBody}>
+            Today's ideas are shaped around their age, current stage, and the moments you've already noticed.
+          </Text>
+
+          {recommendationLoading ? (
+            <View style={styles.recommendationLoading}>
+              <ActivityIndicator color={colors.warmTaupe} />
+              <Text style={styles.smallMuted}>Choosing a few lovely ways to play and connect.</Text>
+            </View>
+          ) : recommendationActivities.length > 0 ? (
+            <View style={styles.recommendationList}>
+              {recommendationActivities.map((activity) => (
+                <RecommendationCard key={activity.id} activity={activity} />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.initialEmpty}>
+              <Text style={styles.initialEmptyText}>
+                Your personalized plan will be ready on Home. We'll keep it simple and age-appropriate.
+              </Text>
+            </View>
+          )}
+
+          {recommendationError && (
+            <Text style={styles.recommendationError}>We'll finish preparing the plan when Home opens.</Text>
+          )}
+        </ScrollView>
+        <View style={styles.initialFooter}>
+          <PrimaryButton
+            tone="taupe"
+            title={
+              initialTransition
+                ? "Opening your Neighbourhood..."
+                : afterTour
+                  ? "Go to Home"
+                  : "Take a quick tour"
+            }
+            onPress={afterTour ? finishOnboarding : beginGuidedTour}
+            disabled={initialTransition || recommendationLoading}
+          />
+          {!afterTour && !initialTransition && (
+            <GhostButton title="Skip the tour" onPress={skipProductTour} />
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (initialCheck) {
+    const initialGroups = DOMAINS.map((domain) => ({
+      domain,
+      items: currentStageMilestones.filter((milestone) => milestone.domain === domain).slice(0, 2),
+    })).filter((group) => group.items.length > 0);
+
+    return (
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+      >
+        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.initialContent}>
+          <Text style={styles.initialEyebrow}>A gentle beginning</Text>
+          <Text style={styles.initialTitle}>Where is {child?.name ?? "your child"} today?</Text>
+          <Text style={styles.initialBody}>
+            Mark a few moments you've already noticed. This gives us a starting point, not a scorecard.
+          </Text>
+          <Text style={styles.initialAgeNote}>
+            Showing a few milestones for the {currentStage} stage.
+          </Text>
+
+          {initialGroups.length > 0 ? (
+            initialGroups.map(({ domain, items }) => (
+              <View key={domain} style={styles.initialGroup}>
+                <Text style={styles.initialGroupTitle}>{DOMAIN_LABEL[domain]}</Text>
+                {items.map((milestone) => {
+                  const isAchieved = achievedMap.has(milestone.id);
+                  return (
+                    <Pressable
+                      key={milestone.id}
+                      onPress={() => toggleMilestone(milestone)}
+                      style={({ pressed }) => [
+                        styles.initialRow,
+                        isAchieved && styles.initialRowSelected,
+                        pressed && { opacity: 0.72 },
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isAchieved }}
+                    >
+                      <View style={[styles.initialCheck, isAchieved && styles.initialCheckOn]}>
+                        {isAchieved && <CheckIcon />}
+                      </View>
+                      <Text style={styles.initialRowText}>{milestone.description}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))
+          ) : (
+            <View style={styles.initialEmpty}>
+              <Text style={styles.initialEmptyText}>We'll keep learning alongside your family.</Text>
+            </View>
+          )}
+
+          <Text style={styles.initialReassurance}>
+            Every child develops at their own pace. You can update these moments anytime in Milestones.
+          </Text>
+        </ScrollView>
+        <View style={styles.initialFooter}>
+          <PrimaryButton
+            tone="taupe"
+            title="Continue"
+            onPress={() => setInitialPhase("celebrate")}
+          />
+          <GhostButton title="Skip for now" onPress={() => setInitialPhase("celebrate")} />
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
+    >
+      {/* Editorial Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Milestones</Text>
+        <Text style={styles.headerSubtitle}>
+          {child
+            ? milestonesAvailable
+              ? `${child.name} is in the ${currentStage} stage.`
+              : `${child.name}'s milestones start at 3 months.`
+            : "Your child's developmental journey."}
+        </Text>
+
+        {/* scrap-book styling for total progress */}
+        <View style={styles.progressBanner}>
+          <Text style={styles.progressText}>
+            You have celebrated <Text style={styles.progressTextHighlight}>{totalAchievedCount} moments</Text> of growth.
+          </Text>
+        </View>
+      </View>
+
+      {/* Premium Segmented Controls */}
+      {milestonesAvailable && (
+        <View style={styles.tabContainer}>
+          <Pressable
+            style={[styles.tabButton, activeTab === "journey" && styles.tabButtonActive]}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setActiveTab("journey");
+            }}
+          >
+            <Text style={[styles.tabButtonText, activeTab === "journey" && styles.tabButtonTextActive]}>
+              Active Journey
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tabButton, activeTab === "explore" && styles.tabButtonActive]}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setActiveTab("explore");
+            }}
+          >
+            <Text style={[styles.tabButtonText, activeTab === "explore" && styles.tabButtonTextActive]}>
+              Explore Library
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        {!milestonesAvailable ? (
+          <View style={styles.notYetCard}>
+            <Text style={styles.notYetTitle}>Nothing to complete yet.</Text>
+            <Text style={styles.notYetBody}>
+              Milestone tracking will open when {child?.name ?? "your child"} reaches 3 months.
+              Until then, Home keeps daily ideas soft and newborn-friendly.
+            </Text>
+          </View>
+        ) : activeTab === "journey" ? (
+          <View>
+            {/* FOCUS RIGHT NOW */}
+            <View style={styles.sectionHeaderWrap}>
+              <Text style={styles.sectionTitle}>Focus Right Now</Text>
+              <Text style={styles.sectionSub}>Milestones that typically blossom at this stage.</Text>
+            </View>
+
+            {focusMilestones.length === 0 ? (
+              <View style={styles.celebrationCard}>
+                <Text style={styles.celebrationEmoji}>🎉</Text>
+                <Text style={styles.celebrationTitle}>All Focus Milestones Achieved!</Text>
+                <Text style={styles.celebrationBody}>
+                  {child?.name ?? "Your child"} has checked off every milestone for this stage. Keep exploring and enjoying the journey.
+                </Text>
+              </View>
+            ) : (
+              focusMilestones.map((milestone) => (
+                <MilestoneCard
+                  key={milestone.id}
+                  milestone={milestone}
+                  isAchieved={false}
+                  achievedNote={null}
+                  isExpanded={expandedMilestoneId === milestone.id}
+                  onToggleExpand={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setExpandedMilestoneId(expandedMilestoneId === milestone.id ? null : milestone.id);
+                  }}
+                  onToggleAchieved={() => toggleMilestone(milestone)}
+                  onSaveNote={(note) => handleSaveNote(milestone, note)}
+                  savingNote={savingNoteId === milestone.id}
+                />
+              ))
+            )}
+
+            {/* COMING SOON */}
+            {nextStageMilestones.length > 0 && (
+              <View style={styles.marginTopLg}>
+                <View style={styles.sectionHeaderWrap}>
+                  <Text style={styles.sectionTitle}>Coming Soon</Text>
+                  <Text style={styles.sectionSub}>A gentle preview of the next developmental stage ({nextStage}).</Text>
+                </View>
+                {nextStageMilestones.slice(0, 3).map((milestone) => (
+                  <MilestoneCard
+                    key={milestone.id}
+                    milestone={milestone}
+                    isAchieved={false}
+                    achievedNote={null}
+                    isExpanded={expandedMilestoneId === milestone.id}
+                    onToggleExpand={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setExpandedMilestoneId(expandedMilestoneId === milestone.id ? null : milestone.id);
+                    }}
+                    onToggleAchieved={() => toggleMilestone(milestone)}
+                    onSaveNote={(note) => handleSaveNote(milestone, note)}
+                    savingNote={savingNoteId === milestone.id}
+                    comingSoon
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* RECENTLY ACHIEVED MEMORIES */}
+            {recentlyAchieved.length > 0 && (
+              <View style={styles.marginTopLg}>
+                <View style={styles.sectionHeaderWrap}>
+                  <Text style={styles.sectionTitle}>Journey Journal</Text>
+                  <Text style={styles.sectionSub}>Beautiful memories and milestones logged so far.</Text>
+                </View>
+                {recentlyAchieved.map((milestone) => (
+                  <MilestoneCard
+                    key={milestone.id}
+                    milestone={milestone}
+                    isAchieved={true}
+                    achievedNote={milestone.achievedDetails?.note ?? ""}
+                    isExpanded={expandedMilestoneId === milestone.id}
+                    onToggleExpand={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setExpandedMilestoneId(expandedMilestoneId === milestone.id ? null : milestone.id);
+                    }}
+                    onToggleAchieved={() => toggleMilestone(milestone)}
+                    onSaveNote={(note) => handleSaveNote(milestone, note)}
+                    savingNote={savingNoteId === milestone.id}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : (
+          /* EXPLORE ALL LIBRARY VIEW */
+          <View>
+            {/* Horizontal Stage Selectors */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.stageFilterScroll}
+              contentContainerStyle={styles.stageFilterContent}
+            >
+              {STAGE_ORDER.map((stage) => {
+                const isSelected = selectedExploreStage === stage;
+                const isCurrent = stage === currentStage;
+                return (
+                  <Pressable
+                    key={stage}
+                    onPress={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setSelectedExploreStage(stage);
+                    }}
+                    style={[
+                      styles.stageChip,
+                      isSelected && styles.stageChipSelected,
+                      isCurrent && !isSelected && styles.stageChipCurrent,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.stageChipText,
+                        isSelected && styles.stageChipTextSelected,
+                        isCurrent && !isSelected && styles.stageChipTextCurrent,
+                      ]}
+                    >
+                      {stage}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Grouped by Domain */}
+            {Object.keys(exploreGroups).length === 0 ? (
+              <Text style={styles.emptyStageText}>No milestones loaded for this stage.</Text>
+            ) : (
+              Object.entries(exploreGroups).map(([domain, items]) => (
+                <View key={domain} style={styles.domainGroup}>
+                  <Text style={styles.domainGroupTitle}>{DOMAIN_LABEL[domain as Domain].toUpperCase()}</Text>
+                  {items.map((milestone) => {
+                    const isAchieved = achievedMap.has(milestone.id);
+                    const achievedDetails = achievedMap.get(milestone.id);
+                    return (
+                      <MilestoneCard
+                        key={milestone.id}
+                        milestone={milestone}
+                        isAchieved={isAchieved}
+                        achievedNote={achievedDetails?.note ?? null}
+                        isExpanded={expandedMilestoneId === milestone.id}
+                        onToggleExpand={() => {
+                          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                          setExpandedMilestoneId(expandedMilestoneId === milestone.id ? null : milestone.id);
+                        }}
+                        onToggleAchieved={() => toggleMilestone(milestone)}
+                        onSaveNote={(note) => handleSaveNote(milestone, note)}
+                        savingNote={savingNoteId === milestone.id}
+                      />
+                    );
+                  })}
+                </View>
+              ))
+            )}
+          </View>
+        )}
+      </ScrollView>
+      {guidedTour && (
+        <GuidedTourDialog
+          eyebrow="Milestones"
+          focus="Milestone groups"
+          title="Notice without pressure."
+          body="This is where small developmental moments become a gentle record, never a scorecard."
+          step={1}
+          total={4}
+          primaryTitle="Continue"
+          onPrimary={() => router.replace("/growth/guide?guidedTour=1&step=2")}
+          onSkip={skipGuidedTour}
+        />
+      )}
+    </KeyboardAvoidingView>
   );
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <View style={styles.screen}>
-      <View style={styles.emptyWrap}>
-        <Text style={styles.emptyTitle}>{title}</Text>
-        <Text style={styles.emptyBody}>{body}</Text>
-      </View>
+    <View style={styles.emptyWrap}>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyBody}>{body}</Text>
     </View>
   );
 }
 
-function Tick() {
+function CheckIcon() {
   return (
     <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
       <Path
         d="M4.5 12.5 9.5 17.5 19.5 6.5"
         stroke={colors.white}
-        strokeWidth={3}
+        strokeWidth={3.2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -191,72 +724,774 @@ function Tick() {
   );
 }
 
+function RecommendationCard({ activity }: { activity: Activity }) {
+  return (
+    <View style={styles.recommendationCard}>
+      <Text style={styles.recommendationDomain}>{DOMAIN_LABEL[activity.domain].toUpperCase()}</Text>
+      <Text style={styles.recommendationTitle}>{activity.title}</Text>
+      <Text style={styles.recommendationWhy}>{activity.why}</Text>
+      <Text style={styles.recommendationMeta}>{activity.duration_minutes} min · {activity.materials}</Text>
+    </View>
+  );
+}
+
+function MilestoneCard({
+  milestone,
+  isAchieved,
+  achievedNote,
+  isExpanded,
+  onToggleExpand,
+  onToggleAchieved,
+  onSaveNote,
+  savingNote,
+  comingSoon = false,
+}: {
+  milestone: Milestone;
+  isAchieved: boolean;
+  achievedNote: string | null;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onToggleAchieved: () => void;
+  onSaveNote: (note: string) => void;
+  savingNote: boolean;
+  comingSoon?: boolean;
+}) {
+  const [noteText, setNoteText] = useState(achievedNote ?? "");
+
+  // Update note text state if database state changes (e.g. initial load)
+  useEffect(() => {
+    setNoteText(achievedNote ?? "");
+  }, [achievedNote]);
+
+  const whyItMatters = milestone.guide?.see ?? "A beautiful leap forward in your child's capabilities.";
+  const tryActivity = milestone.guide?.try ?? null;
+  const watchFor = milestone.guide?.watch ?? null;
+
+  return (
+    <View
+      style={[
+        styles.card,
+        isAchieved && styles.cardAchieved,
+        comingSoon && styles.cardComingSoon,
+        isExpanded && styles.cardExpanded,
+      ]}
+    >
+      {/* Primary Card View */}
+      <Pressable onPress={onToggleExpand} style={styles.cardHeader}>
+        {/* Toggle Checkbox */}
+        <Pressable
+          onPress={onToggleAchieved}
+          style={[styles.checkbox, isAchieved && styles.checkboxChecked]}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: isAchieved }}
+        >
+          {isAchieved && (
+            <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+              <Path
+                d="M4.5 12.5 9.5 17.5 19.5 6.5"
+                stroke={colors.white}
+                strokeWidth={3.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          )}
+        </Pressable>
+
+        <View style={styles.cardHeaderMain}>
+          <View style={styles.cardLabelWrap}>
+            <Text style={styles.cardDomainLabel}>{DOMAIN_LABEL[milestone.domain].toUpperCase()}</Text>
+            <Text style={styles.cardAgeLabel}>{milestone.stage_label}</Text>
+          </View>
+          <Text style={[styles.cardDescription, isAchieved && styles.cardDescriptionAchieved]}>
+            {milestone.description}
+          </Text>
+        </View>
+
+        {/* Expand Icon */}
+        <View style={[styles.arrowIcon, isExpanded && styles.arrowIconRotated]}>
+          <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="m6 9 6 6 6-6"
+              stroke={colors.textMuted}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </View>
+      </Pressable>
+
+      {/* Expanded Sub-details */}
+      {isExpanded && (
+        <View style={styles.expandedContent}>
+          {/* Why it Matters */}
+          <View style={styles.detailBlock}>
+            <Text style={styles.detailLabel}>Why It Matters</Text>
+            <Text style={styles.detailBody}>{whyItMatters}</Text>
+          </View>
+
+          {/* Try This Activity */}
+          {tryActivity && (
+            <View style={styles.detailBlock}>
+              <Text style={styles.detailLabel}>Try This Activity</Text>
+              <Text style={styles.detailBody}>{tryActivity}</Text>
+            </View>
+          )}
+
+          {/* Watch for */}
+          {watchFor && (
+            <View style={styles.detailBlock}>
+              <Text style={styles.detailLabel}>Watch For</Text>
+              <Text style={styles.detailBody}>{watchFor}</Text>
+            </View>
+          )}
+
+          {/* Memory Journal Input */}
+          <View style={styles.noteBlock}>
+            <Text style={styles.detailLabel}>Write a Memory</Text>
+            <View style={styles.noteInputWrap}>
+              <TextInput
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholder="Log a memory of when you first noticed this..."
+                placeholderTextColor={colors.textMuted}
+                style={styles.noteInput}
+                multiline
+                maxLength={400}
+              />
+              <Pressable
+                onPress={() => onSaveNote(noteText)}
+                disabled={savingNote || noteText.trim() === (achievedNote ?? "").trim()}
+                style={[
+                  styles.noteSaveButton,
+                  noteText.trim() !== (achievedNote ?? "").trim() && styles.noteSaveButtonActive,
+                ]}
+              >
+                {savingNote ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <Text style={styles.noteSaveText}>Save</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: {
+    flex: 1,
+    backgroundColor: colors.cream,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.md + 4,
+    paddingBottom: spacing.xxl,
+  },
+  celebrationContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  celebrationMark: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.sage,
+    marginBottom: spacing.xl,
+  },
+  initialCelebrationTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.display - 3,
+    lineHeight: (typeScale.display - 3) * 1.16,
+    color: colors.charcoal,
+    marginBottom: spacing.md,
+  },
+  initialCelebrationBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.body * 1.52,
+    color: colors.textMuted,
+  },
+  summaryCard: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  summaryLabel: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+  },
+  summaryValue: {
+    flexShrink: 1,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
+    color: colors.charcoal,
+    textAlign: "right",
+  },
+  summaryRule: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
+  },
+  celebrationNote: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.body * 1.45,
+    color: colors.warmTaupe,
+    textAlign: "center",
+    marginTop: spacing.xl,
+  },
+  recommendationContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
+  recommendationLoading: {
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xxl,
+  },
+  smallMuted: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.45,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  recommendationList: {
+    gap: spacing.md,
+    marginTop: spacing.xl,
+  },
+  recommendationCard: {
+    padding: spacing.lg,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  recommendationDomain: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    letterSpacing: 1.2,
+    color: colors.warmTaupe,
+    marginBottom: spacing.sm,
+  },
+  recommendationTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.h3,
+    lineHeight: typeScale.h3 * 1.25,
+    color: colors.charcoal,
+  },
+  recommendationWhy: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.45,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  recommendationMeta: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+    marginTop: spacing.md,
+  },
+  recommendationError: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: spacing.md,
+  },
+  initialContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  initialEyebrow: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    color: colors.warmTaupe,
+    marginBottom: spacing.sm,
+  },
+  initialTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.display - 3,
+    lineHeight: (typeScale.display - 3) * 1.16,
+    color: colors.charcoal,
+    marginBottom: spacing.sm,
+  },
+  initialBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.body * 1.5,
+    color: colors.textMuted,
+  },
+  initialAgeNote: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.body * 1.35,
+    color: colors.warmTaupe,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  initialGroup: {
+    marginBottom: spacing.lg,
+  },
+  initialGroupTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
+    color: colors.charcoal,
+    marginBottom: spacing.sm,
+  },
+  initialRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  initialRowSelected: {
+    backgroundColor: "rgba(168, 181, 164, 0.18)",
+    borderColor: "rgba(168, 181, 164, 0.58)",
+  },
+  initialCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  initialCheckOn: {
+    backgroundColor: colors.sage,
+    borderColor: colors.sage,
+  },
+  initialRowText: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.45,
+    color: colors.charcoal,
+  },
+  initialReassurance: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.body,
+    lineHeight: typeScale.body * 1.45,
+    textAlign: "center",
+    color: colors.textMuted,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  initialEmpty: {
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(139, 115, 85, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(139, 115, 85, 0.12)",
+  },
+  initialEmptyText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.45,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  notYetCard: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  notYetTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.h3,
+    lineHeight: typeScale.h3 * 1.25,
+    color: colors.charcoal,
+  },
+  notYetBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.5,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  initialFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    gap: spacing.sm,
+    backgroundColor: colors.cream,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
   centered: {
     flex: 1,
     backgroundColor: colors.cream,
     alignItems: "center",
     justifyContent: "center",
   },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
+  header: {
+    paddingHorizontal: spacing.md + 4,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
-  intro: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
-    color: colors.textMuted,
-    marginBottom: spacing.lg,
+  headerTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.display - 4,
+    color: colors.charcoal,
   },
-  group: { marginBottom: spacing.lg },
-  stageLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.4,
+  headerSubtitle: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.h3,
     color: colors.warmTaupe,
-    marginBottom: spacing.sm,
+    marginTop: 4,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
+  progressBanner: {
+    backgroundColor: "rgba(139, 115, 85, 0.08)",
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
-    marginBottom: 6,
+    borderRadius: radius.sm,
+    marginTop: spacing.md,
+    borderWidth: 1,
+    borderColor: "rgba(139, 115, 85, 0.12)",
   },
-  rowAchieved: { backgroundColor: "rgba(168, 181, 164, 0.20)" },
-  check: {
+  progressText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+  },
+  progressTextHighlight: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.charcoal,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(139, 115, 85, 0.06)",
+    padding: 4,
+    borderRadius: radius.sm,
+    marginHorizontal: spacing.md + 4,
+    marginVertical: spacing.md,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    borderRadius: radius.sm - 2,
+  },
+  tabButtonActive: {
+    backgroundColor: colors.white,
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 2px 3px rgba(0, 0, 0, 0.04)",
+      } as any,
+      default: {
+        shadowColor: "rgba(0, 0, 0, 0.04)",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 1,
+        shadowRadius: 3,
+        elevation: 2,
+      },
+    }),
+  },
+  tabButtonText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+  },
+  tabButtonTextActive: {
+    color: colors.charcoal,
+    fontFamily: fonts.bodySemiBold,
+  },
+  sectionHeaderWrap: {
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.h3,
+    color: colors.charcoal,
+  },
+  sectionSub: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  celebrationCard: {
+    backgroundColor: "rgba(168, 181, 164, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(168, 181, 164, 0.3)",
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    alignItems: "center",
+    marginVertical: spacing.sm,
+  },
+  celebrationEmoji: {
+    fontSize: 32,
+    marginBottom: spacing.xs,
+  },
+  celebrationTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.body,
+    color: colors.charcoal,
+    textAlign: "center",
+  },
+  celebrationBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: 6,
+    lineHeight: typeScale.bodySmall * 1.45,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+    ...Platform.select({
+      web: {
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.02)",
+      } as any,
+      default: {
+        shadowColor: "rgba(0, 0, 0, 0.02)",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 6,
+        elevation: 1,
+      },
+    }),
+  },
+  cardAchieved: {
+    backgroundColor: "rgba(168, 181, 164, 0.08)",
+    borderColor: "rgba(168, 181, 164, 0.25)",
+  },
+  cardComingSoon: {
+    opacity: 0.8,
+    borderStyle: "dashed",
+    borderColor: "rgba(139, 115, 85, 0.2)",
+  },
+  cardExpanded: {
+    borderColor: colors.warmTaupe,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.md,
+  },
+  checkbox: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderWidth: 2,
+    borderColor: colors.warmTaupe,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+    marginRight: spacing.md,
   },
-  checkOn: { backgroundColor: colors.sage, borderColor: colors.sage },
-  rowText: { flex: 1 },
-  rowDomain: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
+  checkboxChecked: {
+    backgroundColor: colors.sage,
+    borderColor: colors.sage,
+  },
+  cardHeaderMain: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  cardLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  cardDomainLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
     letterSpacing: 1.2,
-    textTransform: "uppercase",
     color: colors.warmTaupe,
   },
-  rowDesc: {
-    fontFamily: fonts.body,
+  cardAgeLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 9,
+    color: colors.textMuted,
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  cardDescription: {
+    fontFamily: fonts.bodyMedium,
     fontSize: typeScale.bodySmall,
     lineHeight: typeScale.bodySmall * 1.45,
     color: colors.charcoal,
-    marginTop: 2,
   },
-  rowDescDone: { color: colors.textMuted },
+  cardDescriptionAchieved: {
+    color: colors.textMuted,
+    textDecorationLine: "none",
+  },
+  arrowIcon: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  arrowIconRotated: {
+    transform: [{ rotate: "180deg" }],
+  },
+  expandedContent: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    padding: spacing.md,
+    backgroundColor: "rgba(247, 245, 242, 0.4)",
+  },
+  detailBlock: {
+    marginBottom: spacing.md,
+  },
+  detailLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    color: colors.warmTaupe,
+    marginBottom: 4,
+  },
+  detailBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.5,
+    color: colors.charcoal,
+  },
+  noteBlock: {
+    marginTop: spacing.xs,
+  },
+  noteInputWrap: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    backgroundColor: colors.white,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 8,
+    marginTop: 6,
+  },
+  noteInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.4,
+    color: colors.charcoal,
+    paddingTop: 4,
+    paddingBottom: 4,
+    minHeight: 48,
+    maxHeight: 120,
+    textAlignVertical: "top",
+  },
+  noteSaveButton: {
+    backgroundColor: "rgba(139, 115, 85, 0.4)",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm - 4,
+    marginLeft: 8,
+    alignSelf: "flex-end",
+    minWidth: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noteSaveButtonActive: {
+    backgroundColor: colors.warmTaupe,
+  },
+  noteSaveText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.white,
+  },
+  stageFilterScroll: {
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  stageFilterContent: {
+    paddingRight: spacing.md,
+    gap: 8,
+  },
+  stageChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm - 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  stageChipSelected: {
+    backgroundColor: colors.warmTaupe,
+    borderColor: colors.warmTaupe,
+  },
+  stageChipCurrent: {
+    borderColor: colors.warmTaupe,
+    borderWidth: 1.5,
+  },
+  stageChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+  },
+  stageChipTextSelected: {
+    color: colors.white,
+    fontFamily: fonts.bodySemiBold,
+  },
+  stageChipTextCurrent: {
+    color: colors.warmTaupe,
+    fontFamily: fonts.bodySemiBold,
+  },
+  domainGroup: {
+    marginBottom: spacing.lg,
+  },
+  domainGroupTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.3,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+    marginLeft: 4,
+  },
+  emptyStageText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginVertical: spacing.xl,
+  },
   emptyWrap: {
     flex: 1,
     alignItems: "center",
@@ -276,5 +1511,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
     marginTop: spacing.sm,
+  },
+  marginTopLg: {
+    marginTop: spacing.lg,
   },
 });

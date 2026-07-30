@@ -140,6 +140,9 @@ lines.push("-- each migration in a transaction.");
 lines.push("");
 
 lines.push("-- Activities ---------------------------------------------------------");
+if (activities.length) {
+  lines.push(`delete from activities where id not in (${activities.map(a => q(a.id)).join(", ")});`);
+}
 lines.push(
   "insert into activities (id, domain, age_band, title, why, duration_minutes, materials) values"
 );
@@ -158,6 +161,7 @@ lines.push("");
 
 lines.push("-- Milestones ---------------------------------------------------------");
 if (milestones.length) {
+  lines.push(`delete from milestones where id not in (${milestones.map(m => q(m.id)).join(", ")});`);
   lines.push(
     "insert into milestones (id, domain, age_band, stage_label, description, typical_age_min_months, typical_age_max_months, guide) values"
   );
