@@ -14,7 +14,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../lib/AuthProvider";
 import { ModeProvider } from "../lib/ModeProvider";
 import { OnboardingProvider } from "../lib/OnboardingProvider";
-import { RecoveryProfileProvider } from "../lib/recoveryProfile";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -38,7 +37,6 @@ export default function RootLayout() {
       <AuthProvider>
         <ModeProvider>
           <OnboardingProvider>
-            <RecoveryProfileProvider>
             <StatusBar style="dark" />
             {/* Headers are owned by each area: the tab navigator draws its
                 own, onboarding uses its bespoke OnboardingScreen chrome.
@@ -74,7 +72,6 @@ export default function RootLayout() {
                 options={{ presentation: "modal" }}
               />
             </Stack>
-            </RecoveryProfileProvider>
           </OnboardingProvider>
         </ModeProvider>
       </AuthProvider>

@@ -18,7 +18,6 @@
  */
 
 import { MEAL_SLOTS, type MealSlot } from "./parentCare";
-import type { RecoveryFeedingMethod } from "./recoveryProfile";
 
 export { MEAL_SLOTS, type MealSlot };
 
@@ -78,7 +77,7 @@ export function nextStage(stage: KidFeedingStage): KidFeedingStage | null {
  * asking again. Only the first two stages branch on it; feeding method
  * stops being the relevant variable once solids are established.
  */
-export function stageDescription(stage: KidFeedingStage, feeding: RecoveryFeedingMethod | ""): string {
+export function stageDescription(stage: KidFeedingStage, feeding: string | null): string {
   const milk =
     feeding === "formula"
       ? "formula"

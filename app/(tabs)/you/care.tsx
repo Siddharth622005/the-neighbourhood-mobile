@@ -15,7 +15,6 @@ import {
   type CareArea,
   type DeliveryType,
 } from "../../../lib/parentCare";
-import { useRecoveryProfile } from "../../../lib/recoveryProfile";
 import { fonts, spacing, typeScale } from "../../../lib/theme";
 
 /**
@@ -91,8 +90,7 @@ function fatherReassurance(weeksPostpartum: number): { eyebrow: string; body: st
 export default function Recovery() {
   const router = useRouter();
   const p = usePalette();
-  const { child } = useAuth();
-  const { profile: recoveryProfile } = useRecoveryProfile();
+  const { child, profile: authProfile } = useAuth();
   /**
    * When opened from a specific card on You's hub (e.g. "Sleep"), `area`
    * narrows the library to just that one area instead of the full list —
@@ -104,8 +102,8 @@ export default function Recovery() {
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
   const profile = useMemo(
-    () => deriveProfile(ageMonths, recoveryProfile),
-    [ageMonths, recoveryProfile],
+    () => deriveProfile(ageMonths, authProfile),
+    [ageMonths, authProfile],
   );
 
   const isFather = profile.role === "father";

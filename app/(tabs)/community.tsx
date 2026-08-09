@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,17 +11,34 @@ import {
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
 import * as communityDb from "../../lib/db/community";
 import { COMMUNITY_TOPICS, CommunityTopic, Discussion, TOPIC_LABEL } from "../../lib/db/communityTypes";
+import { markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
+import { useScreenFocus } from "../../lib/useScreenFocus";
 
 export default function Community() {
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useLocalSearchParams<{ guidedTour?: string; next?: string; step?: string }>();
   const { child } = useAuth();
   const age = child ? computeAge(child.date_of_birth) : null;
   const ageMonths = age?.totalMonths ?? 12;
+
+  // See child/guide.tsx: only the focused screen on matching route with
+  // the right step may show a tour dialog.
+  const isFocused = useScreenFocus();
+  const isCommunityRoute = pathname === "/community";
+  const guidedTour = params.guidedTour === "1" && params.step === "1" && isFocused && isCommunityRoute;
+  const tourNext = params.next === "milestones" ? "&next=milestones" : "";
+
+  const skipGuidedTour = async () => {
+    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
+    router.replace("/home");
+  };
 
   const [selectedTopic, setSelectedTopic] = useState<CommunityTopic | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -190,6 +207,20 @@ export default function Community() {
         <PlusIcon />
         <Text style={styles.fabText}>Ask a Question</Text>
       </Pressable>
+
+      {guidedTour && (
+        <GuidedTourDialog
+          eyebrow="Community"
+          focus="Find your people"
+          title="You're not doing this alone."
+          body="A space for real parent conversations and shared experiences, at your child's stage."
+          step={1}
+          total={5}
+          primaryTitle="Continue"
+          onPrimary={() => router.replace(`/ask?guidedTour=1&step=2${tourNext}`)}
+          onSkip={skipGuidedTour}
+        />
+      )}
     </View>
   );
 }

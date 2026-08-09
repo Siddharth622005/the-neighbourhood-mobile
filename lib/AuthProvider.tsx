@@ -2,7 +2,7 @@ import { Session } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as family from "./db/family";
 import { isAccountLinked } from "./db/session";
-import type { Child } from "./db/types";
+import type { Child, Profile } from "./db/types";
 import { supabase } from "./supabase";
 
 /**
@@ -13,12 +13,18 @@ import { supabase } from "./supabase";
  * appear on a reinstall once the account is linked to an email, and it's
  * why lib/localProfile.ts is gone.
  *
+ * `profile` carries the parent's own facts (role, birth method, feeding
+ * method — see lib/parentCare.ts) the same way: collected once during main
+ * onboarding, read from `profiles`, never a second local copy. This
+ * replaced a separate AsyncStorage-only "Recovery Profile" that was asked
+ * on first visit to the You tab and never survived a reinstall.
+ *
  * `Child` is re-exported from lib/db/types so screens keep importing it
  * from here — its shape now matches the table exactly (uuid id, no
  * interests/goals columns; those are learned from activity_log instead of
  * being stored on the child).
  */
-export type { Child };
+export type { Child, Profile };
 
 type AuthState = {
   session: Session | null;
@@ -27,6 +33,9 @@ type AuthState = {
   /** Fetching profile/children rows. */
   familyLoading: boolean;
   parentName: string | null;
+  /** The full profiles row — role/birth/feeding live on `relationship` /
+   *  `birth_method` / `feeding_method`. Null until a session resolves. */
+  profile: Profile | null;
   child: Child | null;
   connectionError: string | null;
   /**
@@ -37,7 +46,7 @@ type AuthState = {
   accountLinked: boolean;
   /** The confirmed email, for display. Null while anonymous. */
   accountEmail: string | null;
-  hydrateFamily: (input: { parentName: string | null; child: Child }) => void;
+  hydrateFamily: (input: { profile: Profile; child: Child }) => void;
   refreshFamily: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -49,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [parentName, setParentName] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [child, setChild] = useState<Child | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   // Which user id `child` currently reflects. Lets fetchFamily tell "a
@@ -62,11 +72,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setFamilyLoading(true);
     setConnectionError(null);
     try {
-      const [profile, primary] = await Promise.all([
+      const [profileRow, primary] = await Promise.all([
         family.getProfile(userId),
         family.getPrimaryChild(userId),
       ]);
-      setParentName(profile?.parent_name ?? null);
+      setParentName(profileRow?.parent_name ?? null);
+      // No stale-carry-over guard needed here the way `child` needs one:
+      // the profiles row is created by a DB trigger the moment a user
+      // exists (see lib/db/family.ts), so profileRow is only ever null
+      // for a split second before that trigger runs — never a legitimate
+      // "this account has no profile" state to protect against overwriting.
+      setProfile(profileRow);
       // Anonymous signup can fire an auth-state fetch before onboarding has
       // inserted the child row. If that slower "no child yet" response lands
       // after onboarding has already hydrated the created child locally for
@@ -113,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Signed out — clear, or the next person on this device inherits
         // the previous family.
         setParentName(null);
+        setProfile(null);
         setChild(null);
       }
     });
@@ -122,12 +139,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setParentName(null);
+    setProfile(null);
     setChild(null);
     await supabase.auth.signOut();
   };
 
-  const hydrateFamily = (input: { parentName: string | null; child: Child }) => {
-    setParentName(input.parentName);
+  const hydrateFamily = (input: { profile: Profile; child: Child }) => {
+    setParentName(input.profile.parent_name);
+    setProfile(input.profile);
     setChild(input.child);
     setConnectionError(null);
     setFamilyLoading(false);
@@ -140,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         familyLoading,
         parentName,
+        profile,
         child,
         connectionError,
         accountLinked: isAccountLinked(session?.user),

@@ -22,7 +22,7 @@ export default function Gender() {
 
   return (
     <OnboardingScreen
-      progress={5 / 5}
+      progress={7 / 7}
       footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!gender} />}
     >
       <FadeIn>

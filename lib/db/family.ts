@@ -18,7 +18,12 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
 export async function updateProfile(
   userId: string,
-  patch: Partial<Pick<Profile, "parent_name" | "relationship" | "phone" | "timezone">>
+  patch: Partial<
+    Pick<
+      Profile,
+      "parent_name" | "relationship" | "birth_method" | "feeding_method" | "phone" | "timezone"
+    >
+  >
 ): Promise<Profile> {
   return unwrap<Profile>(
     "family.updateProfile",

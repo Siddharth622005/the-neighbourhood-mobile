@@ -1,60 +1,59 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RecoveryProfileQuestions } from "../components/RecoveryProfileQuestions";
-import {
-  useRecoveryProfile,
-  type RecoveryBirthMethod,
-  type RecoveryFeedingMethod,
-  type RecoveryRole,
-} from "../lib/recoveryProfile";
-import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
+import { useAuth } from "../lib/AuthProvider";
+import * as family from "../lib/db/family";
+import { type DeliveryType, type FeedingMethod, type ParentRole } from "../lib/parentCare";
+import { colors, fonts, spacing, typeScale } from "../lib/theme";
 
 /**
- * Recovery Profile settings — the same questions asked on the first visit
- * to parent mode, available anytime from Profile → Recovery profile.
+ * Recovery Profile settings — the same questions asked during main
+ * onboarding (see app/onboarding/role.tsx, birth-type.tsx, feeding.tsx),
+ * available anytime from Profile → Recovery profile. `profiles` is the
+ * only place these facts live, so a change here takes effect everywhere
+ * (Home, You, Copilot) the moment refreshFamily() resolves — there's no
+ * separate local copy to fall out of sync.
  *
- * The two option lists render from components/RecoveryProfileQuestions so
- * this screen and the first-run welcome can't drift apart; they were
- * previously duplicated with subtly different wording.
- *
- * Changes save instantly on selection (no "Save" button needed). The
- * screen is deliberately simple and warm — same design language as the
- * onboarding step, no clinical feel.
+ * Changes save instantly on selection (no "Save" button needed).
  */
-
-
 export default function RecoverySettings() {
   const router = useRouter();
-  const { profile, updateProfile } = useRecoveryProfile();
-  const [deliveryDate, setDeliveryDate] = useState(profile.deliveryDate);
+  const { session, profile, refreshFamily } = useAuth();
 
-  const handleRole = (value: RecoveryRole) => {
+  const role = (profile?.relationship as ParentRole | null) ?? "";
+  const birthMethod = (profile?.birth_method as DeliveryType | null) ?? "";
+  const feedingMethod = (profile?.feeding_method as FeedingMethod | null) ?? "";
+
+  const save = async (patch: {
+    relationship?: string | null;
+    birth_method?: string | null;
+    feeding_method?: string | null;
+  }) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    await family.updateProfile(userId, patch).catch(() => {});
+    await refreshFamily();
+  };
+
+  const handleRole = (value: ParentRole) => {
     // Switching to father clears any birth/feeding answers already on file
-    // — those describe the birthing parent's body, and leaving stale
+    // — those describe the birthing parent's own body, and leaving stale
     // answers in place after this switch would keep them influencing
     // content that no longer applies to this profile.
     if (value === "father") {
-      updateProfile({ role: value, birthMethod: "", feedingMethod: "" });
+      void save({ relationship: value, birth_method: null, feeding_method: null });
     } else {
-      updateProfile({ role: value });
+      void save({ relationship: value });
     }
   };
 
-  const handleBirth = (value: RecoveryBirthMethod) => {
-    updateProfile({ birthMethod: value });
+  const handleBirth = (value: DeliveryType) => {
+    void save({ birth_method: value });
   };
 
-  const handleFeeding = (value: RecoveryFeedingMethod) => {
-    updateProfile({ feedingMethod: value });
-  };
-
-  const handleDateBlur = () => {
-    // Basic validation: if the string looks like a date, save it.
-    if (/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) || deliveryDate === "") {
-      updateProfile({ deliveryDate });
-    }
+  const handleFeeding = (value: FeedingMethod) => {
+    void save({ feeding_method: value });
   };
 
   return (
@@ -77,39 +76,13 @@ export default function RecoverySettings() {
         </View>
 
         <RecoveryProfileQuestions
-          role={profile.role}
-          feedingMethod={profile.feedingMethod}
-          birthMethod={profile.birthMethod}
+          role={role}
+          feedingMethod={feedingMethod}
+          birthMethod={birthMethod}
           onRoleChange={handleRole}
           onFeedingChange={handleFeeding}
           onBirthChange={handleBirth}
         />
-
-        {/* Delivery date \u2014 like birth/feeding method above, this is asking
-            about the birthing parent's own body, so it's hidden once the
-            profile says father for the same reason. */}
-        {profile.role !== "father" && (
-          <>
-            <Text style={styles.sectionTitle}>Date of delivery</Text>
-            <Text style={styles.dateHint}>
-              Used to calculate your postpartum week. Leave blank to use your
-              child{"\u2019"}s birthday.
-            </Text>
-            <TextInput
-              value={deliveryDate}
-              onChangeText={setDeliveryDate}
-              onBlur={handleDateBlur}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numbers-and-punctuation"
-              maxLength={10}
-              style={[
-                styles.dateField,
-                Platform.OS === "web" && ({ outlineStyle: "none" } as any),
-              ]}
-            />
-          </>
-        )}
 
         <Text style={styles.reassurance}>
           You can change these anytime. Your recovery experience will update
@@ -160,81 +133,6 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.body * 1.5,
     color: colors.textMuted,
     marginTop: spacing.sm,
-  },
-  sectionTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.h3,
-    color: colors.charcoal,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  optionStack: {
-    gap: spacing.sm,
-  },
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: "transparent",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  cardSelected: {
-    backgroundColor: "rgba(168, 181, 164, 0.20)",
-    borderColor: colors.sage,
-  },
-  cardRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  cardCopy: {
-    flex: 1,
-  },
-  cardLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.body,
-    color: colors.charcoal,
-  },
-  cardGloss: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  check: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkOn: {
-    backgroundColor: colors.sage,
-    borderColor: colors.sage,
-  },
-  checkMark: {
-    color: colors.white,
-    fontSize: 12,
-    fontFamily: fonts.bodyBold,
-  },
-  dateHint: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.45,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
-  },
-  dateField: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.h2,
-    color: colors.charcoal,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: spacing.sm,
   },
   reassurance: {
     fontFamily: fonts.serifItalic,

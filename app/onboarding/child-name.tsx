@@ -27,7 +27,7 @@ export default function ChildName() {
 
   return (
     <OnboardingScreen
-      progress={3 / 5}
+      progress={3 / 7}
       scroll
       footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!ready} />}
     >

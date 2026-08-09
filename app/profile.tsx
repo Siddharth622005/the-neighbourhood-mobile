@@ -1,16 +1,13 @@
-import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
-import { useScreenFocus } from "../lib/useScreenFocus";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GuidedTourDialog } from "../components/GuidedTourDialog";
 import { LogoMark } from "../components/Logo";
 import { ReplayTourDialog } from "../components/ReplayTourDialog";
 import { GhostButton } from "../components/ui";
 import { useAuth } from "../lib/AuthProvider";
 import { EMAIL_OTP_READY } from "../lib/authMode";
 import { computeAge } from "../lib/childAge";
-import { markFirstRunComplete, markHomeCoachComplete } from "../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
 
 /**
@@ -21,26 +18,9 @@ import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
  */
 export default function Profile() {
   const router = useRouter();
-  const pathname = usePathname();
-  const params = useLocalSearchParams<{ guidedTour?: string; next?: string }>();
   const { parentName, child, signOut, accountLinked, accountEmail } = useAuth();
   const age = child ? computeAge(child.date_of_birth) : null;
-  // See guide.tsx: only the focused screen may show a tour dialog.
-  const isFocused = useScreenFocus();
-  const isProfileRoute = pathname === "/profile";
-  const guidedTour = params.guidedTour === "1" && isFocused && isProfileRoute;
-  const afterOnboardingTour = params.next === "milestones";
   const [showReplayDialog, setShowReplayDialog] = useState(false);
-
-  const finishTour = async () => {
-    await markHomeCoachComplete().catch(() => {});
-    if (afterOnboardingTour) {
-      router.replace("/child/milestones?initial=1&afterTour=1");
-      return;
-    }
-    await markFirstRunComplete().catch(() => {});
-    router.replace("/home?tourComplete=1");
-  };
 
   const replayTour = () => {
     setShowReplayDialog(false);
@@ -62,7 +42,7 @@ export default function Profile() {
         <Text style={styles.title}>{parentName ?? "You"}</Text>
 
         {child && (
-          <View style={[styles.card, guidedTour && styles.tourHighlight]}>
+          <View style={styles.card}>
             <Text style={styles.childName}>{child.name}</Text>
             <Text style={styles.childMeta}>{age?.label ?? "—"} old</Text>
           </View>
@@ -102,7 +82,7 @@ export default function Profile() {
           >
             <View>
               <Text style={styles.settingTitle}>Recovery profile</Text>
-              <Text style={styles.settingBody}>Birth method, feeding, and delivery date.</Text>
+              <Text style={styles.settingBody}>Your role, birth method, and feeding method.</Text>
             </View>
           </Pressable>
           <View style={styles.settingRow}>
@@ -147,19 +127,6 @@ export default function Profile() {
           )}
         </View>
       </View>
-      {guidedTour && (
-        <GuidedTourDialog
-          eyebrow="Profile"
-          focus="Family settings"
-          title="Keep family details here."
-          body="Update child information, notifications, and replay this tour anytime."
-          step={4}
-          total={5}
-          primaryTitle="Begin"
-          onPrimary={finishTour}
-          onSkip={finishTour}
-        />
-      )}
       <ReplayTourDialog
         visible={showReplayDialog}
         onDismiss={() => setShowReplayDialog(false)}

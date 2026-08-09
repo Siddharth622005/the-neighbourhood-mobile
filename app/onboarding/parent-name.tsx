@@ -21,12 +21,12 @@ export default function ParentName() {
   const handleContinue = () => {
     if (!ready) return;
     update({ parentName: name.trim() });
-    router.push("/onboarding/child-name");
+    router.push("/onboarding/role");
   };
 
   return (
     <OnboardingScreen
-      progress={2 / 5}
+      progress={1 / 7}
       scroll
       footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!ready} />}
     >

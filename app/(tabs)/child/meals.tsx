@@ -18,7 +18,6 @@ import {
   type KidMeal,
 } from "../../../lib/kidMealPlanner";
 import { usePalette } from "../../../lib/ModeProvider";
-import { useRecoveryProfile } from "../../../lib/recoveryProfile";
 import { fonts, spacing, typeScale } from "../../../lib/theme";
 
 /**
@@ -37,12 +36,11 @@ import { fonts, spacing, typeScale } from "../../../lib/theme";
  */
 export default function MealPlanner() {
   const p = usePalette();
-  const { child } = useAuth();
+  const { child, profile: authProfile } = useAuth();
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openGroceries, setOpenGroceries] = useState(false);
   const [openTips, setOpenTips] = useState(false);
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
-  const { profile: recovery } = useRecoveryProfile();
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
   const stage = useMemo(() => stageForAgeMonths(ageMonths), [ageMonths]);
@@ -63,7 +61,7 @@ export default function MealPlanner() {
       <PageHeading
         eyebrow="Meal planner"
         title={STAGE_HEADLINE[stage]}
-        body={stageDescription(stage, recovery.feedingMethod)}
+        body={stageDescription(stage, authProfile?.feeding_method ?? null)}
       />
 
       <View style={styles.chips}>

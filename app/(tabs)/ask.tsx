@@ -64,10 +64,10 @@ export default function Ask() {
     mode?: string;
     topic?: string;
   }>();
-  const { child, parentName } = useAuth();
+  const { child, parentName, profile: authProfile } = useAuth();
   const isFocused = useScreenFocus();
   const isAskRoute = pathname === "/ask";
-  const guidedTour = params.guidedTour === "1" && params.step === "3" && isFocused && isAskRoute;
+  const guidedTour = params.guidedTour === "1" && params.step === "2" && isFocused && isAskRoute;
   const afterOnboardingTour = params.next === "milestones";
   const tourNext = afterOnboardingTour ? "&next=milestones" : "";
 
@@ -78,7 +78,10 @@ export default function Ask() {
 
   const age = child ? computeAge(child.date_of_birth) : null;
   const ageMonths = age?.totalMonths ?? 0;
-  const parentProfile = useMemo(() => deriveProfile(ageMonths), [ageMonths]);
+  const parentProfile = useMemo(
+    () => deriveProfile(ageMonths, authProfile),
+    [ageMonths, authProfile],
+  );
 
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -88,14 +91,8 @@ export default function Ask() {
     if (params.prompt) setDraft(params.prompt);
   }, [params.prompt]);
 
-  const finishGuidedTour = async () => {
-    await markHomeCoachComplete().catch(() => {});
-    if (afterOnboardingTour) {
-      router.replace("/child/milestones?initial=1&afterTour=1");
-      return;
-    }
-    await markFirstRunComplete().catch(() => {});
-    router.replace("/home?tourComplete=1");
+  const continueGuidedTour = () => {
+    router.replace(`/child?guidedTour=1&step=3${tourNext}`);
   };
 
   const skipGuidedTour = async () => {
@@ -111,6 +108,7 @@ export default function Ask() {
   const contextForMode = (): Record<string, string | number | boolean | null> | undefined => {
     if (mode !== "parent") return undefined;
     return {
+      role: parentProfile.role,
       weeksPostpartum: parentProfile.weeksPostpartum,
       stage: parentProfile.stage,
       delivery: parentProfile.delivery,
@@ -266,14 +264,14 @@ export default function Ask() {
       </View>
       {guidedTour && (
         <GuidedTourDialog
-          eyebrow="Parenting Companion"
-          focus="The message composer"
-          title="Ask when you need a second voice."
-          body="Supportive guidance for everyday questions, never a replacement for expert care."
-          step={3}
-          total={4}
-          primaryTitle="Begin"
-          onPrimary={finishGuidedTour}
+          eyebrow="Ask"
+          focus="Ask anything"
+          title="A second voice, anytime."
+          body="Ask about your child or about parenting — with your family's context already in mind."
+          step={2}
+          total={5}
+          primaryTitle="Continue"
+          onPrimary={continueGuidedTour}
           onSkip={skipGuidedTour}
         />
       )}

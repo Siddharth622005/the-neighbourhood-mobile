@@ -13,14 +13,13 @@
  */
 
 import { isRecoveryRelevant } from "./recoveryRelevance";
-import type { RecoveryProfile, RecoveryRole } from "./recoveryProfile";
 
 /**
  * Which parent this is, for the purpose of what content applies to them.
- * Re-exported rather than re-declared so there is exactly one definition —
- * see lib/recoveryProfile.tsx for why role lives there.
+ * Sourced from `profiles.relationship` — see lib/AuthProvider.tsx — the
+ * one place this fact is asked (main onboarding) and stored.
  */
-export type ParentRole = RecoveryRole;
+export type ParentRole = "mother" | "father" | "prefer_not_to_say";
 
 export type PostpartumStage =
   | "pregnancy"
@@ -106,42 +105,52 @@ export const STAGE_LABEL: Record<PostpartumStage, string> = {
   established: "Finding your rhythm",
 };
 
+/** The parent facts this file needs, exactly as stored on `profiles` — see
+ *  lib/AuthProvider.tsx's `profile` field. Raw strings rather than the
+ *  union types below because that's what comes back from the database;
+ *  anything unrecognized (including null/undefined, i.e. not answered
+ *  yet) falls back to "prefer_not_to_say" in deriveProfile. */
+export type ProfileInput = {
+  relationship?: string | null;
+  birth_method?: string | null;
+  feeding_method?: string | null;
+};
+
 /**
  * Builds a ParentProfile from the child's age and, when available, the
- * parent's recovery profile. Without a recovery profile the defaults are
- * deliberately neutral ("prefer_not_to_say") so no screen ever makes a
- * wrong assumption.
+ * parent's own profile facts (role, birth method, feeding method — asked
+ * once during main onboarding, see lib/AuthProvider.tsx). Without them the
+ * defaults are deliberately neutral ("prefer_not_to_say") so no screen ever
+ * makes a wrong assumption.
+ *
+ * Postpartum weeks are always derived from the child's date of birth — the
+ * one source of truth for age everywhere in the app — never from a
+ * separately-entered delivery date.
  */
 export function deriveProfile(
   childAgeMonths: number,
-  recovery?: RecoveryProfile,
+  input?: ProfileInput | null,
 ): ParentProfile {
-  // If recovery has a delivery date, use that for postpartum weeks.
-  let weeks: number;
-  if (recovery?.deliveryDate) {
-    const deliveryMs = new Date(recovery.deliveryDate).getTime();
-    const nowMs = Date.now();
-    weeks = Math.max(0, Math.round((nowMs - deliveryMs) / (7 * 24 * 60 * 60 * 1000)));
-  } else {
-    weeks = Math.round(childAgeMonths * 4.345);
-  }
+  const weeks = Math.round(childAgeMonths * 4.345);
 
-  // Map recovery profile values to the ParentProfile types.
   let delivery: DeliveryType = "prefer_not_to_say";
-  if (recovery?.birthMethod === "vaginal") delivery = "vaginal";
-  else if (recovery?.birthMethod === "caesarean") delivery = "caesarean";
+  if (input?.birth_method === "vaginal") delivery = "vaginal";
+  else if (input?.birth_method === "caesarean") delivery = "caesarean";
 
   let feeding: FeedingMethod = "prefer_not_to_say";
-  if (recovery?.feedingMethod === "exclusive") feeding = "exclusive";
-  else if (recovery?.feedingMethod === "combination") feeding = "combination";
-  else if (recovery?.feedingMethod === "formula") feeding = "formula";
+  if (input?.feeding_method === "exclusive") feeding = "exclusive";
+  else if (input?.feeding_method === "combination") feeding = "combination";
+  else if (input?.feeding_method === "formula") feeding = "formula";
 
   // Same "neutral default" rule as delivery/feeding above: nobody has
   // answered yet, or chose not to, gets the value that makes no assumption
   // — which for role means content stays exactly as it always has, rather
   // than a blank answer being read as "father" and hiding recovery content
   // from someone who simply hasn't been asked yet.
-  const role: ParentRole = recovery?.role || "prefer_not_to_say";
+  const role: ParentRole =
+    input?.relationship === "mother" || input?.relationship === "father"
+      ? input.relationship
+      : "prefer_not_to_say";
 
   return {
     weeksPostpartum: weeks,

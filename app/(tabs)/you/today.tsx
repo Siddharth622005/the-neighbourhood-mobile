@@ -13,19 +13,21 @@ import {
   mealsFor,
   topicBySlug,
 } from "../../../lib/parentCare";
-import { useRecoveryProfile } from "../../../lib/recoveryProfile";
+import { isRecoveryRelevant } from "../../../lib/recoveryRelevance";
 import { fonts, radius, spacing, typeScale } from "../../../lib/theme";
 
 /**
  * The parent's own daily companion — reached from the "Today" card on
  * You's hub. This is the content that used to BE all of You (before the
  * hub redesign moved the landing spot to a feature grid, matching Child).
- * Nothing here changed; it just isn't the first thing you see anymore.
  *
- * The first-visit recovery-profile prompt now lives on the hub itself
- * (app/(tabs)/you/index.tsx) rather than here, so it fires on first entry
- * into "your own space" — the intent the original comment described —
- * rather than waiting for a second tap into this specific card.
+ * Role and child age are known from main onboarding by the time this
+ * screen can even be reached (see app/onboarding/role.tsx), so nothing
+ * here asks again. What changes is which cards this renders:
+ * postpartum-specific framing (the header's "week N", the Recovery card,
+ * the feeding-fluid nudge) only appears while isRecoveryRelevant(ageMonths)
+ * holds and, for the feeding nudge, only for a parent who isn't the father
+ * — the same rules Home and the Care hub already apply.
  */
 function greeting(hour: number) {
   if (hour < 5) return "You're up late";
@@ -55,15 +57,15 @@ const LIGHTER_DAY: Record<FeelingKey, string> = {
 export default function ParentToday() {
   const router = useRouter();
   const p = usePalette();
-  const { parentName, child } = useAuth();
-  const { profile: recoveryProfile } = useRecoveryProfile();
+  const { parentName, child, profile: authProfile } = useAuth();
   const [feeling, setFeeling] = useState<FeelingKey>("tired");
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
   const profile = useMemo(
-    () => deriveProfile(ageMonths, recoveryProfile),
-    [ageMonths, recoveryProfile],
+    () => deriveProfile(ageMonths, authProfile),
+    [ageMonths, authProfile],
   );
+  const recoveryFramingApplies = isRecoveryRelevant(ageMonths);
 
   const firstName = parentName?.trim().split(" ")[0];
 
@@ -75,12 +77,15 @@ export default function ParentToday() {
   const nourishment = [breakfast, lunch, dinner, snack].filter(Boolean);
   const learning = topicBySlug("sleep-when-broken");
 
+  // "Feeding quietly pulls fluid from you too" assumes the reader is the
+  // one physically feeding — true for a mother, not for a father, whether
+  // or not a postpartum framing still fits the child's age.
   const feedingInsight =
-    profile.feeding === "formula"
-      ? "Since today still runs around feeds and naps, keep one drink where you usually sit."
-      : profile.feeding === "prefer_not_to_say"
-        ? "Whatever your feeding routine, keeping a drink within reach is the simplest habit to build."
-        : "Since feeding quietly pulls fluid from you too, have a glass of water after your next feed.";
+    profile.role !== "father" && profile.feeding !== "formula" && profile.feeding !== "prefer_not_to_say"
+      ? "Since feeding quietly pulls fluid from you too, have a glass of water after your next feed."
+      : profile.feeding === "formula"
+        ? "Since today still runs around feeds and naps, keep one drink where you usually sit."
+        : "Whatever the routine, keeping a drink within reach is the simplest habit to build.";
 
   const recoveryLine =
     profile.stage === "fourth_trimester"
@@ -96,7 +101,11 @@ export default function ParentToday() {
       showsVerticalScrollIndicator={false}
     >
       <PageHeading
-        eyebrow={`${STAGE_LABEL[profile.stage]} · week ${profile.weeksPostpartum}`}
+        eyebrow={
+          recoveryFramingApplies
+            ? `${STAGE_LABEL[profile.stage]} · week ${profile.weeksPostpartum}`
+            : "YOUR SPACE"
+        }
         title={`${greeting(new Date().getHours())}${firstName ? `, ${firstName}` : ""}.`}
         body="How can we make today a little easier for you?"
       />
@@ -143,7 +152,7 @@ export default function ParentToday() {
           <View style={styles.rowBetween}>
             <View style={styles.titleGroup}>
               <Text style={[styles.sectionTitle, { color: p.text }]}>
-                Food that supports recovery
+                {recoveryFramingApplies ? "Food that supports recovery" : "Food that keeps you steady"}
               </Text>
               <Text style={[styles.sectionBody, { color: p.textMuted }]}>
                 Iron, protein, calcium, hydration, and steady energy. No calories to count.
@@ -181,25 +190,31 @@ export default function ParentToday() {
             or outside for a few quiet minutes. Gentle is the whole point.
           </Text>
           <Text style={[styles.reason, { color: p.primary }]}>
-            Designed for {elapsedPhrase(profile.weeksPostpartum)} after{" "}
-            {deliveryPhrase(profile.delivery)}.
+            {recoveryFramingApplies && profile.role !== "father"
+              ? `Designed for ${elapsedPhrase(profile.weeksPostpartum)} after ${deliveryPhrase(profile.delivery)}.`
+              : "A small reset, any time of day."}
           </Text>
         </Card>
       </View>
 
-      <View style={styles.block}>
-        <SectionLabel>Recovery</SectionLabel>
-        <Card onPress={() => router.push("/you/care")} style={styles.recoveryCard}>
-          <Text style={[styles.recoveryStage, { color: p.primary }]}>
-            Week {profile.weeksPostpartum} postpartum
-          </Text>
-          <Text style={[styles.recoveryTitle, { color: p.text }]}>{recoveryLine}</Text>
-          <View style={styles.learnRow}>
-            <Text style={[styles.learnLink, { color: p.primary }]}>Learn more</Text>
-            <Chevron />
-          </View>
-        </Card>
-      </View>
+      {/* A father's relevant support lives in "For Dads" instead — this
+          card is specifically about the birthing parent's own body, so it
+          never shows for him, the same rule Care and Home already apply. */}
+      {recoveryFramingApplies && profile.role !== "father" && (
+        <View style={styles.block}>
+          <SectionLabel>Recovery</SectionLabel>
+          <Card onPress={() => router.push("/you/care")} style={styles.recoveryCard}>
+            <Text style={[styles.recoveryStage, { color: p.primary }]}>
+              Week {profile.weeksPostpartum} postpartum
+            </Text>
+            <Text style={[styles.recoveryTitle, { color: p.text }]}>{recoveryLine}</Text>
+            <View style={styles.learnRow}>
+              <Text style={[styles.learnLink, { color: p.primary }]}>Learn more</Text>
+              <Chevron />
+            </View>
+          </Card>
+        </View>
+      )}
 
       <View style={styles.block}>
         <SectionLabel>Rest tip</SectionLabel>

@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  type RecoveryBirthMethod,
-  type RecoveryFeedingMethod,
-  type RecoveryRole,
-} from "../lib/recoveryProfile";
+  type DeliveryType,
+  type FeedingMethod,
+  type ParentRole,
+} from "../lib/parentCare";
 import { usePalette } from "../lib/ModeProvider";
 import { fonts, radius, spacing, typeScale } from "../lib/theme";
 
@@ -32,20 +32,20 @@ import { fonts, radius, spacing, typeScale } from "../lib/theme";
 
 type Option<T> = { value: T; label: string; gloss: string };
 
-const ROLE_OPTIONS: Option<RecoveryRole>[] = [
+const ROLE_OPTIONS: Option<ParentRole>[] = [
   { value: "mother", label: "I'm the mother", gloss: "Shows postpartum recovery content." },
   { value: "father", label: "I'm the father", gloss: "Shows guidance for your own role instead." },
   { value: "prefer_not_to_say", label: "Rather not say", gloss: "We'll keep it general." },
 ];
 
-const FEEDING_OPTIONS: Option<RecoveryFeedingMethod>[] = [
+const FEEDING_OPTIONS: Option<FeedingMethod>[] = [
   { value: "exclusive", label: "Breast milk only", gloss: "Directly, expressed, or both." },
   { value: "combination", label: "Breast milk and formula", gloss: "Whatever the mix." },
   { value: "formula", label: "Formula", gloss: "However you got here." },
   { value: "prefer_not_to_say", label: "Rather not say", gloss: "We won't assume." },
 ];
 
-const BIRTH_OPTIONS: Option<RecoveryBirthMethod>[] = [
+const BIRTH_OPTIONS: Option<DeliveryType>[] = [
   { value: "vaginal", label: "Vaginal birth", gloss: "Including forceps or ventouse." },
   { value: "caesarean", label: "Caesarean", gloss: "Planned or emergency." },
   { value: "prefer_not_to_say", label: "Rather not say", gloss: "We'll keep it general." },
@@ -103,12 +103,12 @@ export function RecoveryProfileQuestions({
   onFeedingChange,
   onBirthChange,
 }: {
-  role: RecoveryRole | "";
-  feedingMethod: RecoveryFeedingMethod | "";
-  birthMethod: RecoveryBirthMethod | "";
-  onRoleChange: (value: RecoveryRole) => void;
-  onFeedingChange: (value: RecoveryFeedingMethod) => void;
-  onBirthChange: (value: RecoveryBirthMethod) => void;
+  role: ParentRole | "";
+  feedingMethod: FeedingMethod | "";
+  birthMethod: DeliveryType | "";
+  onRoleChange: (value: ParentRole) => void;
+  onFeedingChange: (value: FeedingMethod) => void;
+  onBirthChange: (value: DeliveryType) => void;
 }) {
   const p = usePalette();
   // Birth/feeding are about the birthing parent's own body. Once someone

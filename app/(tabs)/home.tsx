@@ -27,7 +27,6 @@ import {
   type CareArea,
   type CareTopic,
 } from "../../lib/parentCare";
-import { useRecoveryProfile } from "../../lib/recoveryProfile";
 import { useTodaysPlan } from "../../lib/useTodaysPlan";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
@@ -69,8 +68,7 @@ export default function Home() {
     step?: string;
     tourComplete?: string;
   }>();
-  const { child, parentName } = useAuth();
-  const { profile: recoveryProfile } = useRecoveryProfile();
+  const { child, parentName, profile: authProfile } = useAuth();
   const [coachVisible, setCoachVisible] = useState(false);
   const [coachStep, setCoachStep] = useState(0);
   const [showTourDone, setShowTourDone] = useState(params.tourComplete === "1");
@@ -282,7 +280,7 @@ export default function Home() {
   // only for a father, mental/sleep/feeding/relationships open to anyone.
   // The single highest-priority visible area wins the slot; which TOPIC
   // within it shows rotates by day so it isn't the same line forever.
-  const careProfile = deriveProfile(ageMonths, recoveryProfile);
+  const careProfile = deriveProfile(ageMonths, authProfile);
   const careAreas = visibleCareAreas(careProfile.role, ageMonths, careProfile.delivery);
   const topCareArea = careAreas[0] ?? null;
   const careTopics = topCareArea ? topicsForProfile(careProfile.delivery, topCareArea.key) : [];
@@ -414,14 +412,14 @@ export default function Home() {
       />
       {guidedTour && (
         <GuidedTourDialog
-          eyebrow="Today's Plan"
-          focus="Today’s activity card"
+          eyebrow="Home"
+          focus="Your family, at a glance"
           title="Start here each day."
-          body="A few personal activities, chosen for where your child is right now."
+          body="What matters today for your family — activities, milestones, vaccinations, and support for you."
           step={0}
-          total={4}
+          total={5}
           primaryTitle="Continue"
-          onPrimary={() => router.replace(`/child?guidedTour=1&step=1${tourNext}`)}
+          onPrimary={() => router.replace(`/community?guidedTour=1&step=1${tourNext}`)}
           onSkip={skipGuidedTour}
         />
       )}

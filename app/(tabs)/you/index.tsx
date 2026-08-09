@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { useMemo } from "react";
+import { ScrollView, StyleSheet } from "react-native";
 import {
   FeatureCard,
   FeatureGrid,
@@ -8,9 +8,10 @@ import {
   HubHeader,
   type FeatureIconName,
 } from "../../../components/FeatureHub";
-import { RecoveryWelcome } from "../../../components/RecoveryWelcome";
+import { GuidedTourDialog } from "../../../components/GuidedTourDialog";
 import { useAuth } from "../../../lib/AuthProvider";
 import { computeAge } from "../../../lib/childAge";
+import { markFirstRunComplete, markHomeCoachComplete } from "../../../lib/firstRun";
 import { usePalette } from "../../../lib/ModeProvider";
 import {
   deriveProfile,
@@ -18,9 +19,9 @@ import {
   visibleCareAreas,
   type CareArea,
 } from "../../../lib/parentCare";
-import { useRecoveryProfile } from "../../../lib/recoveryProfile";
-import { hasBeenAskedRecoveryProfile, isRecoveryRelevant, markAskedRecoveryProfile } from "../../../lib/recoveryRelevance";
+import { isRecoveryRelevant } from "../../../lib/recoveryRelevance";
 import { spacing } from "../../../lib/theme";
+import { useScreenFocus } from "../../../lib/useScreenFocus";
 
 /**
  * You's landing hub — the mirror of Child's: a feature grid, not a page of
@@ -50,70 +51,43 @@ const CARE_ICONS: Record<CareArea, FeatureIconName> = {
 
 export default function YouHub() {
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useLocalSearchParams<{ guidedTour?: string; next?: string; step?: string }>();
   const p = usePalette();
-  const { parentName, child } = useAuth();
-  const { profile: recoveryProfile, hydrated: recoveryHydrated, updateProfile } =
-    useRecoveryProfile();
+  const { parentName, profile: authProfile, child } = useAuth();
+
+  // The tour's final stop — see child/guide.tsx: only the focused screen
+  // on matching route with the right step may show a tour dialog.
+  const isFocused = useScreenFocus();
+  const isYouRoute = pathname === "/you";
+  const guidedTour = params.guidedTour === "1" && params.step === "4" && isFocused && isYouRoute;
+  const afterOnboardingTour = params.next === "milestones";
+
+  const finishGuidedTour = async () => {
+    await markHomeCoachComplete().catch(() => {});
+    if (afterOnboardingTour) {
+      router.replace("/child/milestones?initial=1&afterTour=1");
+      return;
+    }
+    await markFirstRunComplete().catch(() => {});
+    router.replace("/home?tourComplete=1");
+  };
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
 
-  /**
-   * The recovery questions are asked HERE, on the first visit to this
-   * space — see components/RecoveryWelcome. Three conditions, all of
-   * which must hold: the parent hasn't been asked before, they haven't
-   * already answered (via Settings), and a postpartum framing still fits
-   * the child's age. Undefined means "still checking", which keeps the
-   * welcome from flashing before storage is read.
-   */
-  const [askRecovery, setAskRecovery] = useState<boolean | undefined>(undefined);
-
-  useEffect(() => {
-    if (!recoveryHydrated) return;
-    if (!child) {
-      setAskRecovery(false);
-      return;
-    }
-    const alreadyAnswered =
-      recoveryProfile.role !== "" ||
-      recoveryProfile.feedingMethod !== "" ||
-      recoveryProfile.birthMethod !== "";
-    if (alreadyAnswered || !isRecoveryRelevant(ageMonths)) {
-      setAskRecovery(false);
-      return;
-    }
-    hasBeenAskedRecoveryProfile().then((asked) => setAskRecovery(!asked));
-  }, [recoveryHydrated, child, recoveryProfile, ageMonths]);
-
-  const closeRecoveryWelcome = () => {
-    void markAskedRecoveryProfile();
-    setAskRecovery(false);
-  };
-
-  const profile = useMemo(() => deriveProfile(ageMonths, recoveryProfile), [ageMonths, recoveryProfile]);
+  // Role/birth type/feeding method were asked once, during main
+  // onboarding — see lib/AuthProvider.tsx's `profile` and
+  // app/onboarding/role.tsx / birth-type.tsx / feeding.tsx. This hub used
+  // to ask them itself on first visit; it now just reads what's already
+  // known, the same way Home and Copilot do.
+  const profile = useMemo(
+    () => deriveProfile(ageMonths, authProfile),
+    [ageMonths, authProfile],
+  );
   const careAreas = useMemo(
     () => visibleCareAreas(profile.role, ageMonths, profile.delivery),
     [profile.role, profile.delivery, ageMonths],
   );
-
-  if (askRecovery === undefined) return <View style={{ flex: 1, backgroundColor: p.bg }} />;
-
-  if (askRecovery) {
-    return (
-      <RecoveryWelcome
-        parentName={parentName?.trim().split(" ")[0] ?? null}
-        onSave={({ role, feedingMethod, birthMethod }) => {
-          updateProfile({
-            role,
-            feedingMethod,
-            birthMethod,
-            deliveryDate: recoveryProfile.deliveryDate || child?.date_of_birth || "",
-          });
-          closeRecoveryWelcome();
-        }}
-        onSkip={closeRecoveryWelcome}
-      />
-    );
-  }
 
   const firstName = parentName?.trim().split(" ")[0];
 
@@ -172,6 +146,20 @@ export default function YouHub() {
           onPress={() => router.push("/child/guide")}
         />
       </FeatureGrid>
+
+      {guidedTour && (
+        <GuidedTourDialog
+          eyebrow="You"
+          focus="And don't forget yourself"
+          title="This part is yours."
+          body="Parent Care, wellbeing, and nutrition — personalised to your role and your child's stage."
+          step={4}
+          total={5}
+          primaryTitle="Start exploring"
+          onPrimary={finishGuidedTour}
+          onSkip={finishGuidedTour}
+        />
+      )}
     </ScrollView>
   );
 }

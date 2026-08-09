@@ -5,7 +5,7 @@ import { PrimaryButton } from "../../components/ui";
 import { DateWheel, MONTHS, isComplete, type DateParts } from "../../components/DateWheel";
 import { FadeIn, Hint, OnboardingScreen, Prompt } from "../../components/onboarding";
 import { computeAge } from "../../lib/childAge";
-import { useOnboarding } from "../../lib/OnboardingProvider";
+import { resumeFromDraft, useOnboarding } from "../../lib/OnboardingProvider";
 import { colors, fonts, spacing, typeScale } from "../../lib/theme";
 
 // Local-date safe — avoids the UTC day-shift that Date#toISOString() can
@@ -40,12 +40,15 @@ export default function Birthday() {
   const handleContinue = () => {
     if (!iso || !ready) return;
     update({ dateOfBirth: iso });
-    router.push("/onboarding/gender");
+    // Next stop depends on role (birth type is never asked of a father)
+    // and the child's age (feeding is skipped once a newborn framing no
+    // longer fits) — resumeFromDraft is the one place that logic lives.
+    router.push(resumeFromDraft({ ...draft, dateOfBirth: iso }));
   };
 
   return (
     <OnboardingScreen
-      progress={4 / 5}
+      progress={4 / 7}
       scroll
       footer={<PrimaryButton title="Continue" onPress={handleContinue} disabled={!ready} />}
     >

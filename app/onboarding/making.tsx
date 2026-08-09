@@ -9,7 +9,6 @@ import * as family from "../../lib/db/family";
 import * as plans from "../../lib/db/plans";
 import { ensureSession } from "../../lib/db/session";
 import { useOnboarding } from "../../lib/OnboardingProvider";
-import { useRecoveryProfile } from "../../lib/recoveryProfile";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 // Calm, human facts — never fake-technical. Rotate underneath a real
@@ -28,8 +27,7 @@ const NAVIGATE_AT = BAR_DURATION + READY_HOLD; // 4500ms — comfortably under 5
 export default function Making() {
   const router = useRouter();
   const { hydrateFamily, refreshFamily } = useAuth();
-  const { draft, clear, resumeHref } = useOnboarding();
-  const { updateProfile: updateRecoveryProfile } = useRecoveryProfile();
+  const { draft, hydrated, clear, resumeHref } = useOnboarding();
   const [factIndex, setFactIndex] = useState(0);
   const [ready, setReady] = useState(false);
   /**
@@ -104,8 +102,6 @@ export default function Making() {
       }).start();
     }, BAR_DURATION);
 
-    void save();
-
     return () => {
       factTimers.forEach(clearTimeout);
       clearTimeout(readyTimer);
@@ -113,6 +109,20 @@ export default function Making() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Separate from the animation effect above: this screen can be reached
+  // by a fresh page load (not just a client-side push from gender.tsx) —
+  // a browser refresh, or the app being backgrounded and reopened right
+  // here. On a fresh load, `draft` starts EMPTY for one tick while
+  // OnboardingProvider reads it back from storage; saving against that
+  // empty snapshot looks exactly like an incomplete draft and bounces the
+  // parent back to the start. Waiting for `hydrated` avoids that false
+  // negative without changing the "ready in under 5 seconds" promise for
+  // the normal case, where hydration has long since finished.
+  useEffect(() => {
+    if (hydrated) void save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   /**
    * The real commit: a profiles row and a children row.
@@ -141,6 +151,14 @@ export default function Making() {
 
       const profile = await family.updateProfile(userId, {
         parent_name: draft.parentName,
+        // The parent's own facts — role, birth type, feeding method — are
+        // asked as part of this same onboarding now, not a separate
+        // Parent Care questionnaire later. Empty string (skipped/not
+        // reached, e.g. birth type for a father) is stored as null rather
+        // than "", so it reads the same as "never asked" everywhere else.
+        relationship: draft.role || null,
+        birth_method: draft.birthMethod || null,
+        feeding_method: draft.feedingMethod || null,
         // Captured once, here. Every "today" in the product — which plan
         // is current, when it rolls over — is derived from this.
         timezone: family.deviceTimezone(),
@@ -169,10 +187,7 @@ export default function Making() {
       // profile changes so recommendations are regenerated for the new age.
       if (existing) await plans.invalidateTodaysPlan(savedChild.id).catch(() => {});
 
-      hydrateFamily({
-        parentName: profile.parent_name ?? draft.parentName,
-        child: savedChild,
-      });
+      hydrateFamily({ profile, child: savedChild });
       await refreshFamily();
       await clear();
 

@@ -54,7 +54,7 @@ export default function ChildHome() {
   const ageMonths = age?.totalMonths ?? 0;
   const isFocused = useScreenFocus();
   const isChildRoute = pathname === "/child" || pathname === "/child/";
-  const guidedTour = params.guidedTour === "1" && params.step === "1" && isFocused && isChildRoute;
+  const guidedTour = params.guidedTour === "1" && params.step === "3" && isFocused && isChildRoute;
   const afterOnboardingTour = params.next === "milestones";
   const tourNext = afterOnboardingTour ? "&next=milestones" : "";
 
@@ -132,13 +132,13 @@ export default function ChildHome() {
       {guidedTour && (
         <GuidedTourDialog
           eyebrow="Child"
-          focus="The journey timeline"
+          focus="Everything about your child"
           title="Growth becomes a story."
-          body="Milestones are moments to notice, not deadlines to chase."
-          step={1}
-          total={4}
+          body="Activities, milestones, vaccinations, meals — everything you want to keep track of as they grow."
+          step={3}
+          total={5}
           primaryTitle="Continue"
-          onPrimary={() => router.replace(`/child/guide?guidedTour=1&step=2${tourNext}`)}
+          onPrimary={() => router.replace(`/you?guidedTour=1&step=4${tourNext}`)}
           onSkip={skipGuidedTour}
         />
       )}

@@ -39,7 +39,7 @@ export default function Contact() {
 
   return (
     <OnboardingScreen
-      progress={1 / 5}
+      progress={1 / 8}
       scroll
       footer={
         <>

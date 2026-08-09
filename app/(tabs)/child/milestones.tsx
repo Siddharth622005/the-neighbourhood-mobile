@@ -1,5 +1,4 @@
-import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
-import { useScreenFocus } from "../../../lib/useScreenFocus";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +14,6 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { GuidedTourDialog } from "../../../components/GuidedTourDialog";
 import { GhostButton, PrimaryButton } from "../../../components/ui";
 import { useAuth } from "../../../lib/AuthProvider";
 import { canShowMilestones, computeAge, MILESTONES_START_MONTHS } from "../../../lib/childAge";
@@ -68,28 +66,15 @@ function getNextStageLabel(currentLabel: string): string | null {
 
 export default function Milestones() {
   const router = useRouter();
-  const pathname = usePathname();
-  const params = useLocalSearchParams<{ afterTour?: string; guidedTour?: string; initial?: string }>();
+  const params = useLocalSearchParams<{ afterTour?: string; initial?: string }>();
   const { child, accountLinked } = useAuth();
-  // See guide.tsx: only the focused screen on matching route may show a tour dialog.
-  const isFocused = useScreenFocus();
   const initialCheck = params.initial === "1";
-  const isMilestonesRoute = pathname === "/child/milestones";
-  const guidedTour = params.guidedTour === "1" && isFocused && isMilestonesRoute && !initialCheck;
   const afterTour = params.afterTour === "1";
   const [initialPhase, setInitialPhase] = useState<InitialPhase>("check");
   const [initialTransition, setInitialTransition] = useState(false);
   const [recommendationPlan, setRecommendationPlan] = useState<DailyPlan | null>(null);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [recommendationError, setRecommendationError] = useState(false);
-  const finishGuidedTour = async () => {
-    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
-    router.replace("/home?tourComplete=1");
-  };
-  const skipGuidedTour = async () => {
-    await Promise.all([markHomeCoachComplete(), markFirstRunComplete()]).catch(() => {});
-    router.replace("/home");
-  };
   const [allMilestones, setAllMilestones] = useState<Milestone[]>([]);
   const [achievedMap, setAchievedMap] = useState<Map<string, { note: string | null; achieved_at: string }>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -712,19 +697,6 @@ export default function Milestones() {
           </View>
         )}
       </ScrollView>
-      {guidedTour && (
-        <GuidedTourDialog
-          eyebrow="Milestones"
-          focus="Milestone groups"
-          title="Notice without pressure."
-          body="This is where small developmental moments become a gentle record, never a scorecard."
-          step={1}
-          total={4}
-          primaryTitle="Continue"
-          onPrimary={() => router.replace("/child/guide?guidedTour=1&step=2")}
-          onSkip={skipGuidedTour}
-        />
-      )}
       <SecureAccountPrompt
         visible={showSecurePrompt}
         childName={child?.name ?? "your child"}

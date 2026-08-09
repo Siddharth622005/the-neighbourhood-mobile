@@ -182,7 +182,12 @@ export type VaccinationScheduleItem = {
 export type Profile = {
   id: string;
   parent_name: string | null;
+  /** mother | father | prefer_not_to_say — see lib/parentCare.ts ParentRole. */
   relationship: string | null;
+  /** vaginal | caesarean | prefer_not_to_say — see lib/parentCare.ts DeliveryType. */
+  birth_method: string | null;
+  /** exclusive | combination | formula | prefer_not_to_say — see lib/parentCare.ts FeedingMethod. */
+  feeding_method: string | null;
   phone: string | null;
   /** IANA zone. Every "today" in the product derives from this. */
   timezone: string;

@@ -7,9 +7,14 @@ import { colors } from "../lib/theme";
 
 /**
  * The entry route. Decides, once, where a visitor actually belongs:
- *   no child yet -> /welcome, which opens onboarding (resuming mid-way
- *                   if they left a draft behind)
- *   child exists -> /home — today's plan, inside the tab shell
+ *   no child yet         -> /welcome, which opens onboarding (resuming
+ *                            mid-way if they left a draft behind)
+ *   child yet no role    -> /onboarding/role?complete=1 — an account from
+ *                            before role/birth/feeding existed on the main
+ *                            profile. Home needs a role to personalise
+ *                            around, so this is asked once, briefly,
+ *                            rather than forcing the whole flow again.
+ *   child and role exist -> /home — today's plan, inside the tab shell
  *
  * Gating on the CHILD rather than a session is what lets the same code
  * serve both auth modes: with auth off the child comes from the device,
@@ -19,7 +24,7 @@ import { colors } from "../lib/theme";
  * A connection error is shown here rather than leaving the app spinning.
  */
 export default function Index() {
-  const { session, loading, familyLoading, child, connectionError } = useAuth();
+  const { session, loading, familyLoading, child, profile, connectionError } = useAuth();
   const [firstRunChecked, setFirstRunChecked] = useState(false);
   const [firstRunComplete, setFirstRunComplete] = useState(false);
 
@@ -62,6 +67,8 @@ export default function Index() {
   if (!child) return <Redirect href="/welcome" />;
 
   if (!firstRunComplete) return <Redirect href="/onboarding/first-run" />;
+
+  if (!profile?.relationship) return <Redirect href="/onboarding/role?complete=1" />;
 
   return <Redirect href="/home" />;
 }
