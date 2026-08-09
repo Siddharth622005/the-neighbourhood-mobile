@@ -1,7 +1,7 @@
 import { SectionScaffold } from "../../../components/SectionScaffold";
 
 /**
- * Curated product guide — a section inside Growth, never a tab, and never
+ * Curated product guide — a section inside Child, never a tab, and never
  * on Home. Home is for what to do today; recommendations are something a
  * parent goes looking for, not something we push into the daily view.
  */

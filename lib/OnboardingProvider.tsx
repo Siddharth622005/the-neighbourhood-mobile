@@ -9,6 +9,11 @@ import { EMAIL_AUTH_ENABLED } from "./authMode";
  * seconds. The draft is mirrored to AsyncStorage so a parent who closes
  * the app mid-flow resumes exactly where they left off.
  *
+ * Every question here is about the CHILD. The recovery questions that
+ * used to sit at the end — birth method, feeding method — moved to the
+ * first visit to parent mode, so the most personal thing the app asks is
+ * no longer standing between a parent and a working app.
+ *
  * These four child/parent facts are the ONLY profiling the app ever does.
  * Everything else — interests, goals, temperament — is learned from usage
  * (activities completed, notes, copilot questions), never from a form.

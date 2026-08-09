@@ -35,7 +35,9 @@ async function hydrate(row: DailyPlanRow): Promise<DailyPlan> {
         "plans.hydrate",
         await supabase
           .from("activities")
-          .select("id, domain, age_band, title, why, duration_minutes, materials, instructions")
+          .select(
+            "id, domain, age_band, title, why, duration_minutes, duration_label, materials, instructions"
+          )
           .in("id", ids)
       )
     : [];

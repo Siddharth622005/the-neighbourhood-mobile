@@ -34,3 +34,25 @@ export const AUTH_MODE: AuthMode = "anonymous";
  * declared as the union and is meant to be edited.
  */
 export const EMAIL_AUTH_ENABLED: boolean = (AUTH_MODE as string) === "email";
+
+/**
+ * Whether Supabase can actually deliver a six-digit code.
+ *
+ * Separate from AUTH_MODE on purpose. AUTH_MODE decides whether onboarding
+ * demands an account up front (it doesn't — see above). This decides
+ * whether any email flow can COMPLETE, which is a property of the project's
+ * email templates, not of the product's stance.
+ *
+ * Both "Confirm signup" and "Magic Link" must contain {{ .Token }}. Until
+ * they do, Supabase sends a magic link while verify.tsx waits for a code,
+ * so every email path dead-ends on a screen the parent cannot get past.
+ *
+ * While this is false the app hides the offers rather than showing buttons
+ * that cannot work: no "Sign in" on the welcome screen, no prompt to secure
+ * the account. The Profile row still WARNS that the family is device-only,
+ * because that stays true and a parent deserves to know it — it just has
+ * nothing to offer yet.
+ *
+ * FLIP THIS TO true once the templates are fixed and a real code arrives.
+ */
+export const EMAIL_OTP_READY = false;

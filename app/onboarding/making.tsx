@@ -9,6 +9,7 @@ import * as family from "../../lib/db/family";
 import * as plans from "../../lib/db/plans";
 import { ensureSession } from "../../lib/db/session";
 import { useOnboarding } from "../../lib/OnboardingProvider";
+import { useRecoveryProfile } from "../../lib/recoveryProfile";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 // Calm, human facts — never fake-technical. Rotate underneath a real
@@ -28,6 +29,7 @@ export default function Making() {
   const router = useRouter();
   const { hydrateFamily, refreshFamily } = useAuth();
   const { draft, clear, resumeHref } = useOnboarding();
+  const { updateProfile: updateRecoveryProfile } = useRecoveryProfile();
   const [factIndex, setFactIndex] = useState(0);
   const [ready, setReady] = useState(false);
   /**

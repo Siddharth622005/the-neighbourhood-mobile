@@ -14,6 +14,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../lib/AuthProvider";
 import { ModeProvider } from "../lib/ModeProvider";
 import { OnboardingProvider } from "../lib/OnboardingProvider";
+import { RecoveryProfileProvider } from "../lib/recoveryProfile";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -37,20 +38,31 @@ export default function RootLayout() {
       <AuthProvider>
         <ModeProvider>
           <OnboardingProvider>
+            <RecoveryProfileProvider>
             <StatusBar style="dark" />
             {/* Headers are owned by each area: the tab navigator draws its
                 own, onboarding uses its bespoke OnboardingScreen chrome.
                 Profile is a modal rather than a route inside (tabs), so
-                account settings never occupy one of the three tab slots.
+                account settings never occupy one of the five tab slots.
 
-                (tabs) and parent are sibling shells — Child Mode and Parent
-                Mode — swapped by ModeProvider rather than pushed, so neither
-                ever sits on the other's back stack. */}
+                Child and You both live inside (tabs) now, as nested Stacks
+                — there's no separate sibling shell to swap into, since
+                there's no more mode toggle for ModeProvider to react to.
+                It still derives a palette from the route (see
+                lib/ModeProvider.tsx) for the Child/You colour-temperature
+                cue, just without any navigation of its own. */}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="parent" />
               <Stack.Screen
                 name="profile"
+                options={{ presentation: "modal" }}
+              />
+              <Stack.Screen
+                name="recovery-settings"
+                options={{ presentation: "modal" }}
+              />
+              <Stack.Screen
+                name="secure-account"
                 options={{ presentation: "modal" }}
               />
               <Stack.Screen
@@ -62,6 +74,7 @@ export default function RootLayout() {
                 options={{ presentation: "modal" }}
               />
             </Stack>
+            </RecoveryProfileProvider>
           </OnboardingProvider>
         </ModeProvider>
       </AuthProvider>

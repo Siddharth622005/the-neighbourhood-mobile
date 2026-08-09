@@ -16,7 +16,7 @@ import { useCallback, useState } from "react";
  * screen the user actually navigated to.
  */
 export function useScreenFocus(): boolean {
-  const [focused, setFocused] = useState(true);
+  const [focused, setFocused] = useState(false);
 
   useFocusEffect(
     useCallback(() => {

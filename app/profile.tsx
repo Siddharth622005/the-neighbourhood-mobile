@@ -1,14 +1,14 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useScreenFocus } from "../lib/useScreenFocus";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GuidedTourDialog } from "../components/GuidedTourDialog";
 import { LogoMark } from "../components/Logo";
 import { ReplayTourDialog } from "../components/ReplayTourDialog";
 import { GhostButton } from "../components/ui";
 import { useAuth } from "../lib/AuthProvider";
-import { EMAIL_AUTH_ENABLED } from "../lib/authMode";
+import { EMAIL_OTP_READY } from "../lib/authMode";
 import { computeAge } from "../lib/childAge";
 import { markFirstRunComplete, markHomeCoachComplete } from "../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
@@ -21,19 +21,21 @@ import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
  */
 export default function Profile() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useLocalSearchParams<{ guidedTour?: string; next?: string }>();
-  const { parentName, child, signOut } = useAuth();
+  const { parentName, child, signOut, accountLinked, accountEmail } = useAuth();
   const age = child ? computeAge(child.date_of_birth) : null;
   // See guide.tsx: only the focused screen may show a tour dialog.
   const isFocused = useScreenFocus();
-  const guidedTour = params.guidedTour === "1" && isFocused;
+  const isProfileRoute = pathname === "/profile";
+  const guidedTour = params.guidedTour === "1" && isFocused && isProfileRoute;
   const afterOnboardingTour = params.next === "milestones";
   const [showReplayDialog, setShowReplayDialog] = useState(false);
 
   const finishTour = async () => {
     await markHomeCoachComplete().catch(() => {});
     if (afterOnboardingTour) {
-      router.replace("/growth/milestones?initial=1&afterTour=1");
+      router.replace("/child/milestones?initial=1&afterTour=1");
       return;
     }
     await markFirstRunComplete().catch(() => {});
@@ -67,12 +69,42 @@ export default function Profile() {
         )}
 
         <View style={styles.settingsList}>
+          {/* Account safety, stated plainly. An unlinked account is one
+              reinstall away from losing everything, and the parent has no
+              way to know that unless we say so. */}
+          <Pressable
+            onPress={() => EMAIL_OTP_READY && router.push("/secure-account")}
+            disabled={!EMAIL_OTP_READY}
+            style={[styles.settingRow, !accountLinked && styles.settingRowAlert]}
+            accessibilityRole="button"
+          >
+            <View>
+              <Text style={styles.settingTitle}>
+                {accountLinked ? "Account" : "Keep this family safe"}
+              </Text>
+              <Text style={styles.settingBody}>
+                {accountLinked
+                  ? `Saved to ${accountEmail}. Sign in anywhere to find your family.`
+                  : "Right now this family only exists on this phone. Add an email so it survives a new one."}
+              </Text>
+            </View>
+          </Pressable>
           <View style={styles.settingRow}>
             <View>
               <Text style={styles.settingTitle}>Child details</Text>
               <Text style={styles.settingBody}>Name, birthday, and family preferences.</Text>
             </View>
           </View>
+          <Pressable
+            onPress={() => router.push("/recovery-settings")}
+            style={styles.settingRow}
+            accessibilityRole="button"
+          >
+            <View>
+              <Text style={styles.settingTitle}>Recovery profile</Text>
+              <Text style={styles.settingBody}>Birth method, feeding, and delivery date.</Text>
+            </View>
+          </Pressable>
           <View style={styles.settingRow}>
             <View>
               <Text style={styles.settingTitle}>Notifications</Text>
@@ -88,12 +120,31 @@ export default function Profile() {
         </View>
 
         <View style={styles.signOut}>
-          {/* Without an account there's nothing to sign out OF — the honest
-              description is that this wipes the family on this device. */}
-          <GhostButton
-            title={EMAIL_AUTH_ENABLED ? "Sign out" : "Start over on this device"}
-            onPress={signOut}
-          />
+          {/* Whether this is reversible depends on THIS account, not on a
+              build flag: with an email you can sign back in, without one
+              signing out destroys the only key to the family. So the
+              unlinked case names the consequence and confirms first. */}
+          {accountLinked ? (
+            <GhostButton title="Sign out" onPress={signOut} />
+          ) : (
+            <GhostButton
+              title="Start over on this device"
+              onPress={() =>
+                Alert.alert(
+                  "Start over?",
+                  `This erases ${child?.name ?? "your child"}'s milestones, vaccination records and plans from this phone. Because no email is attached, there's no way to get them back.`,
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Keep it safe instead",
+                      onPress: () => router.push("/secure-account"),
+                    },
+                    { text: "Erase", style: "destructive", onPress: signOut },
+                  ]
+                )
+              }
+            />
+          )}
         </View>
       </View>
       {guidedTour && (
@@ -185,6 +236,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.58)",
     borderRadius: radius.md,
     padding: spacing.md,
+  },
+  // Warm, not alarming — this is a nudge, not an error state.
+  settingRowAlert: {
+    backgroundColor: "rgba(201, 165, 142, 0.20)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(139, 116, 91, 0.30)",
   },
   settingTitle: {
     fontFamily: fonts.bodySemiBold,

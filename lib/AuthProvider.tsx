@@ -1,6 +1,7 @@
 import { Session } from "@supabase/supabase-js";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as family from "./db/family";
+import { isAccountLinked } from "./db/session";
 import type { Child } from "./db/types";
 import { supabase } from "./supabase";
 
@@ -28,6 +29,14 @@ type AuthState = {
   parentName: string | null;
   child: Child | null;
   connectionError: string | null;
+  /**
+   * True once an email is confirmed on this account. Until then the family
+   * exists only on this device — see isAccountLinked. Screens use this to
+   * decide whether signing out is safe and whether to offer linking.
+   */
+  accountLinked: boolean;
+  /** The confirmed email, for display. Null while anonymous. */
+  accountEmail: string | null;
   hydrateFamily: (input: { parentName: string | null; child: Child }) => void;
   refreshFamily: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -42,6 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [parentName, setParentName] = useState<string | null>(null);
   const [child, setChild] = useState<Child | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  // Which user id `child` currently reflects. Lets fetchFamily tell "a
+  // slower fetch for the SAME user landed late" (keep the newer local
+  // state) apart from "the signed-in identity actually changed" (an old
+  // anonymous account's child must never leak into a fresh Google/Apple
+  // sign-in that legitimately has none yet).
+  const childUserId = useRef<string | null>(null);
 
   const fetchFamily = async (userId: string) => {
     setFamilyLoading(true);
@@ -54,9 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setParentName(profile?.parent_name ?? null);
       // Anonymous signup can fire an auth-state fetch before onboarding has
       // inserted the child row. If that slower "no child yet" response lands
-      // after onboarding has already hydrated the created child locally, do
-      // not erase the dashboard's source of truth for this session.
-      setChild((current) => primary ?? current);
+      // after onboarding has already hydrated the created child locally for
+      // this SAME user, do not erase the dashboard's source of truth. But if
+      // the signed-in user has changed since `child` was last set, `primary`
+      // is authoritative even when null — otherwise a previous anonymous
+      // account's child would leak into a brand-new Google/Apple sign-in.
+      setChild((current) => (primary ?? (childUserId.current === userId ? current : null)));
+      childUserId.current = userId;
     } catch {
       // Network/DNS failures land here too — surface a calm message rather
       // than leaving the app stuck on a spinner forever.
@@ -123,6 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         parentName,
         child,
         connectionError,
+        accountLinked: isAccountLinked(session?.user),
+        accountEmail: isAccountLinked(session?.user) ? session?.user?.email ?? null : null,
         hydrateFamily,
         refreshFamily,
         signOut,

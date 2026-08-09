@@ -12,6 +12,12 @@
 export const DOMAINS = ["motor", "communication", "cognitive", "social_emotional"] as const;
 export type Domain = (typeof DOMAINS)[number];
 
+// The original 7 activity/milestone bands, still used by milestones and
+// vaccination-adjacent content. See ACTIVITY_LIBRARY_AGE_BANDS below for the
+// 28 finer bands activities themselves use as of content/activity_library.csv
+// — both sets are valid age_band values in the DB (widening only adds
+// labels, see supabase/migrations/20260808100000_widen_activity_bands.sql),
+// so AgeBand covers both rather than picking one.
 export const AGE_BANDS = [
   "m0_3",
   "m4_6",
@@ -21,7 +27,45 @@ export const AGE_BANDS = [
   "y3_5",
   "y5_7",
 ] as const;
-export type AgeBand = (typeof AGE_BANDS)[number];
+
+/**
+ * The 28 three-month bands activities are seeded at
+ * (content/activity_library.csv), from
+ * supabase/migrations/20260808100000_widen_activity_bands.sql. m0_3 and
+ * m4_6 are shared with AGE_BANDS above (identically sized), not duplicated.
+ */
+export const ACTIVITY_LIBRARY_AGE_BANDS = [
+  "m0_3",
+  "m4_6",
+  "m7_9",
+  "m10_12",
+  "m13_15",
+  "m16_18",
+  "m19_21",
+  "m22_24",
+  "m25_27",
+  "m28_30",
+  "m31_33",
+  "m34_36",
+  "y3_0",
+  "y3_3",
+  "y3_6",
+  "y3_9",
+  "y4_0",
+  "y4_3",
+  "y4_6",
+  "y4_9",
+  "y5_0",
+  "y5_3",
+  "y5_6",
+  "y5_9",
+  "y6_0",
+  "y6_3",
+  "y6_6",
+  "y6_9",
+] as const;
+
+export type AgeBand = (typeof AGE_BANDS)[number] | (typeof ACTIVITY_LIBRARY_AGE_BANDS)[number];
 
 /** Labels for display. The DB stores the enum; the UI never shows it raw. */
 export const DOMAIN_LABEL: Record<Domain, string> = {
@@ -39,6 +83,32 @@ export const AGE_BAND_LABEL: Record<AgeBand, string> = {
   m25_36: "25–36 months",
   y3_5: "3–5 years",
   y5_7: "5–7 years",
+  m7_9: "7–9 months",
+  m10_12: "10–12 months",
+  m13_15: "13–15 months",
+  m16_18: "16–18 months",
+  m19_21: "19–21 months",
+  m22_24: "22–24 months",
+  m25_27: "25–27 months",
+  m28_30: "28–30 months",
+  m31_33: "31–33 months",
+  m34_36: "34–36 months",
+  y3_0: "3y–3y3m",
+  y3_3: "3y3m–3y6m",
+  y3_6: "3y6m–3y9m",
+  y3_9: "3y9m–4y",
+  y4_0: "4y–4y3m",
+  y4_3: "4y3m–4y6m",
+  y4_6: "4y6m–4y9m",
+  y4_9: "4y9m–5y",
+  y5_0: "5y–5y3m",
+  y5_3: "5y3m–5y6m",
+  y5_6: "5y6m–5y9m",
+  y5_9: "5y9m–6y",
+  y6_0: "6y–6y3m",
+  y6_3: "6y3m–6y6m",
+  y6_6: "6y6m–6y9m",
+  y6_9: "6y9m–7y",
 };
 
 // --- Global content ---------------------------------------------------
@@ -49,7 +119,10 @@ export type Activity = {
   age_band: AgeBand;
   title: string;
   why: string;
-  duration_minutes: number;
+  /** A representative number derived from duration_label's range; null for "Ongoing". */
+  duration_minutes: number | null;
+  /** The source range as text, e.g. "5–10 min" or "Ongoing" — prefer this for display. */
+  duration_label: string | null;
   materials: string;
   instructions: string | null;
 };

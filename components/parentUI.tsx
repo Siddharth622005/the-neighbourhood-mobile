@@ -5,11 +5,12 @@ import { usePalette } from "../lib/ModeProvider";
 import { fonts, radius, spacing, typeScale } from "../lib/theme";
 
 /**
- * Parent Mode's shared surfaces. These read the palette from context rather
- * than importing colours, so the same components would work if a third mode
- * ever arrived.
+ * Shared surfaces for calm, disclosure-heavy screens — originally built for
+ * Parent Mode, now also used by Growth's Meal Planner. These read the
+ * palette from context rather than importing colours, so they render
+ * correctly in whichever mode renders them.
  *
- * Everything here is deliberately quieter than its Child Mode counterpart:
+ * Everything here is deliberately quieter than Child Mode's default style:
  * flatter shadows, more white space, no filled progress bars racing to 100%.
  * A parent should be able to scan this in the dark with one hand.
  */

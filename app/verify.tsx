@@ -4,6 +4,7 @@ import { StyleSheet, Text } from "react-native";
 import { Body } from "../components/ui";
 import { FadeIn, Hint, OnboardingScreen, OtpInput, Prompt } from "../components/onboarding";
 import { useAuth } from "../lib/AuthProvider";
+import * as session from "../lib/db/session";
 import { supabase } from "../lib/supabase";
 import { colors, fonts, spacing, typeScale } from "../lib/theme";
 
@@ -15,6 +16,7 @@ export default function Verify() {
   const router = useRouter();
   const { email, mode } = useLocalSearchParams<{ email: string; mode?: string }>();
   const { refreshFamily } = useAuth();
+  const linking = mode === "link";
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,6 +30,28 @@ export default function Verify() {
   const submit = async (token: string) => {
     setBusy(true);
     setError(null);
+
+    // Linking an email to an account that already exists is an email
+    // CHANGE, not a sign-up — different OTP type, and there's already a
+    // session, so there's no new one to check for.
+    if (linking) {
+      try {
+        await session.confirmEmailLink(String(email), token);
+      } catch {
+        setBusy(false);
+        setError("That code didn't match — try once more, or resend a fresh one.");
+        setCode("");
+        return;
+      }
+      try {
+        await refreshFamily();
+      } catch {
+        // The link succeeded regardless; the family is already loaded.
+      }
+      router.replace("/profile?linked=1");
+      return;
+    }
+
     const { data, error } = await supabase.auth.verifyOtp({
       email: String(email),
       token,
@@ -51,7 +75,14 @@ export default function Verify() {
   const resend = async () => {
     setCanResend(false);
     setError(null);
-    await supabase.auth.signInWithOtp({ email: String(email), options: { shouldCreateUser: true } });
+    if (linking) {
+      await session.linkEmail(String(email)).catch(() => {});
+    } else {
+      await supabase.auth.signInWithOtp({
+        email: String(email),
+        options: { shouldCreateUser: true },
+      });
+    }
     setTimeout(() => setCanResend(true), 20000);
   };
 
@@ -69,7 +100,11 @@ export default function Verify() {
     >
       <FadeIn>
         <Prompt>Check your email.</Prompt>
-        <Hint>We sent a six-digit code to {email}. Enter it here — no password to remember.</Hint>
+        <Hint>
+          {linking
+            ? `We sent a six-digit code to ${email}. Enter it and your family is safe on any device.`
+            : `We sent a six-digit code to ${email}. Enter it here — no password to remember.`}
+        </Hint>
         <OtpInput value={code} onChange={setCode} onComplete={submit} />
         {busy && <Body muted>Just a moment…</Body>}
         {error && <Body muted>{error}</Body>}

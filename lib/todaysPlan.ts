@@ -2,6 +2,13 @@ import { computeAge } from "./childAge";
 import type { Child } from "./AuthProvider";
 
 /**
+ * SUPERSEDED as a content source: the `activities` table is now seeded from
+ * content/activity_library.csv (1,149 activities) via
+ * scripts/gen-activity-library-seed.mjs, not from the 56 activities below.
+ * Nothing at runtime imports this file — get_or_create_daily_plan() reads
+ * the DB directly (see lib/db/plans.ts) — so it's kept as a historical
+ * record of the original content rather than deleted outright.
+ *
  * Today's plan — four activities a day, one per developmental domain.
  *
  * COLD START IS THE DEFAULT PATH, not a fallback. Onboarding collects only

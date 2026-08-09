@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useScreenFocus } from "../../../lib/useScreenFocus";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -22,7 +22,9 @@ import { canShowMilestones, computeAge, MILESTONES_START_MONTHS } from "../../..
 import * as growth from "../../../lib/db/growth";
 import * as plans from "../../../lib/db/plans";
 import { DOMAIN_LABEL, DOMAINS, type Activity, type DailyPlan, type Milestone, type Domain } from "../../../lib/db/types";
+import { EMAIL_OTP_READY } from "../../../lib/authMode";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../../lib/firstRun";
+import { hasAskedToSecure, markAskedToSecure } from "../../../lib/secureAccountPrompt";
 import { colors, fonts, radius, spacing, typeScale } from "../../../lib/theme";
 
 // Enable LayoutAnimation for Android
@@ -66,12 +68,14 @@ function getNextStageLabel(currentLabel: string): string | null {
 
 export default function Milestones() {
   const router = useRouter();
+  const pathname = usePathname();
   const params = useLocalSearchParams<{ afterTour?: string; guidedTour?: string; initial?: string }>();
-  const { child } = useAuth();
-  // See guide.tsx: only the focused screen may show a tour dialog.
+  const { child, accountLinked } = useAuth();
+  // See guide.tsx: only the focused screen on matching route may show a tour dialog.
   const isFocused = useScreenFocus();
-  const guidedTour = params.guidedTour === "1" && isFocused;
   const initialCheck = params.initial === "1";
+  const isMilestonesRoute = pathname === "/child/milestones";
+  const guidedTour = params.guidedTour === "1" && isFocused && isMilestonesRoute && !initialCheck;
   const afterTour = params.afterTour === "1";
   const [initialPhase, setInitialPhase] = useState<InitialPhase>("check");
   const [initialTransition, setInitialTransition] = useState(false);
@@ -96,6 +100,7 @@ export default function Milestones() {
   const [selectedExploreStage, setSelectedExploreStage] = useState<string>("");
   const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [showSecurePrompt, setShowSecurePrompt] = useState(false);
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
   const milestonesAvailable = canShowMilestones(ageMonths);
@@ -191,6 +196,18 @@ export default function Milestones() {
       // Rollback on failure
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setAchievedMap(prevMap);
+      return;
+    }
+
+    // The parent has just recorded something they'd be upset to lose, and
+    // on an unlinked account it currently would be. This is the one honest
+    // moment to ask for an email — after the value exists, not before.
+    // Only on a genuine save, only once ever, and never mid-onboarding.
+    if (EMAIL_OTP_READY && shouldBeAchieved && !wasAchieved && !accountLinked && !initialCheck) {
+      if (!(await hasAskedToSecure())) {
+        await markAskedToSecure();
+        setShowSecurePrompt(true);
+      }
     }
   };
 
@@ -319,11 +336,9 @@ export default function Milestones() {
         <View style={styles.initialFooter}>
           <PrimaryButton
             tone="taupe"
-            title="See today's recommendations"
-            onPress={() => {
-              setInitialPhase("recommendations");
-              void prepareRecommendations();
-            }}
+            title={initialTransition ? "Opening your Neighbourhood..." : "See today's recommendations"}
+            onPress={finishOnboarding}
+            disabled={initialTransition}
           />
         </View>
       </KeyboardAvoidingView>
@@ -484,6 +499,19 @@ export default function Milestones() {
             You have celebrated <Text style={styles.progressTextHighlight}>{totalAchievedCount} moments</Text> of growth.
           </Text>
         </View>
+
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/ask",
+              params: { mode: "child", topic: "Milestones" },
+            })
+          }
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.askAboutRow, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.askAboutText}>Ask about milestones →</Text>
+        </Pressable>
       </View>
 
       {/* Premium Segmented Controls */}
@@ -693,11 +721,63 @@ export default function Milestones() {
           step={1}
           total={4}
           primaryTitle="Continue"
-          onPrimary={() => router.replace("/growth/guide?guidedTour=1&step=2")}
+          onPrimary={() => router.replace("/child/guide?guidedTour=1&step=2")}
           onSkip={skipGuidedTour}
         />
       )}
+      <SecureAccountPrompt
+        visible={showSecurePrompt}
+        childName={child?.name ?? "your child"}
+        onDismiss={() => setShowSecurePrompt(false)}
+        onConfirm={() => {
+          setShowSecurePrompt(false);
+          router.push("/secure-account");
+        }}
+      />
     </KeyboardAvoidingView>
+  );
+}
+
+/**
+ * Shown once, straight after a parent marks their first milestone.
+ *
+ * It celebrates first and asks second — the moment belongs to the child,
+ * and leading with a warning would sour it. "Not now" is a real answer;
+ * the Profile row keeps the offer alive afterwards.
+ */
+function SecureAccountPrompt({
+  visible,
+  childName,
+  onDismiss,
+  onConfirm,
+}: {
+  visible: boolean;
+  childName: string;
+  onDismiss: () => void;
+  onConfirm: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <View style={styles.securePromptWrap} pointerEvents="box-none">
+      <View style={styles.securePromptCard}>
+        <Text style={styles.securePromptEyebrow}>SAVED</Text>
+        <Text style={styles.securePromptTitle}>
+          That&rsquo;s {childName}&rsquo;s first milestone.
+        </Text>
+        <Text style={styles.securePromptBody}>
+          It&rsquo;s stored on this phone. Add an email and it&rsquo;s safe even
+          if you lose it.
+        </Text>
+        <View style={styles.securePromptActions}>
+          <Pressable onPress={onDismiss} hitSlop={8}>
+            <Text style={styles.securePromptLater}>Not now</Text>
+          </Pressable>
+          <Pressable onPress={onConfirm} style={styles.securePromptCta}>
+            <Text style={styles.securePromptCtaText}>Keep it safe</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -730,7 +810,9 @@ function RecommendationCard({ activity }: { activity: Activity }) {
       <Text style={styles.recommendationDomain}>{DOMAIN_LABEL[activity.domain].toUpperCase()}</Text>
       <Text style={styles.recommendationTitle}>{activity.title}</Text>
       <Text style={styles.recommendationWhy}>{activity.why}</Text>
-      <Text style={styles.recommendationMeta}>{activity.duration_minutes} min · {activity.materials}</Text>
+      <Text style={styles.recommendationMeta}>
+        {activity.duration_label ?? `${activity.duration_minutes} min`} · {activity.materials}
+      </Text>
     </View>
   );
 }
@@ -883,6 +965,70 @@ function MilestoneCard({
 }
 
 const styles = StyleSheet.create({
+  securePromptWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: spacing.lg,
+  },
+  securePromptCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    shadowColor: colors.charcoal,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  securePromptEyebrow: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    letterSpacing: 1.5,
+    color: colors.sage,
+    marginBottom: spacing.sm,
+  },
+  securePromptTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: typeScale.h3,
+    lineHeight: typeScale.h3 * 1.3,
+    color: colors.charcoal,
+  },
+  securePromptBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.55,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  securePromptActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  securePromptLater: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  securePromptCta: {
+    backgroundColor: colors.charcoal,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+  },
+  securePromptCtaText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
+    color: colors.white,
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.cream,
@@ -1194,6 +1340,15 @@ const styles = StyleSheet.create({
   progressTextHighlight: {
     fontFamily: fonts.bodySemiBold,
     color: colors.charcoal,
+  },
+  askAboutRow: {
+    marginTop: spacing.md,
+    alignSelf: "flex-start",
+  },
+  askAboutText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
   },
   tabContainer: {
     flexDirection: "row",

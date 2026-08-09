@@ -1,33 +1,34 @@
 import { Tabs, useRouter } from "expo-router";
 import { AvatarButton } from "../../components/AvatarButton";
 import { LogoMark } from "../../components/Logo";
-import { ModeToggle } from "../../components/ModeToggle";
-import { CommunityIcon, CopilotIcon, GrowthIcon, HomeIcon } from "../../components/TabIcons";
+import { ChildIcon, CommunityIcon, CopilotIcon, HomeIcon, YouIcon } from "../../components/TabIcons";
 import { colors, fonts, spacing } from "../../lib/theme";
 
 /**
- * The app shell: four destinations organized around parent intent.
+ * The app shell: ONE permanent bottom bar, five destinations, no toggle.
  *
- *   Home       — today's plan (zero taps: it's the landing screen)
- *   Copilot    — ask anything (one tap from anywhere)
+ *   Home       — what matters today, for the family (zero taps: it's the
+ *                landing screen)
  *   Community  — learn from and connect with parents at a similar stage
- *   Your Child — understand, prepare, and look back
+ *   Ask        — the single AI entry point (one tap from anywhere)
+ *   Child      — everything about understanding, supporting, tracking them
+ *   You        — everything about taking care of the parent
+ *
+ * This replaces two 4-tab bars (Child Mode / Parent Mode) swapped by a
+ * header toggle. Child and You are both still real internal "zones" —
+ * ModeProvider still derives a palette from the route, since a subtle
+ * colour-temperature shift is a useful wayfinding cue — but nothing about
+ * that is a concept the user has to learn. They just pick a tab.
  *
  * Family and app settings live behind the avatar in the top-right corner
  * of every screen, presented as a modal. Account chrome does not deserve
- * a permanent tab — parents open the app to plan, ask, or understand,
- * not to edit their profile.
+ * a permanent tab — parents open the app to plan, ask, or understand, not
+ * to edit their profile.
  *
- * Development kit, vaccinations, reports and the product guide are sections
- * inside Your Child.
- *
- * This shell is age-invariant: it looks identical for a 2-week-old and a
- * 7-year-old. Age filters the CONTENT inside each slot, and never adds,
- * removes, or renames a destination.
- *
- * Home is home.tsx (route "/home"), not index.tsx: route groups are
- * transparent to URLs, so an index here would collide with app/index.tsx,
- * the auth gate that decides where a visitor belongs.
+ * Child and You are both nested Stacks (not flat screens): tapping into a
+ * section pushes a real screen with a back button while the tab bar stays
+ * visible, and re-tapping the tab always lands back on that zone's home
+ * rather than reopening whatever was left open.
  */
 export default function TabsLayout() {
   const router = useRouter();
@@ -42,9 +43,6 @@ export default function TabsLayout() {
           fontSize: 16,
           color: colors.charcoal,
         },
-        // The way into Parent Mode sits in the same place in both shells, so
-        // the door out is always where the door in was.
-        headerLeft: () => <ModeToggle />,
         headerRight: () => <AvatarButton />,
         tabBarActiveTintColor: colors.charcoal,
         tabBarInactiveTintColor: colors.textMuted,
@@ -72,13 +70,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="copilot"
-        options={{
-          title: "Copilot",
-          tabBarIcon: ({ color, focused }) => <CopilotIcon color={color} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="community"
         options={{
           title: "Community",
@@ -86,22 +77,37 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="growth"
+        name="ask"
         options={{
-          title: "Your Child",
-          href: "/growth",
-          popToTopOnBlur: true,
-          // The nested Stack draws its own headers, including back buttons
-          // for the section screens.
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => <GrowthIcon color={color} focused={focused} />,
+          title: "Ask",
+          tabBarIcon: ({ color, focused }) => <CopilotIcon color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="child"
+        options={{
+          title: "Child",
+          headerShown: false, // the nested Stack draws its own header
+          tabBarIcon: ({ color, focused }) => <ChildIcon color={color} focused={focused} />,
         }}
         listeners={{
-          // Growth contains a nested stack. Always make the tab itself land
-          // on the section menu instead of reopening the last child route.
           tabPress: (event) => {
             event.preventDefault();
-            router.replace("/growth");
+            router.replace("/child");
+          },
+        }}
+      />
+      <Tabs.Screen
+        name="you"
+        options={{
+          title: "You",
+          headerShown: false, // the nested Stack draws its own header
+          tabBarIcon: ({ color, focused }) => <YouIcon color={color} focused={focused} />,
+        }}
+        listeners={{
+          tabPress: (event) => {
+            event.preventDefault();
+            router.replace("/you");
           },
         }}
       />

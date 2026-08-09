@@ -7,10 +7,10 @@ import {
   NutrientTrack,
   PageHeading,
   SectionLabel,
-} from "../../components/parentUI";
-import { useAuth } from "../../lib/AuthProvider";
-import { computeAge } from "../../lib/childAge";
-import { usePalette } from "../../lib/ModeProvider";
+} from "../../../components/parentUI";
+import { useAuth } from "../../../lib/AuthProvider";
+import { computeAge } from "../../../lib/childAge";
+import { usePalette } from "../../../lib/ModeProvider";
 import {
   MEAL_SLOTS,
   type Meal,
@@ -19,8 +19,8 @@ import {
   groceriesFor,
   mealsFor,
   nutrientsFor,
-} from "../../lib/parentCare";
-import { fonts, radius, spacing, typeScale } from "../../lib/theme";
+} from "../../../lib/parentCare";
+import { fonts, radius, spacing, typeScale } from "../../../lib/theme";
 
 /**
  * The Nutrition Planner.

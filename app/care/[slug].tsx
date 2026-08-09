@@ -88,6 +88,23 @@ export default function CareTopic() {
           It doesn&rsquo;t know your history — your GP, midwife or health visitor
           does.
         </CareNote>
+
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/ask",
+              params: { mode: "parent", topic: topic.title, prompt: `About "${topic.title}": ` },
+            })
+          }
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.askRow,
+            { borderColor: p.border },
+            pressed && { opacity: 0.7 },
+          ]}
+        >
+          <Text style={[styles.askText, { color: p.primary }]}>Ask about this →</Text>
+        </Pressable>
       </ScrollView>
     </>
   );
@@ -169,5 +186,15 @@ const styles = StyleSheet.create({
   back: {
     fontFamily: fonts.bodyMedium,
     fontSize: typeScale.body,
+  },
+  askRow: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+  },
+  askText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
   },
 });

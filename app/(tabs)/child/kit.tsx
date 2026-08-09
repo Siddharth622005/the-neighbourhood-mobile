@@ -2,7 +2,7 @@ import { SectionScaffold } from "../../../components/SectionScaffold";
 
 /**
  * Development kit — current kit, progress through it, next recommendation.
- * A section inside Growth, explicitly not a tab of its own.
+ * A section inside Child, explicitly not a tab of its own.
  *
  * Kit recommendations keep advancing through this same slot as the child
  * ages; the screen never changes shape.

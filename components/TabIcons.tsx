@@ -53,8 +53,8 @@ export function CopilotIcon({ color, focused }: IconProps) {
   );
 }
 
-/** Your Child — a heart. Care, plainly. */
-export function GrowthIcon({ color, focused }: IconProps) {
+/** Child — a heart. Care, plainly. */
+export function ChildIcon({ color, focused }: IconProps) {
   return (
     <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
       <Path
@@ -63,6 +63,26 @@ export function GrowthIcon({ color, focused }: IconProps) {
         strokeWidth={w(focused)}
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** You — a leaf cradled by a hand. Self-care, tended. */
+export function YouIcon({ color, focused }: IconProps) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 13.5c0-4 2.6-7 6.5-7.5.4 3.9-1.7 7.6-6.5 7.5Z"
+        stroke={color}
+        strokeWidth={w(focused)}
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 21v-7.5M12 14c-.4-2.7-2-4.4-4.5-4.8"
+        stroke={color}
+        strokeWidth={w(focused)}
+        strokeLinecap="round"
       />
     </Svg>
   );
