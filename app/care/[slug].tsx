@@ -84,9 +84,8 @@ export default function CareTopic() {
         )}
 
         <CareNote>
-          Educational content, reviewed against NHS and WHO postnatal guidance.
-          It doesn&rsquo;t know your history — your GP, midwife or health visitor
-          does.
+          This is here to inform, not to replace. If something feels off, your
+          instinct is worth following. Reach out to your doctor.
         </CareNote>
 
         <Pressable

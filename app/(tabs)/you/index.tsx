@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet } from "react-native";
 import {
   FeatureCard,
   FeatureGrid,
+  FeatureGroupLabel,
   FeatureIcon,
   HubHeader,
   type FeatureIconName,
@@ -113,6 +114,10 @@ export default function YouHub() {
     >
       <HubHeader title="You" subtitle={subtitle} />
 
+      {/* Zone 1, above the fold: the one obvious first action. Today and
+          Nutrition are both daily, changing things — the parent should
+          never have to scan the whole library just to check in. */}
+      <FeatureGroupLabel>WHAT'S FOR TODAY</FeatureGroupLabel>
       <FeatureGrid>
         <FeatureCard
           icon={<FeatureIcon name="today" color={p.primary} />}
@@ -121,6 +126,19 @@ export default function YouHub() {
           onPress={() => router.push("/you/today")}
         />
 
+        <FeatureCard
+          icon={<FeatureIcon name="meal" color={p.primary} />}
+          title="Nutrition"
+          description="What your body is asking for right now."
+          onPress={() => router.push("/you/nutrition")}
+        />
+      </FeatureGrid>
+
+      {/* Zone 2: the reference library — same cards as before, just moved
+          below the daily zone since they're read less often and change
+          far less. */}
+      <FeatureGroupLabel>PARENT CARE LIBRARY</FeatureGroupLabel>
+      <FeatureGrid>
         {careAreas.map((area) => (
           <FeatureCard
             key={area.key}
@@ -131,13 +149,6 @@ export default function YouHub() {
             onPress={() => router.push(`/you/care?area=${area.key}`)}
           />
         ))}
-
-        <FeatureCard
-          icon={<FeatureIcon name="meal" color={p.primary} />}
-          title="Nutrition"
-          description="What your body is asking for right now."
-          onPress={() => router.push("/you/nutrition")}
-        />
 
         <FeatureCard
           icon={<FeatureIcon name="guide" color={p.primary} />}

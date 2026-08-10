@@ -64,6 +64,10 @@ export default function RootLayout() {
                 options={{ presentation: "modal" }}
               />
               <Stack.Screen
+                name="child/add"
+                options={{ presentation: "modal" }}
+              />
+              <Stack.Screen
                 name="community/discussion"
                 options={{ presentation: "card" }}
               />

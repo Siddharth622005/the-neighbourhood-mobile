@@ -29,6 +29,9 @@ export type ExpertReply = {
   avatar_color?: string;
   body: string;
   created_at: string;
+  /** True only for a genuinely verified professional — never set for
+   *  demo/placeholder experts. Absent or false shows no badge. */
+  is_verified?: boolean;
 };
 
 export type Reply = {

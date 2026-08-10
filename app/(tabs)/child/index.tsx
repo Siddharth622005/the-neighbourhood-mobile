@@ -1,10 +1,12 @@
 import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useScreenFocus } from "../../../lib/useScreenFocus";
-import { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard } from "../../../components/ActivityCard";
 import {
   FeatureCard,
   FeatureGrid,
+  FeatureGroupLabel,
   FeatureIcon,
   HubHeader,
   type FeatureIconName,
@@ -14,10 +16,11 @@ import { useAuth } from "../../../lib/AuthProvider";
 import { computeAge } from "../../../lib/childAge";
 import { CHILD_SECTIONS, childHref, type ChildSection } from "../../../lib/childSections";
 import * as growth from "../../../lib/db/growth";
-import type { VaccinationScheduleItem } from "../../../lib/db/types";
+import type { Domain, VaccinationScheduleItem } from "../../../lib/db/types";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../../lib/firstRun";
 import { STAGE_LABEL, stageForAgeMonths } from "../../../lib/kidMealPlanner";
-import { colors, spacing } from "../../../lib/theme";
+import { colors, fonts, spacing, typeScale } from "../../../lib/theme";
+import { useTodaysPlan } from "../../../lib/useTodaysPlan";
 
 /**
  * Child's landing hub — a feature grid, not a scrolling list under section
@@ -49,7 +52,7 @@ export default function ChildHome() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useLocalSearchParams<{ guidedTour?: string; step?: string; next?: string }>();
-  const { child } = useAuth();
+  const { child, children, setActiveChild } = useAuth();
   const age = child ? computeAge(child.date_of_birth) : null;
   const ageMonths = age?.totalMonths ?? 0;
   const isFocused = useScreenFocus();
@@ -60,6 +63,26 @@ export default function ChildHome() {
 
   const [milestoneStats, setMilestoneStats] = useState<{ achieved: number; total: number } | null>(null);
   const [nextVaccination, setNextVaccination] = useState<VaccinationScheduleItem | null>(null);
+
+  // Same "today's plan" the Home tab reads — see components/ActivityCard.tsx.
+  // Collapsed by default here too; nothing auto-expands.
+  const { plan, completed, complete, swap } = useTodaysPlan(child?.id ?? null);
+  const [expandedDomain, setExpandedDomain] = useState<Domain | null>(null);
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  const fadeSwap = useCallback(
+    (domain: Domain, run: () => Promise<void>) => {
+      Animated.timing(cardOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(async () => {
+        await run();
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      });
+    },
+    [cardOpacity]
+  );
 
   const loadStats = useCallback(async () => {
     if (!child) return;
@@ -115,6 +138,62 @@ export default function ChildHome() {
           subtitle={age ? `${age.label} old` : "What they're doing now, and what's coming."}
         />
 
+        <View style={styles.childRow}>
+          {children.map((kid) => {
+            const selected = kid.id === child?.id;
+            return (
+              <Pressable
+                key={kid.id}
+                onPress={() => setActiveChild(kid.id)}
+                style={[styles.childPill, selected && styles.childPillOn]}
+              >
+                <Text style={[styles.childPillText, selected && styles.childPillTextOn]}>
+                  {kid.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Pressable onPress={() => router.push("/child/add")} style={styles.addChildPill}>
+            <Text style={styles.addChildPillText}>+ Add a child</Text>
+          </Pressable>
+        </View>
+
+        {plan && plan.activities.length > 0 && (
+          <>
+            <FeatureGroupLabel>TODAY'S ACTIVITIES</FeatureGroupLabel>
+            <View style={styles.activityList}>
+              {plan.activities.map((activity) => {
+                const isDone = completed.includes(activity.domain);
+                if (isDone) return <ActivityDoneRow key={activity.domain} activity={activity} />;
+
+                if (activity.domain === expandedDomain) {
+                  return (
+                    <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
+                      <ActivityExpandedCard
+                        activity={activity}
+                        canSwap
+                        ageLabel={age?.label}
+                        onComplete={() => complete(activity)}
+                        onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
+                        onCollapse={() => setExpandedDomain(null)}
+                      />
+                    </Animated.View>
+                  );
+                }
+
+                return (
+                  <ActivityCollapsedRow
+                    key={activity.domain}
+                    activity={activity}
+                    onPress={() => setExpandedDomain(activity.domain)}
+                  />
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        <FeatureGroupLabel>EXPLORE</FeatureGroupLabel>
         <FeatureGrid>
           {CHILD_SECTIONS.map((section) => (
             <FeatureCard
@@ -152,5 +231,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
+  },
+  activityList: {
+    marginBottom: spacing.lg,
+  },
+  childRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  childPill: {
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+  },
+  childPillOn: {
+    backgroundColor: colors.warmTaupe,
+    borderColor: colors.warmTaupe,
+  },
+  childPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.charcoal,
+  },
+  childPillTextOn: {
+    color: colors.white,
+  },
+  addChildPill: {
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: "dashed",
+  },
+  addChildPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
   },
 });

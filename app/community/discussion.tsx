@@ -129,13 +129,19 @@ export default function DiscussionDetail() {
 
           <View style={styles.divider} />
 
-          {/* Verified Expert Answer Card (if present) */}
+          {/* Expert answer card, if present. The "verified" badge is only
+              ever shown for a genuinely verified professional — see
+              ExpertReply.is_verified in lib/db/communityTypes.ts. */}
           {discussion.expert_reply && (
             <View style={styles.expertCard}>
               <View style={styles.expertTopRow}>
                 <View style={styles.expertBadgeRow}>
                   <VerifiedDoctorIcon />
-                  <Text style={styles.expertBadgeText}>VERIFIED EXPERT RESPONSE</Text>
+                  <Text style={styles.expertBadgeText}>
+                    {discussion.expert_reply.is_verified
+                      ? "VERIFIED EXPERT RESPONSE"
+                      : "EXPERT RESPONSE"}
+                  </Text>
                 </View>
               </View>
 

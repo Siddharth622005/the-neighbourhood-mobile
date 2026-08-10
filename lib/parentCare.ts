@@ -317,15 +317,15 @@ const MEALS: Meal[] = [
   {
     id: "m-eggs",
     slot: "breakfast",
-    title: "Soft eggs on buttered rye",
+    title: "Akuri (spiced scrambled eggs) on buttered toast",
     blurb: "Protein and choline without standing at the hob for long.",
     minutes: 8,
     delivers: ["protein", "vitamin_d", "folate"],
-    ingredients: ["Eggs", "Rye bread", "Butter", "Chives", "Black pepper"],
+    ingredients: ["Eggs", "Onion", "Tomato", "Green chilli", "Coriander", "Toast", "Butter"],
     steps: [
-      "Boil eggs for six and a half minutes.",
-      "Toast and butter the rye.",
-      "Halve the eggs over the toast, season, scatter chives.",
+      "Sauté onion, tomato and chilli until soft.",
+      "Add beaten eggs and scramble gently until just set.",
+      "Spoon over buttered toast and scatter coriander.",
     ],
     diets: ["omnivore", "vegetarian"],
     oneHanded: false,
@@ -372,14 +372,14 @@ const MEALS: Meal[] = [
   {
     id: "m-salmon",
     slot: "dinner",
-    title: "Roast salmon, greens and lemon potatoes",
+    title: "Pan-seared fish with spiced potatoes and greens",
     blurb: "The most direct omega-3 there is, on one tray.",
     minutes: 30,
     delivers: ["omega_3", "protein", "vitamin_d"],
-    ingredients: ["Salmon fillets", "New potatoes", "Tenderstem", "Lemon", "Olive oil"],
+    ingredients: ["Pomfret or rawas fillets", "Potatoes", "Spinach", "Lemon", "Mustard oil"],
     steps: [
-      "Roast potatoes for twenty minutes.",
-      "Add salmon and greens, roast eight minutes more.",
+      "Roast potatoes with a little mustard oil and turmeric for twenty minutes.",
+      "Pan-sear the fish, then wilt spinach in the same pan.",
       "Squeeze lemon over everything.",
     ],
     diets: ["omnivore"],
@@ -389,22 +389,22 @@ const MEALS: Meal[] = [
   {
     id: "m-tofu",
     slot: "dinner",
-    title: "Sesame tofu with greens and brown rice",
+    title: "Sesame-tempered tofu with greens and brown rice",
     blurb: "Calcium-set tofu does the work dairy would.",
     minutes: 22,
     delivers: ["calcium", "protein", "iron", "fibre"],
     ingredients: [
       "Firm tofu",
-      "Tahini",
-      "Pak choi",
-      "Brown rice",
-      "Soy sauce",
       "Sesame seeds",
+      "Mustard seeds",
+      "Curry leaves",
+      "Spinach",
+      "Brown rice",
     ],
     steps: [
       "Crisp the tofu in a hot pan.",
       "Steam the greens over the rice for the last five minutes.",
-      "Loosen tahini with soy and water, spoon over.",
+      "Temper mustard seeds, curry leaves and sesame in oil, spoon over.",
     ],
     diets: ["omnivore", "vegetarian", "vegan"],
     oneHanded: false,
@@ -765,32 +765,6 @@ export const CARE_TOPICS: CareTopic[] = [
   },
   /* ---- Mental health ---- */
   {
-    slug: "baby-blues-or-more",
-    area: "mental",
-    title: "Baby blues, or something more",
-    blurb: "How to tell the difference, honestly and without alarm.",
-    minutes: 6,
-    sections: [
-      {
-        heading: "Baby blues",
-        body: "Tearfulness, sensitivity and mood swings that start in the first week and settle by about two weeks. Up to eight in ten parents experience it. It lifts on its own.",
-      },
-      {
-        heading: "Postnatal depression",
-        body: "Low mood, loss of interest, or hopelessness that lasts beyond two weeks or begins later in the first year. It affects roughly one in ten parents and responds well to treatment. It is not a failure of love or effort.",
-      },
-      {
-        heading: "Anxiety, which gets missed",
-        body: "Racing thoughts, checking the baby compulsively, intrusive images of harm coming to them. Frightening, common, and very treatable. Intrusive thoughts are not intentions.",
-      },
-    ],
-    seekHelp: [
-      "Low mood or anxiety lasting more than two weeks",
-      "Feeling unable to care for yourself or your baby",
-      "Any thought of harming yourself or your baby — contact your doctor or emergency services now",
-    ],
-  },
-  {
     slug: "managing-stress-and-overwhelm",
     area: "mental",
     title: "Managing stress and overwhelm",
@@ -809,58 +783,6 @@ export const CARE_TOPICS: CareTopic[] = [
         heading: "Ask for the specific thing",
         body: "\"Can you take the 7 to 9pm shift tonight\" gets a yes far more often than \"I need help.\" Specific, time-bound requests are easier for other people to say yes to, and easier for you to notice when they're met.",
       },
-    ],
-  },
-  {
-    slug: "anxiety-after-parenthood",
-    area: "mental",
-    title: "Anxiety after becoming a parent",
-    blurb: "Racing thoughts and constant checking are common — and treatable.",
-    minutes: 5,
-    sections: [
-      {
-        heading: "It doesn't always look like worry",
-        body: "New-parent anxiety can show up as checking the baby's breathing repeatedly, intrusive images of something going wrong, or a racing mind that won't settle even when the baby is finally asleep. It's one of the most under-reported parts of the first year.",
-      },
-      {
-        heading: "Intrusive thoughts are not a warning sign about you",
-        body: "Sudden, unwanted images of harm coming to your baby are extremely common, and are the opposite of an intention — they happen precisely because you care so much about keeping your baby safe. They become concerning only if they bring an urge to act on them, which is a different and much rarer thing.",
-      },
-      {
-        heading: "It responds well to treatment",
-        body: "Talking therapies, peer support, and — when appropriate — medication compatible with breastfeeding all help. Anxiety that's interfering with sleep, eating, or daily function is worth raising with your GP, not something to just wait out.",
-      },
-    ],
-    seekHelp: [
-      "Anxiety that stops you sleeping even when your baby is asleep",
-      "Intrusive thoughts that come with an urge to act on them",
-      "Anxiety that is stopping you leaving the house or caring for your baby",
-    ],
-  },
-  {
-    slug: "preventing-burnout",
-    area: "mental",
-    title: "Preventing burnout",
-    blurb: "Running on empty for long enough stops being sustainable. What to watch for before it does.",
-    minutes: 4,
-    sections: [
-      {
-        heading: "Burnout builds slowly",
-        body: "It rarely arrives as a single bad day — it's weeks of depleted reserves with no real refuelling. Constant fatigue that sleep doesn't fix, irritability at small things, and feeling emotionally flat toward things you normally enjoy are early signs, not personal failings.",
-      },
-      {
-        heading: "Recovery needs more than rest",
-        body: "Sleep helps, but burnout also needs moments where you're not \"on call\" — even twenty minutes where someone else has the baby and your attention is genuinely free. Rest without that mental off-switch doesn't refill the tank the same way.",
-      },
-      {
-        heading: "Say it before it's a crisis",
-        body: "Telling your partner or a friend \"I'm running on empty\" while you still have some capacity left gets a far better response than waiting until you're depleted. Early honesty is what keeps burnout from becoming something bigger.",
-      },
-    ],
-    seekHelp: [
-      "Feeling emotionally numb or detached from your baby for more than a few days",
-      "Persistent exhaustion that doesn't lift with rest",
-      "Thoughts that you'd be better off not being here — contact your doctor or emergency services now",
     ],
   },
   {
@@ -903,6 +825,84 @@ export const CARE_TOPICS: CareTopic[] = [
         heading: "Accepting help is a skill, not a weakness",
         body: "When someone offers to bring food or hold the baby for an hour, saying yes is not admitting defeat. Most people offering genuinely want to help and feel good when you let them.",
       },
+    ],
+  },
+  {
+    slug: "anxiety-after-parenthood",
+    area: "mental",
+    title: "Anxiety after becoming a parent",
+    blurb: "Racing thoughts and constant checking are common — and treatable.",
+    minutes: 5,
+    sections: [
+      {
+        heading: "It doesn't always look like worry",
+        body: "New-parent anxiety can show up as checking the baby's breathing repeatedly, intrusive images of something going wrong, or a racing mind that won't settle even when the baby is finally asleep. It's one of the most under-reported parts of the first year.",
+      },
+      {
+        heading: "Intrusive thoughts are not a warning sign about you",
+        body: "Sudden, unwanted images of harm coming to your baby are extremely common, and are the opposite of an intention — they happen precisely because you care so much about keeping your baby safe. They become concerning only if they bring an urge to act on them, which is a different and much rarer thing.",
+      },
+      {
+        heading: "It responds well to treatment",
+        body: "Talking therapies, peer support, and — when appropriate — medication compatible with breastfeeding all help. Anxiety that's interfering with sleep, eating, or daily function is worth raising with your GP, not something to just wait out.",
+      },
+    ],
+    seekHelp: [
+      "Anxiety that stops you sleeping even when your baby is asleep",
+      "Intrusive thoughts that come with an urge to act on them",
+      "Anxiety that is stopping you leaving the house or caring for your baby",
+    ],
+  },
+  {
+    slug: "baby-blues-or-more",
+    area: "mental",
+    title: "Baby blues, or something more",
+    blurb: "How to tell the difference, honestly and without alarm.",
+    minutes: 6,
+    sections: [
+      {
+        heading: "Baby blues",
+        body: "Tearfulness, sensitivity and mood swings that start in the first week and settle by about two weeks. Up to eight in ten parents experience it. It lifts on its own.",
+      },
+      {
+        heading: "Postnatal depression",
+        body: "Low mood, loss of interest, or hopelessness that lasts beyond two weeks or begins later in the first year. It affects roughly one in ten parents and responds well to treatment. It is not a failure of love or effort.",
+      },
+      {
+        heading: "Anxiety, which gets missed",
+        body: "Racing thoughts, checking the baby compulsively, intrusive images of harm coming to them. Frightening, common, and very treatable. Intrusive thoughts are not intentions.",
+      },
+    ],
+    seekHelp: [
+      "Low mood or anxiety lasting more than two weeks",
+      "Feeling unable to care for yourself or your baby",
+      "Any thought of harming yourself or your baby — contact your doctor or emergency services now",
+    ],
+  },
+  {
+    slug: "preventing-burnout",
+    area: "mental",
+    title: "Preventing burnout",
+    blurb: "Running on empty for long enough stops being sustainable. What to watch for before it does.",
+    minutes: 4,
+    sections: [
+      {
+        heading: "Burnout builds slowly",
+        body: "It rarely arrives as a single bad day — it's weeks of depleted reserves with no real refuelling. Constant fatigue that sleep doesn't fix, irritability at small things, and feeling emotionally flat toward things you normally enjoy are early signs, not personal failings.",
+      },
+      {
+        heading: "Recovery needs more than rest",
+        body: "Sleep helps, but burnout also needs moments where you're not \"on call\" — even twenty minutes where someone else has the baby and your attention is genuinely free. Rest without that mental off-switch doesn't refill the tank the same way.",
+      },
+      {
+        heading: "Say it before it's a crisis",
+        body: "Telling your partner or a friend \"I'm running on empty\" while you still have some capacity left gets a far better response than waiting until you're depleted. Early honesty is what keeps burnout from becoming something bigger.",
+      },
+    ],
+    seekHelp: [
+      "Feeling emotionally numb or detached from your baby for more than a few days",
+      "Persistent exhaustion that doesn't lift with rest",
+      "Thoughts that you'd be better off not being here — contact your doctor or emergency services now",
     ],
   },
   {

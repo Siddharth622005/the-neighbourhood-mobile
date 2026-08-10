@@ -157,6 +157,18 @@ export default function Recovery() {
         <Text style={[styles.stageBody, { color: p.text }]}>{stageBody}</Text>
       </Card>
 
+      {!areaFilter && !isFather && (
+        <Card style={styles.stageCard} onPress={() => router.push("/you/today")}>
+          <View style={styles.rowBetween}>
+            <Text style={[styles.stageSerif, { color: p.primary }]}>How are you feeling today?</Text>
+            <Chevron />
+          </View>
+          <Text style={[styles.stageBody, { color: p.text }]}>
+            A quick, private check-in — not a form, not a score.
+          </Text>
+        </Card>
+      )}
+
       {areaTopics.map(({ key, label, blurb, topics }) => (
         <View key={key} style={styles.block}>
           {!areaFilter && (
@@ -200,9 +212,8 @@ export default function Recovery() {
       )}
 
       <CareNote>
-        This library is here to educate and reassure. It is not medical advice,
-        and it cannot see you — if something feels wrong, please contact your GP,
-        midwife or health visitor.
+        This is here to inform, not to replace. If something feels off, your
+        instinct is worth following. Reach out to your doctor.
       </CareNote>
     </ScrollView>
   );

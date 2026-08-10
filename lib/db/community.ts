@@ -7,10 +7,16 @@ let repliesStore: Record<string, Reply[]> = { ...MOCK_REPLIES };
 /**
  * Returns community discussions personalized for a child's age in months.
  * Optionally filtered by topic.
+ *
+ * `windowMonths` defaults to a tight stage-relevant band (±3 months) —
+ * a parent's default feed should be other parents at roughly the same
+ * stage, not the whole age range. Pass a much larger value (e.g. 1200)
+ * for "Browse all stages".
  */
 export async function getDiscussionsForAge(
   ageMonths: number,
-  topicFilter?: CommunityTopic | "all"
+  topicFilter?: CommunityTopic | "all",
+  windowMonths = 3
 ): Promise<Discussion[]> {
   // Simulate quick local promise resolve
   await new Promise((resolve) => setTimeout(resolve, 50));
@@ -21,10 +27,10 @@ export async function getDiscussionsForAge(
       if (topicFilter && topicFilter !== "all" && disc.topic !== topicFilter) {
         return false;
       }
-      // Stage relevance range check (expanded window for broader discussions)
-      const windowMin = Math.max(0, ageMonths - 8);
-      const windowMax = ageMonths + 8;
-      
+      // Stage relevance range check
+      const windowMin = Math.max(0, ageMonths - windowMonths);
+      const windowMax = ageMonths + windowMonths;
+
       const fitsWindow =
         disc.age_relevance_min <= windowMax && disc.age_relevance_max >= windowMin;
 
@@ -112,6 +118,21 @@ export async function toggleSaveDiscussion(discussionId: string): Promise<boolea
     return disc.saved;
   }
   return false;
+}
+
+/**
+ * Report / block / escalate — the simple three-dot menu on a discussion.
+ * Same in-memory pattern as the rest of this file (no dedicated backend
+ * table exists yet); removes the item from THIS device's feed immediately
+ * so the action feels real, without pretending there's a moderation
+ * pipeline behind it.
+ */
+export async function reportDiscussion(discussionId: string, _reason?: string): Promise<void> {
+  discussionsStore = discussionsStore.filter((d) => d.id !== discussionId);
+}
+
+export async function blockAuthor(authorInitial: string): Promise<void> {
+  discussionsStore = discussionsStore.filter((d) => d.author_initial !== authorInitial);
 }
 
 function inferTopic(text: string): CommunityTopic {

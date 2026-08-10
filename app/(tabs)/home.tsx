@@ -3,15 +3,14 @@ import { useScreenFocus } from "../../lib/useScreenFocus";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard } from "../../components/ActivityCard";
 import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
 import * as growth from "../../lib/db/growth";
-import { DOMAIN_LABEL, type Activity, type Domain, type Milestone, type VaccinationScheduleItem } from "../../lib/db/types";
+import { DOMAIN_LABEL, type Domain, type Milestone, type VaccinationScheduleItem } from "../../lib/db/types";
 import { hasCompletedHomeCoach, markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
-import { ActivityVideo } from "../../components/ActivityVideo";
-import { kitItemsFor } from "../../lib/devKit";
 import {
   mealsFor as kidMealsFor,
   slotsForStage,
@@ -81,8 +80,8 @@ export default function Home() {
   const afterOnboardingTour = params.next === "milestones";
   const tourNext = afterOnboardingTour ? "&next=milestones" : "";
 
-  /** Set only when the parent taps a row open ahead of its turn. */
-  const [openedEarly, setOpenedEarly] = useState<Domain | null>(null);
+  /** None expanded by default — the parent taps an activity to see it. */
+  const [expandedDomain, setExpandedDomain] = useState<Domain | null>(null);
 
   // The plan now comes from the database, cached locally so this renders
   // immediately and completions never wait on the network.
@@ -240,46 +239,31 @@ export default function Home() {
   const ageMonths = age?.totalMonths ?? 0;
   const allDone = activities.length > 0 && completed.length === activities.length;
 
-  // The expanded card is the first incomplete activity, unless the parent
-  // has deliberately opened another one early.
-  const firstIncomplete = activities.find((a) => !completed.includes(a.domain))?.domain ?? null;
-  const expanded =
-    openedEarly && !completed.includes(openedEarly) ? openedEarly : firstIncomplete;
-
   // A vaccination only earns a spot on Home when it's genuinely close —
   // otherwise it's not "today", it's just what the Vaccinations screen is
   // for. Everything else about it (schedule, records) lives on Child.
+  // This is the ONE reminder slot — it never competes with the two
+  // recommendation cards below for space or attention.
   const ageDays = Math.floor(
     (Date.now() - new Date(`${child.date_of_birth}T00:00:00`).getTime()) / 86_400_000
   );
   const vaccinationDueSoon =
     nextVaccination && nextVaccination.age_days - ageDays <= 60 ? nextVaccination : null;
-
-  // One small "growth" nudge for the child section, second in weight to
-  // the day's activities: a due vaccination wins when there is one
-  // (time-boxed and medical), otherwise a milestone still outstanding for
-  // this exact age band — the brief's own "upcoming milestone" example.
-  const childHighlight = vaccinationDueSoon
+  const reminder = vaccinationDueSoon
     ? {
-        eyebrow: "DUE SOON",
         title: vaccinationTitle(vaccinationDueSoon),
-        body: `Recommended around ${vaccinationDueSoon.age_label}. Review the schedule when it suits you.`,
+        body: `Due around ${vaccinationDueSoon.age_label} — worth booking ahead.`,
         onPress: () => router.push("/child/vaccinations"),
       }
-    : nextMilestone
-      ? {
-          eyebrow: `WATCH FOR · ${DOMAIN_LABEL[nextMilestone.domain].toUpperCase()}`,
-          title: nextMilestone.description,
-          body: "Typical for this age — no rush, just something to notice.",
-          onPress: () => router.push("/child/milestones"),
-        }
-      : null;
+    : null;
 
   // "For you" reuses the exact gating You's own hub uses — physical
   // recovery only for a mother within the postpartum window, "For dads"
   // only for a father, mental/sleep/feeding/relationships open to anyone.
   // The single highest-priority visible area wins the slot; which TOPIC
   // within it shows rotates by day so it isn't the same line forever.
+  // This is always available (bridgesFor is a guaranteed fallback), so it
+  // is always the first of the two curated recommendations.
   const careProfile = deriveProfile(ageMonths, authProfile);
   const careAreas = visibleCareAreas(careProfile.role, ageMonths, careProfile.delivery);
   const topCareArea = careAreas[0] ?? null;
@@ -287,12 +271,23 @@ export default function Home() {
   const dayIndex = Math.floor(Date.now() / 86_400_000);
   const careTopic = careTopics.length > 0 ? careTopics[dayIndex % careTopics.length] : null;
 
-  // "Together" only appears when there's a genuine stage-appropriate meal
-  // to suggest — nothing is invented to fill the section.
+  // The second recommendation: a stage-appropriate meal when there is
+  // one, otherwise an outstanding milestone for this exact age band —
+  // never both, and never neither if either is genuinely available.
+  // Nothing is invented to fill this slot.
   const mealStage = stageForAgeMonths(ageMonths);
   const mealSlots = slotsForStage(mealStage);
   const mealSlot = mealSlots[0] ?? null;
   const mealIdea = mealSlot ? kidMealsFor(mealStage, mealSlot.key)[0] ?? null : null;
+  const milestoneRecommendation =
+    !mealIdea && nextMilestone
+      ? {
+          eyebrow: `WATCH FOR · ${DOMAIN_LABEL[nextMilestone.domain].toUpperCase()}`,
+          title: nextMilestone.description,
+          body: "Typical for this age — no rush, just something to notice.",
+          onPress: () => router.push("/child/milestones"),
+        }
+      : null;
 
   return (
     <View style={styles.screen}>
@@ -324,57 +319,49 @@ export default function Home() {
           </View>
 
           <SectionLabel first accent={colors.warmTaupe}>
-            FOR YOUR CHILD
+            TODAY
           </SectionLabel>
           <View style={styles.childSection}>
             <View style={styles.planHero}>
               <Text style={styles.planTitle}>A few good things for {child.name}.</Text>
-              <Text style={styles.subline}>
-                Chosen for {age?.label ?? "right now"}. Do what you can.
-              </Text>
-              <ProgressSegments plan={activities} completed={completed} expanded={expanded} />
+              <Text style={styles.subline}>Pick one that feels right today.</Text>
             </View>
 
             <View style={styles.list}>
               {activities.map((activity) => {
                 const isDone = completed.includes(activity.domain);
-                if (isDone) return <DoneRow key={activity.domain} activity={activity} />;
+                if (isDone) return <ActivityDoneRow key={activity.domain} activity={activity} />;
 
-                if (activity.domain === expanded) {
+                if (activity.domain === expandedDomain) {
                   return (
                     <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
-                      <ExpandedCard
+                      <ActivityExpandedCard
                         activity={activity}
                         canSwap
                         highlighted={guidedTour}
+                        ageLabel={age?.label}
                         onComplete={() => complete(activity)}
                         onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
+                        onCollapse={() => setExpandedDomain(null)}
                       />
                     </Animated.View>
                   );
                 }
 
                 return (
-                  <UpcomingRow
+                  <ActivityCollapsedRow
                     key={activity.domain}
                     activity={activity}
-                    onPress={() => setOpenedEarly(activity.domain)}
+                    onPress={() => setExpandedDomain(activity.domain)}
                   />
                 );
               })}
             </View>
 
             {allDone && <EndOfDay childName={child.name} />}
-
-            {childHighlight && (
-              <DiscoveryRow
-                eyebrow={childHighlight.eyebrow}
-                title={childHighlight.title}
-                body={childHighlight.body}
-                onPress={childHighlight.onPress}
-              />
-            )}
           </View>
+
+          <CopilotHomeCard onPress={(prompt) => router.push(prompt ? `/ask?prompt=${encodeURIComponent(prompt)}` : "/ask")} />
 
           <SectionLabel accent="#5E7360">FOR YOU</SectionLabel>
           <ForYouCard
@@ -384,7 +371,7 @@ export default function Home() {
             topic={careTopic}
           />
 
-          {mealSlot && mealIdea && (
+          {mealSlot && mealIdea ? (
             <>
               <SectionLabel accent={colors.softSand}>TOGETHER</SectionLabel>
               <MealIdeaCard
@@ -393,9 +380,31 @@ export default function Home() {
                 onPress={() => router.push("/child/meals")}
               />
             </>
+          ) : (
+            milestoneRecommendation && (
+              <>
+                <SectionLabel accent={colors.softSand}>WORTH NOTICING</SectionLabel>
+                <DiscoveryRow
+                  eyebrow={milestoneRecommendation.eyebrow}
+                  title={milestoneRecommendation.title}
+                  body={milestoneRecommendation.body}
+                  onPress={milestoneRecommendation.onPress}
+                />
+              </>
+            )
           )}
 
-          <CopilotHomeCard onPress={(prompt) => router.push(prompt ? `/ask?prompt=${encodeURIComponent(prompt)}` : "/ask")} />
+          {reminder && (
+            <>
+              <SectionLabel accent={colors.softSand}>COMING UP</SectionLabel>
+              <DiscoveryRow
+                eyebrow="VACCINATION"
+                title={reminder.title}
+                body={reminder.body}
+                onPress={reminder.onPress}
+              />
+            </>
+          )}
         </Animated.View>
       </ScrollView>
       {showTourDone && (
@@ -479,182 +488,6 @@ function HomeCoachMark({
         </View>
       </View>
     </Modal>
-  );
-}
-
-/**
- * Four segments, one per domain. Completed reads sage, the one you're on
- * reads taupe, the rest stay muted. There is no "behind" state and no
- * percentage — two of four is a fine place to stop.
- */
-function ProgressSegments({
-  plan,
-  completed,
-  expanded,
-}: {
-  plan: Activity[];
-  completed: Domain[];
-  expanded: Domain | null;
-}) {
-  return (
-    <View style={styles.progressWrap}>
-      <View style={styles.segments}>
-        {plan.map((a) => {
-          const isDone = completed.includes(a.domain);
-          const isCurrent = a.domain === expanded;
-          return (
-            <View
-              key={a.domain}
-              style={[
-                styles.segment,
-                isDone && styles.segmentDone,
-                !isDone && isCurrent && styles.segmentCurrent,
-              ]}
-            />
-          );
-        })}
-      </View>
-      <Text style={styles.progressLabel}>
-        {completed.length} of {plan.length}
-      </Text>
-    </View>
-  );
-}
-
-/** The activity in focus stays compact so the full day remains visible. */
-function ExpandedCard({
-  activity,
-  canSwap,
-  highlighted = false,
-  onComplete,
-  onSwap,
-}: {
-  activity: Activity;
-  canSwap: boolean;
-  highlighted?: boolean;
-  onComplete: () => void;
-  onSwap: () => void;
-}) {
-  const router = useRouter();
-  // Matched on the activity's own band rather than the child's, so a
-  // swapped-in activity for an adjacent stage still suggests the right thing.
-  const kitItem = kitItemsFor(activity.materials, activity.age_band)[0];
-  const steps = (activity.instructions ?? "")
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^\s*\d+[.)]\s*/, "").trim())
-    .filter(Boolean);
-
-  return (
-    <View style={[styles.card, highlighted && styles.tourHighlight]}>
-      {/* PROTOTYPE: only "Reach for it" has a clip right now. */}
-      {activity.title === "Reach for it" && <ActivityVideo style={styles.activityVideo} />}
-      <View style={styles.cardHeader}>
-        <View style={styles.cardCopy}>
-          <Text style={styles.domainLabel}>{DOMAIN_LABEL[activity.domain].toUpperCase()}</Text>
-          <Text style={styles.title}>{activity.title}</Text>
-        </View>
-        <View style={styles.duration}>
-          <ClockIcon />
-          <Text style={styles.durationText}>
-            {activity.duration_label ?? `${activity.duration_minutes} min`}
-          </Text>
-        </View>
-      </View>
-
-      {/* The reason this activity exists. Previously clipped to one line,
-          which cut it off mid-sentence and made the card look empty. */}
-      <Text style={styles.why}>{activity.why}</Text>
-
-      {steps.length > 0 && (
-        <View style={styles.howBlock}>
-          <Text style={styles.blockLabel}>HOW</Text>
-          {steps.map((step, i) => (
-            <View key={step} style={styles.stepRow}>
-              {steps.length > 1 && <Text style={styles.stepNumber}>{i + 1}</Text>}
-              <Text style={styles.stepText}>{step}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* What you'll need. The household answer comes first and is the
-          primary text — nothing here is a shopping list, and the activity
-          works without owning anything. */}
-      <View style={styles.needBlock}>
-        <Text style={styles.blockLabel}>WHAT YOU&rsquo;LL NEED</Text>
-        <Text style={styles.needPrimary}>{activity.materials}</Text>
-        {kitItem && <Text style={styles.needAlt}>{kitItem.household}</Text>}
-        {kitItem && (
-          <Pressable
-            onPress={() => router.push("/child/kit")}
-            hitSlop={6}
-            style={({ pressed }) => pressed && { opacity: 0.55 }}
-          >
-            <Text style={styles.kitNote}>
-              We also make one — {kitItem.name.toLowerCase()} ›
-            </Text>
-          </Pressable>
-        )}
-      </View>
-
-      <View style={styles.actionRow}>
-        <Pressable
-          style={styles.activityButton}
-          onPress={onComplete}
-          accessibilityRole="button"
-          accessibilityLabel={`Mark ${activity.title} done`}
-        >
-          <Text style={styles.activityButtonText}>Done</Text>
-        </Pressable>
-        {canSwap && (
-          <Pressable
-            onPress={onSwap}
-            style={styles.swapButton}
-            hitSlop={6}
-            accessibilityRole="button"
-            accessibilityLabel="Show a different activity"
-          >
-            <RefreshIcon />
-          </Pressable>
-        )}
-      </View>
-    </View>
-  );
-}
-
-/** Done, and staying visible — quieter, but not struck through or greyed out. */
-function DoneRow({ activity }: { activity: Activity }) {
-  return (
-    <View style={[styles.row, styles.rowDone]}>
-      <CheckIcon />
-      <View style={styles.rowText}>
-        <Text style={styles.rowDomainDone}>{DOMAIN_LABEL[activity.domain]}</Text>
-        <Text style={styles.rowTitleDone} numberOfLines={1}>
-          {activity.title}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-/** Still to come. Tappable, so a parent can jump to the one they fancy. */
-function UpcomingRow({ activity, onPress }: { activity: Activity; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${activity.title}`}
-    >
-      <View style={styles.rowDot} />
-      <View style={styles.rowText}>
-        <Text style={styles.rowDomain}>{DOMAIN_LABEL[activity.domain]}</Text>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {activity.title}
-        </Text>
-      </View>
-      <ChevronRight />
-    </Pressable>
   );
 }
 
@@ -747,6 +580,7 @@ function ForYouCard({
   topic: CareTopic | null;
 }) {
   const router = useRouter();
+  const [showWhyThis, setShowWhyThis] = useState(false);
 
   if (area && topic) {
     return (
@@ -759,6 +593,15 @@ function ForYouCard({
         <Text style={styles.forYouTitle}>{topic.title}</Text>
         <Text style={styles.forYouBody}>{topic.blurb}</Text>
         <Text style={styles.forYouLink}>{topic.minutes} min read →</Text>
+        <Pressable onPress={(e) => { e.stopPropagation(); setShowWhyThis((v) => !v); }} hitSlop={6}>
+          <Text style={styles.forYouWhyThis}>{showWhyThis ? "Hide" : "Why this?"}</Text>
+        </Pressable>
+        {showWhyThis && (
+          <Text style={styles.forYouWhyThisText}>
+            {area.label} is one of the areas most relevant to you right now, based on your role
+            and {stageLabel(ageMonths)}.
+          </Text>
+        )}
       </Pressable>
     );
   }
@@ -838,20 +681,6 @@ function CopilotHomeCard({ onPress }: { onPress: (prompt: string) => void }) {
   );
 }
 
-function ClockIcon() {
-  return (
-    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 7v5.5l3.5 2M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0Z"
-        stroke={colors.textMuted}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function BasketIcon() {
   return (
     <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
@@ -859,34 +688,6 @@ function BasketIcon() {
         d="M4 9h16l-1.4 9.2a2 2 0 0 1-2 1.8H7.4a2 2 0 0 1-2-1.8L4 9Zm4.5 0L11 4m4.5 5L13 4"
         stroke={colors.textMuted}
         strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <Svg width={19} height={19} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.2h-4.2"
-        stroke={colors.warmTaupe}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4.5 12.5 9.5 17.5 19.5 6.5"
-        stroke={colors.sage}
-        strokeWidth={2.4}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -1013,238 +814,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 
-  progressWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  segments: {
-    flex: 1,
-    flexDirection: "row",
-    gap: 5,
-  },
-  segment: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-  },
-  segmentDone: { backgroundColor: colors.sage },
-  segmentCurrent: { backgroundColor: colors.warmTaupe },
-  progressLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
-    color: colors.textMuted,
-  },
 
   list: {
     marginTop: spacing.lg,
-  },
-
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.charcoal,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 2,
-  },
-  tourHighlight: {
-    borderWidth: 1,
-    borderColor: colors.warmTaupe,
-    shadowOpacity: 0.14,
-    shadowRadius: 28,
-    elevation: 6,
-  },
-  domainLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.4,
-    color: colors.warmTaupe,
-    marginBottom: 2,
-  },
-  title: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.body * 1.25,
-    color: colors.charcoal,
-  },
-  blockLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.3,
-    color: colors.warmTaupe,
-    marginBottom: spacing.sm,
-  },
-  howBlock: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  stepRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  stepNumber: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
-    color: colors.softSand,
-    width: 14,
-  },
-  stepText: {
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
-    color: colors.textMuted,
-  },
-  needBlock: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  needPrimary: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
-    color: colors.charcoal,
-  },
-  needAlt: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  // Deliberately the quietest text in the card: no pill, no colour block,
-  // no price. It should read as an aside, not an offer.
-  kitNote: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    color: colors.warmTaupe,
-    marginTop: spacing.sm,
-  },
-  why: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  activityVideo: {
-    width: "100%",
-    aspectRatio: 16 / 9,
-    marginBottom: spacing.md,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  cardCopy: { flex: 1 },
-  duration: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  durationText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
-    color: colors.textMuted,
-  },
-  actionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  materials: {
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    color: colors.textMuted,
-  },
-  activityButton: {
-    minWidth: 64,
-    minHeight: 40,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.warmTaupe,
-  },
-  activityButtonText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    color: colors.white,
-  },
-  swapButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-
-  // Collapsed rows sit on a translucent fill so the expanded card stays
-  // the visually dominant element.
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md - 1,
-    paddingHorizontal: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  rowDone: {
-    opacity: 0.78,
-  },
-  rowDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    marginHorizontal: 4,
-    backgroundColor: colors.softSand,
-  },
-  rowText: { flex: 1 },
-  rowDomain: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: colors.warmTaupe,
-  },
-  rowTitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.bodySmall,
-    color: colors.charcoal,
-    marginTop: 1,
-  },
-  rowDomainDone: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    color: colors.textMuted,
-  },
-  rowTitleDone: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    color: colors.textMuted,
-    marginTop: 1,
   },
 
   endCard: {
@@ -1324,6 +896,19 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     color: "#5E7360",
     marginTop: spacing.md,
+  },
+  forYouWhyThis: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  forYouWhyThisText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.5,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
   mealIdeaCard: {
     padding: spacing.lg,

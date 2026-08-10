@@ -2,6 +2,7 @@ import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   ScrollView,
@@ -10,7 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
 import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
@@ -44,18 +45,25 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [loading, setLoading] = useState(true);
+  // Default feed is stage-relevant (±3 months) — "Browse all stages" is an
+  // explicit opt-in, never the starting view.
+  const [browseAllStages, setBrowseAllStages] = useState(false);
 
   const loadDiscussions = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await communityDb.getDiscussionsForAge(ageMonths, selectedTopic);
+      const data = await communityDb.getDiscussionsForAge(
+        ageMonths,
+        selectedTopic,
+        browseAllStages ? 1200 : 3
+      );
       setDiscussions(data);
     } catch {
       // Graceful fallback
     } finally {
       setLoading(false);
     }
-  }, [ageMonths, selectedTopic]);
+  }, [ageMonths, selectedTopic, browseAllStages]);
 
   useEffect(() => {
     void loadDiscussions();
@@ -76,6 +84,34 @@ export default function Community() {
     setDiscussions((prev) =>
       prev.map((d) => (d.id === id ? { ...d, saved: newSavedState } : d))
     );
+  };
+
+  const handleMenu = (discussion: Discussion) => {
+    Alert.alert(discussion.title, undefined, [
+      {
+        text: "Report",
+        onPress: async () => {
+          await communityDb.reportDiscussion(discussion.id);
+          setDiscussions((prev) => prev.filter((d) => d.id !== discussion.id));
+        },
+      },
+      {
+        text: "Block this parent",
+        onPress: async () => {
+          await communityDb.blockAuthor(discussion.author_initial);
+          setDiscussions((prev) => prev.filter((d) => d.author_initial !== discussion.author_initial));
+        },
+      },
+      {
+        text: "Escalate — needs urgent attention",
+        style: "destructive",
+        onPress: async () => {
+          await communityDb.reportDiscussion(discussion.id, "escalated");
+          setDiscussions((prev) => prev.filter((d) => d.id !== discussion.id));
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   const childStageName = stageLabel(ageMonths);
@@ -102,11 +138,20 @@ export default function Community() {
             <View style={styles.stageBanner}>
               <View style={styles.stageBannerHeader}>
                 <View style={styles.stageDot} />
-                <Text style={styles.stageBannerTitle}>{ageContextText} are discussing</Text>
+                <Text style={styles.stageBannerTitle}>
+                  {browseAllStages ? "All parents" : `${ageContextText} are discussing`}
+                </Text>
               </View>
               <Text style={styles.stageBannerSub}>
-                Surfaced for {child?.name ?? "your child"}&apos;s stage ({age?.label ?? "this month"}).
+                {browseAllStages
+                  ? "Browsing every stage, not just yours."
+                  : `Surfaced for ${child?.name ?? "your child"}’s stage (${age?.label ?? "this month"}).`}
               </Text>
+              <Pressable onPress={() => setBrowseAllStages((v) => !v)} hitSlop={6}>
+                <Text style={styles.stageBannerToggle}>
+                  {browseAllStages ? "Back to my stage" : "Browse all stages"}
+                </Text>
+              </Pressable>
             </View>
 
             {/* Search Input */}
@@ -178,6 +223,7 @@ export default function Community() {
             discussion={item}
             onPress={() => router.push(`/community/discussion?id=${item.id}`)}
             onSave={() => handleToggleSave(item.id)}
+            onMenu={() => handleMenu(item)}
           />
         )}
         ListEmptyComponent={
@@ -229,10 +275,12 @@ function DiscussionCard({
   discussion,
   onPress,
   onSave,
+  onMenu,
 }: {
   discussion: Discussion;
   onPress: () => void;
   onSave: () => void;
+  onMenu: () => void;
 }) {
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
@@ -242,9 +290,14 @@ function DiscussionCard({
           <Text style={styles.cardAgeTag}>{discussion.author_child_age_months}m stage</Text>
         </View>
 
-        <Pressable onPress={onSave} hitSlop={10} accessibilityLabel="Save discussion">
-          <BookmarkIcon saved={!!discussion.saved} />
-        </Pressable>
+        <View style={styles.cardHeaderActions}>
+          <Pressable onPress={onSave} hitSlop={10} accessibilityLabel="Save discussion">
+            <BookmarkIcon saved={!!discussion.saved} />
+          </Pressable>
+          <Pressable onPress={onMenu} hitSlop={10} accessibilityLabel="More options">
+            <MoreIcon />
+          </Pressable>
+        </View>
       </View>
 
       <Text style={styles.cardTitle} numberOfLines={2}>
@@ -263,6 +316,11 @@ function DiscussionCard({
               {discussion.expert_reply.expert_name} ·{" "}
               <Text style={styles.expertCred}>{discussion.expert_reply.credential}</Text>
             </Text>
+            {discussion.expert_reply.is_verified && (
+              <View style={styles.verifiedPill}>
+                <Text style={styles.verifiedPillText}>Verified</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.expertSnippet} numberOfLines={2}>
             &ldquo;{discussion.expert_reply.body}&rdquo;
@@ -328,6 +386,16 @@ function BookmarkIcon({ saved }: { saved: boolean }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </Svg>
+  );
+}
+
+function MoreIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Circle cx="5" cy="12" r="1.6" fill={colors.textMuted} />
+      <Circle cx="12" cy="12" r="1.6" fill={colors.textMuted} />
+      <Circle cx="19" cy="12" r="1.6" fill={colors.textMuted} />
     </Svg>
   );
 }
@@ -424,6 +492,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  stageBannerToggle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
+    marginTop: spacing.sm,
+  },
 
   // Search Bar
   searchBar: {
@@ -500,6 +574,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: spacing.xs + 2,
   },
+  cardHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
   cardTagRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -556,6 +635,18 @@ const styles = StyleSheet.create({
   expertCred: {
     fontFamily: fonts.body,
     color: colors.warmTaupe,
+  },
+  verifiedPill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(168, 181, 164, 0.28)",
+  },
+  verifiedPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 0.4,
+    color: "#5E7360",
   },
   expertSnippet: {
     fontFamily: fonts.serifItalic,

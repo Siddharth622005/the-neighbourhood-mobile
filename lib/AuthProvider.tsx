@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Session } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as family from "./db/family";
@@ -26,6 +27,9 @@ import { supabase } from "./supabase";
  */
 export type { Child, Profile };
 
+/** Which child a device last chose to view, so it survives a restart. */
+const ACTIVE_CHILD_KEY = "neighbourhood.activeChildId";
+
 type AuthState = {
   session: Session | null;
   /** Still resolving the initial session. */
@@ -36,7 +40,15 @@ type AuthState = {
   /** The full profiles row — role/birth/feeding live on `relationship` /
    *  `birth_method` / `feeding_method`. Null until a session resolves. */
   profile: Profile | null;
+  /** The child every child-scoped screen reads — whichever is active. */
   child: Child | null;
+  /** All of this parent's children, oldest first. Length 1 for the common
+   *  case; the switcher only appears when there's more than one. */
+  children: Child[];
+  /** Switches which child `child` points to, and remembers the choice. */
+  setActiveChild: (childId: string) => void;
+  /** Adds a new child and makes it the active one. */
+  addChild: (input: { name: string; dateOfBirth: string; gender?: string | null }) => Promise<Child>;
   connectionError: string | null;
   /**
    * True once an email is confirmed on this account. Until then the family
@@ -53,13 +65,14 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children: appChildren }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [parentName, setParentName] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [child, setChild] = useState<Child | null>(null);
+  const [kids, setKids] = useState<Child[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   // Which user id `child` currently reflects. Lets fetchFamily tell "a
   // slower fetch for the SAME user landed late" (keep the newer local
@@ -72,9 +85,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setFamilyLoading(true);
     setConnectionError(null);
     try {
-      const [profileRow, primary] = await Promise.all([
+      const [profileRow, allKids] = await Promise.all([
         family.getProfile(userId),
-        family.getPrimaryChild(userId),
+        family.listChildren(userId),
       ]);
       setParentName(profileRow?.parent_name ?? null);
       // No stale-carry-over guard needed here the way `child` needs one:
@@ -83,6 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // for a split second before that trigger runs — never a legitimate
       // "this account has no profile" state to protect against overwriting.
       setProfile(profileRow);
+      setKids(allKids);
+      // Prefer whichever child this device was last looking at, so a
+      // switch survives app restarts; fall back to the oldest child.
+      const lastActiveId = await AsyncStorage.getItem(ACTIVE_CHILD_KEY).catch(() => null);
+      const primary = allKids.find((k) => k.id === lastActiveId) ?? allKids[0] ?? null;
       // Anonymous signup can fire an auth-state fetch before onboarding has
       // inserted the child row. If that slower "no child yet" response lands
       // after onboarding has already hydrated the created child locally for
@@ -131,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setParentName(null);
         setProfile(null);
         setChild(null);
+        setKids([]);
       }
     });
 
@@ -141,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setParentName(null);
     setProfile(null);
     setChild(null);
+    setKids([]);
     await supabase.auth.signOut();
   };
 
@@ -148,8 +168,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setParentName(input.profile.parent_name);
     setProfile(input.profile);
     setChild(input.child);
+    setKids([input.child]);
     setConnectionError(null);
     setFamilyLoading(false);
+  };
+
+  /** Switches the active child and remembers the choice for next launch. */
+  const setActiveChild = (childId: string) => {
+    const next = kids.find((k) => k.id === childId);
+    if (!next) return;
+    setChild(next);
+    AsyncStorage.setItem(ACTIVE_CHILD_KEY, childId).catch(() => {});
+  };
+
+  /** Adds a child under the signed-in parent and makes them the active one. */
+  const addChild = async (input: {
+    name: string;
+    dateOfBirth: string;
+    gender?: string | null;
+  }): Promise<Child> => {
+    const userId = session?.user?.id;
+    if (!userId) throw new Error("addChild requires a signed-in parent");
+    const created = await family.createChild({ parentId: userId, ...input });
+    setKids((prev) => [...prev, created]);
+    setChild(created);
+    AsyncStorage.setItem(ACTIVE_CHILD_KEY, created.id).catch(() => {});
+    return created;
   };
 
   return (
@@ -161,6 +205,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         parentName,
         profile,
         child,
+        children: kids,
+        setActiveChild,
+        addChild,
         connectionError,
         accountLinked: isAccountLinked(session?.user),
         accountEmail: isAccountLinked(session?.user) ? session?.user?.email ?? null : null,
@@ -169,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
       }}
     >
-      {children}
+      {appChildren}
     </AuthContext.Provider>
   );
 }

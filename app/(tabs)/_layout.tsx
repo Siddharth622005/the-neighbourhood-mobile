@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from "expo-router";
 import { AvatarButton } from "../../components/AvatarButton";
 import { LogoMark } from "../../components/Logo";
-import { ChildIcon, CommunityIcon, CopilotIcon, HomeIcon, YouIcon } from "../../components/TabIcons";
+import { AskTabIcon, ChildIcon, CommunityIcon, HomeIcon, YouIcon } from "../../components/TabIcons";
 import { colors, fonts, spacing } from "../../lib/theme";
 
 /**
@@ -80,7 +80,7 @@ export default function TabsLayout() {
         name="ask"
         options={{
           title: "Ask",
-          tabBarIcon: ({ color, focused }) => <CopilotIcon color={color} focused={focused} />,
+          tabBarIcon: () => <AskTabIcon />,
         }}
       />
       <Tabs.Screen

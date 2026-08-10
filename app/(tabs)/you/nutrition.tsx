@@ -187,8 +187,8 @@ export default function Nutrition() {
               </View>
             ))}
             <CareNote>
-              Reference points for a breastfeeding parent, not prescriptions. Your
-              midwife or GP knows your bloodwork; this doesn&rsquo;t.
+              This is here to inform, not to replace. If something feels off, your
+              instinct is worth following. Reach out to your doctor.
             </CareNote>
           </Card>
         )}

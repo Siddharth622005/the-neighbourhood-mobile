@@ -161,6 +161,19 @@ export default function FirstRun() {
     return limited;
   }, [milestones]);
 
+  // Which cards currently show their "not yet" guidance — purely local UI
+  // state, never persisted. "Not yet" is an observation, not a recorded
+  // fact the way an achieved milestone is.
+  const [notYetOpen, setNotYetOpen] = useState<Set<string>>(new Set());
+  const toggleNotYet = (id: string) => {
+    setNotYetOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const toggleMilestone = async (milestone: Milestone) => {
     if (!child || savingId) return;
     const wasSelected = selected.has(milestone.id);
@@ -254,9 +267,10 @@ export default function FirstRun() {
         }
       >
         <FadeIn>
-          <Text style={styles.title}>Let's understand where {childName} is today.</Text>
+          <Text style={styles.title}>Tell us what you&rsquo;ve noticed.</Text>
           <Text style={styles.bodyMuted}>
-            Choose anything you've already noticed. You can update this anytime.
+            Not a test — just a starting point. "Not yet" is completely normal and gets you a
+            few ideas to try, not a red flag.
           </Text>
         </FadeIn>
 
@@ -274,25 +288,76 @@ export default function FirstRun() {
                 <View key={domain}>
                   <Text style={styles.domainTitle}>{DOMAIN_LABEL[domain]}</Text>
                   {items.map((milestone) => {
-                    const checked = selected.has(milestone.id);
+                    const noticed = selected.has(milestone.id);
+                    const showingNotYet = notYetOpen.has(milestone.id);
                     return (
-                      <Pressable
+                      <View
                         key={milestone.id}
-                        onPress={() => toggleMilestone(milestone)}
-                        disabled={savingId === milestone.id}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked }}
-                        style={({ pressed }) => [
-                          styles.milestoneRow,
-                          checked && styles.milestoneRowSelected,
-                          pressed && { opacity: 0.72 },
-                        ]}
+                        style={[styles.milestoneCard, noticed && styles.milestoneCardNoticed]}
                       >
-                        <View style={[styles.milestoneCheck, checked && styles.milestoneCheckOn]}>
-                          {checked && <CheckTiny color={colors.white} />}
-                        </View>
                         <Text style={styles.milestoneText}>{milestone.description}</Text>
-                      </Pressable>
+                        <View style={styles.milestoneActions}>
+                          <Pressable
+                            onPress={() => {
+                              if (showingNotYet) toggleNotYet(milestone.id);
+                              void toggleMilestone(milestone);
+                            }}
+                            disabled={savingId === milestone.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Mark noticed: ${milestone.description}`}
+                            style={({ pressed }) => [
+                              styles.milestoneButton,
+                              noticed && styles.milestoneButtonOn,
+                              pressed && { opacity: 0.75 },
+                            ]}
+                          >
+                            {noticed && <CheckTiny color={colors.white} />}
+                            <Text style={[styles.milestoneButtonText, noticed && styles.milestoneButtonTextOn]}>
+                              {noticed ? "Noticed" : "I've noticed this"}
+                            </Text>
+                          </Pressable>
+                          {!noticed && (
+                            <Pressable
+                              onPress={() => toggleNotYet(milestone.id)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Not yet: ${milestone.description}`}
+                              style={({ pressed }) => [
+                                styles.milestoneGhostButton,
+                                showingNotYet && styles.milestoneGhostButtonOn,
+                                pressed && { opacity: 0.75 },
+                              ]}
+                            >
+                              <Text style={styles.milestoneGhostButtonText}>Not yet</Text>
+                            </Pressable>
+                          )}
+                        </View>
+
+                        {showingNotYet && !noticed && (
+                          <View style={styles.notYetPanel}>
+                            <Text style={styles.notYetIntro}>
+                              Totally normal — here&rsquo;s something to try, and what to watch for.
+                            </Text>
+                            {milestone.guide?.try && (
+                              <View style={styles.notYetRow}>
+                                <Text style={styles.notYetLabel}>TRY</Text>
+                                <Text style={styles.notYetText}>{milestone.guide.try}</Text>
+                              </View>
+                            )}
+                            {milestone.guide?.watch && (
+                              <View style={styles.notYetRow}>
+                                <Text style={styles.notYetLabel}>KEEP AN EYE ON</Text>
+                                <Text style={styles.notYetText}>{milestone.guide.watch}</Text>
+                              </View>
+                            )}
+                            {milestone.guide?.see && (
+                              <View style={styles.notYetRow}>
+                                <Text style={styles.notYetLabel}>WORTH A CHAT WITH YOUR PAEDIATRICIAN IF</Text>
+                                <Text style={styles.notYetText}>{milestone.guide.see}</Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
+                      </View>
                     );
                   })}
                   <Text style={styles.reassurance}>
@@ -498,42 +563,92 @@ const styles = StyleSheet.create({
     color: colors.charcoal,
     marginBottom: spacing.sm,
   },
-  milestoneRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+  milestoneCard: {
+    padding: spacing.md,
     backgroundColor: colors.white,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.sm,
   },
-  milestoneRowSelected: {
-    backgroundColor: "rgba(168, 181, 164, 0.18)",
-    borderColor: "rgba(168, 181, 164, 0.58)",
-  },
-  milestoneCheck: {
-    width: 23,
-    height: 23,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-  },
-  milestoneCheckOn: {
-    backgroundColor: colors.sage,
-    borderColor: colors.sage,
+  milestoneCardNoticed: {
+    backgroundColor: "rgba(168, 181, 164, 0.14)",
+    borderColor: "rgba(168, 181, 164, 0.5)",
   },
   milestoneText: {
-    flex: 1,
     fontFamily: fonts.bodyMedium,
     fontSize: typeScale.bodySmall,
     lineHeight: typeScale.bodySmall * 1.45,
     color: colors.charcoal,
+  },
+  milestoneActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  milestoneButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  milestoneButtonOn: {
+    backgroundColor: colors.sage,
+    borderColor: colors.sage,
+  },
+  milestoneButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.charcoal,
+  },
+  milestoneButtonTextOn: {
+    color: colors.white,
+  },
+  milestoneGhostButton: {
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  milestoneGhostButtonOn: {
+    borderColor: colors.border,
+  },
+  milestoneGhostButtonText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+  },
+  notYetPanel: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
+  },
+  notYetIntro: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.bodySmall,
+    color: colors.warmTaupe,
+    marginBottom: 2,
+  },
+  notYetRow: { gap: 2 },
+  notYetLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    color: colors.warmTaupe,
+  },
+  notYetText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.5,
+    color: colors.textMuted,
   },
   reassurance: {
     fontFamily: fonts.serifItalic,

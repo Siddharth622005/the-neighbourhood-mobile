@@ -4,6 +4,7 @@ import Svg, { Path } from "react-native-svg";
 import { useAuth } from "../../../lib/AuthProvider";
 import { computeAge } from "../../../lib/childAge";
 import * as growth from "../../../lib/db/growth";
+import { cancelReminder, scheduleVaccinationReminders } from "../../../lib/notifications";
 import {
   VACCINE_TIERS,
   VACCINE_TIER_BLURB,
@@ -47,7 +48,11 @@ export default function Vaccinations() {
         growth.getAdministeredVaccinations(child.id),
       ]);
       setSchedule(s);
-      setRecorded(new Set(given.map((g) => g.vaccination_id)));
+      const recordedIds = new Set(given.map((g) => g.vaccination_id));
+      setRecorded(recordedIds);
+      scheduleVaccinationReminders(child.id, child.name, child.date_of_birth, s, recordedIds).catch(
+        () => {}
+      );
     } catch {
       setError(true);
     } finally {
@@ -80,6 +85,7 @@ export default function Vaccinations() {
           vaccinationId: item.id,
           administeredOn: new Date().toISOString().slice(0, 10),
         });
+        void cancelReminder(`vaccine-${child.id}-${item.id}`);
       }
     } catch {
       setRecorded((prev) => {
@@ -182,12 +188,21 @@ function Row({
           {item.dose_label ? ` · ${item.dose_label}` : ""}
         </Text>
         {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
+        {item.source && <Text style={styles.source}>Source: {sourceLabel(item.source)}</Text>}
       </View>
       {/* "Due" only — never "overdue". We can't know what happened at the
           clinic, and implying a parent is late would be both wrong and unkind. */}
       {!recorded && due && <Text style={styles.due}>Due</Text>}
     </Pressable>
   );
+}
+
+/** The schedule's own source codes, spelled out — see
+ *  supabase/migrations/20260726094000_vaccination_schedule_seed.sql. */
+function sourceLabel(source: string): string {
+  if (source === "NIS") return "National Immunization Schedule, Govt. of India";
+  if (source === "IAP") return "IAP-ACVIP Recommended Schedule";
+  return source;
 }
 
 function Tick() {
@@ -283,6 +298,12 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.caption * 1.45,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  source: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 3,
   },
   due: {
     fontFamily: fonts.bodyMedium,

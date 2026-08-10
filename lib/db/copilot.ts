@@ -1,45 +1,51 @@
-import { supabase, unwrap } from "./client";
-import type { CopilotConversation, CopilotMessage } from "./types";
+import { supabase, unwrap, unwrapMaybe } from "./client";
 
 /**
- * Copilot history.
+ * Copilot conversation history.
  *
- * Child-scoped rather than parent-scoped, so an answer can be grounded in
- * the right child once multi-child ships — and so the conversation can be
- * retrieved as context alongside that child's activity history.
- *
- * There is no model behind this yet; the Copilot tab is still a scaffold.
- * These functions exist so the conversation is persisted from the first
- * day the model is wired in, rather than the history starting at zero.
+ * The tables (copilot_conversations, copilot_messages) already existed in
+ * the schema — see 20260726090000_core_schema.sql — child-scoped and
+ * RLS-protected, but nothing read or wrote them; ask.tsx kept messages in
+ * local component state only, lost on navigation. This connects the UI to
+ * what was already there instead of building a second history mechanism.
  */
 
-export async function listConversations(childId: string): Promise<CopilotConversation[]> {
-  return unwrap<CopilotConversation[]>(
-    "copilot.listConversations",
+export type CopilotMessageRow = {
+  id: string;
+  conversation_id: string;
+  role: "parent" | "copilot";
+  content: string;
+  created_at: string;
+};
+
+/** The child's most recent conversation, or a fresh one if none exists yet. */
+export async function getOrCreateConversation(childId: string): Promise<string> {
+  const existing = await unwrapMaybe<{ id: string }>(
+    "copilot.getOrCreateConversation",
     await supabase
       .from("copilot_conversations")
-      .select("*")
+      .select("id")
       .eq("child_id", childId)
       .order("last_message_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
   );
-}
+  if (existing) return existing.id;
 
-export async function createConversation(
-  childId: string,
-  title?: string
-): Promise<CopilotConversation> {
-  return unwrap<CopilotConversation>(
-    "copilot.createConversation",
+  const created = await unwrap<{ id: string }>(
+    "copilot.getOrCreateConversation",
     await supabase
       .from("copilot_conversations")
-      .insert({ child_id: childId, title: title ?? null })
-      .select()
+      .insert({ child_id: childId })
+      .select("id")
       .single()
   );
+  return created.id;
 }
 
-export async function getMessages(conversationId: string): Promise<CopilotMessage[]> {
-  return unwrap<CopilotMessage[]>(
+/** Oldest first — the shape askCopilot's `history` already expects. */
+export async function getMessages(conversationId: string): Promise<CopilotMessageRow[]> {
+  return unwrap<CopilotMessageRow[]>(
     "copilot.getMessages",
     await supabase
       .from("copilot_messages")
@@ -49,28 +55,18 @@ export async function getMessages(conversationId: string): Promise<CopilotMessag
   );
 }
 
-/**
- * Appends a message and bumps the conversation's last_message_at, so the
- * list stays ordered by recency without a trigger.
- */
-export async function addMessage(
+/** Appends one turn and bumps the conversation's last_message_at so the
+ *  "most recent conversation" lookup above stays accurate. */
+export async function appendMessage(
   conversationId: string,
-  role: CopilotMessage["role"],
+  role: "parent" | "copilot",
   content: string
-): Promise<CopilotMessage> {
-  const message = unwrap<CopilotMessage>(
-    "copilot.addMessage",
-    await supabase
-      .from("copilot_messages")
-      .insert({ conversation_id: conversationId, role, content })
-      .select()
-      .single()
-  );
-
+): Promise<void> {
+  await supabase
+    .from("copilot_messages")
+    .insert({ conversation_id: conversationId, role, content });
   await supabase
     .from("copilot_conversations")
-    .update({ last_message_at: message.created_at })
+    .update({ last_message_at: new Date().toISOString() })
     .eq("id", conversationId);
-
-  return message;
 }

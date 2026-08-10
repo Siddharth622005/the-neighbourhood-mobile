@@ -32,6 +32,22 @@
  * Age bands are widened rather than collapsed — see
  * 20260808100000_widen_activity_bands.sql — so all 28 of the CSV's bands
  * are kept, not re-bucketed into the original 7.
+ *
+ * WHAT / HOW / WHY split (added for the Home redesign that stopped
+ * showing the same "How To Do It" sentence twice — once as the preview
+ * description, once again under HOW): the CSV only ever gives one blob of
+ * text per activity, so this mechanically splits it on sentence
+ * boundaries rather than inventing content that isn't there.
+ *   1 sentence  -> why = that sentence; instructions = the same sentence
+ *                  (nothing else exists to show); benefit = null.
+ *   2 sentences -> why = first; instructions = second; benefit = null.
+ *   3+ sentences -> why = first; instructions = the middle sentence(s);
+ *                  benefit = last (in this content, the closing sentence
+ *                  is consistently the rationale — "...helps them control
+ *                  speed and direction", "...builds the script for real
+ *                  situations").
+ * When benefit ends up null, home.tsx falls back to one honest, generic
+ * sentence per developmental domain rather than a per-activity guess.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -40,7 +56,11 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const CSV_PATH = resolve(root, "content/activity_library.csv");
-const OUT = "supabase/migrations/20260808120000_seed_activity_library.sql";
+// 20260808120000_seed_activity_library.sql (the original target of this
+// script) is already applied remotely, so this content change — splitting
+// why/instructions/benefit apart — needs its own new-timestamped file,
+// same as any other migration once the previous one has shipped.
+const OUT = "supabase/migrations/20260810091000_split_activity_why_how_benefit.sql";
 
 const AREA_TO_DOMAIN = {
   "Gross Motor": "motor",
@@ -123,6 +143,47 @@ function parseAgeBand(label) {
   return { band: `y${years}_${monthsPart}`, lowerMonths: years * 12 + monthsPart };
 }
 
+/**
+ * Splits on sentence-ending punctuation, keeping it attached to each piece.
+ * Quote-aware: several activities embed a short line of dialogue in single
+ * quotes (e.g. "During play: 'You have 4 blocks. Can you give me 2?' Guided
+ * sharing builds..."), and splitting mid-quote produced dangling fragments
+ * like a lone trailing apostrophe. Sentence terminators inside an open
+ * quote don't count as a boundary.
+ */
+function splitSentences(text) {
+  const sentences = [];
+  let current = "";
+  let inQuote = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    current += ch;
+    if (ch === "'") inQuote = !inQuote;
+    if (!inQuote && /[.!?]/.test(ch) && !/[.!?]/.test(text[i + 1] ?? "")) {
+      sentences.push(current.trim());
+      current = "";
+    }
+  }
+  if (current.trim()) sentences.push(current.trim());
+  return sentences.filter(Boolean);
+}
+
+/** See the WHAT/HOW/WHY comment at the top of this file. */
+function splitWhatHowWhy(text) {
+  const sentences = splitSentences(text);
+  if (sentences.length <= 1) {
+    return { why: text, instructions: text, benefit: null };
+  }
+  if (sentences.length === 2) {
+    return { why: sentences[0], instructions: sentences[1], benefit: null };
+  }
+  return {
+    why: sentences[0],
+    instructions: sentences.slice(1, -1).join("\n"),
+    benefit: sentences[sentences.length - 1],
+  };
+}
+
 /** "5–10" → { minutes: 8, label: "5–10 min" }. "Ongoing" → { minutes: null, label: "Ongoing" }. */
 function parseDuration(raw) {
   const trimmed = raw.trim();
@@ -167,16 +228,19 @@ for (const row of table.slice(1)) {
   if (seenIds.has(id)) throw new Error(`duplicate activity id "${id}"`);
   seenIds.add(id);
 
+  const { why, instructions, benefit } = splitWhatHowWhy(howTo);
+
   activities.push({
     id,
     domain,
     age_band: band,
     title,
-    why: howTo,
+    why,
     duration_minutes: minutes,
     duration_label: durationLabel,
     materials: materials || "None",
-    instructions: howTo,
+    instructions,
+    benefit,
   });
 }
 
@@ -199,18 +263,18 @@ lines.push("");
 
 lines.push(`delete from activities where id not in (${activities.map((a) => q(a.id)).join(", ")});`);
 lines.push(
-  "insert into activities (id, domain, age_band, title, why, duration_minutes, duration_label, materials, instructions) values"
+  "insert into activities (id, domain, age_band, title, why, duration_minutes, duration_label, materials, instructions, benefit) values"
 );
 lines.push(
   activities
     .map(
       (a) =>
-        `  (${q(a.id)}, ${q(a.domain)}::domain, ${q(a.age_band)}::age_band, ${q(a.title)}, ${q(a.why)}, ${a.duration_minutes ?? "null"}, ${q(a.duration_label)}, ${q(a.materials)}, ${q(a.instructions)})`
+        `  (${q(a.id)}, ${q(a.domain)}::domain, ${q(a.age_band)}::age_band, ${q(a.title)}, ${q(a.why)}, ${a.duration_minutes ?? "null"}, ${q(a.duration_label)}, ${q(a.materials)}, ${q(a.instructions)}, ${q(a.benefit)})`
     )
     .join(",\n")
 );
 lines.push(
-  "on conflict (id) do update set domain = excluded.domain, age_band = excluded.age_band, title = excluded.title, why = excluded.why, duration_minutes = excluded.duration_minutes, duration_label = excluded.duration_label, materials = excluded.materials, instructions = excluded.instructions;"
+  "on conflict (id) do update set domain = excluded.domain, age_band = excluded.age_band, title = excluded.title, why = excluded.why, duration_minutes = excluded.duration_minutes, duration_label = excluded.duration_label, materials = excluded.materials, instructions = excluded.instructions, benefit = excluded.benefit;"
 );
 lines.push("");
 

@@ -118,13 +118,19 @@ export type Activity = {
   domain: Domain;
   age_band: AgeBand;
   title: string;
+  /** One sentence: what the activity is. Shown in the collapsed preview. */
   why: string;
   /** A representative number derived from duration_label's range; null for "Ongoing". */
   duration_minutes: number | null;
   /** The source range as text, e.g. "5–10 min" or "Ongoing" — prefer this for display. */
   duration_label: string | null;
   materials: string;
+  /** Step-by-step how-to, newline-separated. Distinct from `why`. */
   instructions: string | null;
+  /** One sentence: the developmental reason this activity is worth doing.
+   *  Null when the source content had nothing genuine to split out — the
+   *  UI falls back to a per-domain line rather than showing a gap. */
+  benefit: string | null;
 };
 
 export type Milestone = {

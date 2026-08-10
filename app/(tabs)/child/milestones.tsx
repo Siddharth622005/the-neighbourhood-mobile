@@ -16,7 +16,12 @@ import {
 import Svg, { Path } from "react-native-svg";
 import { GhostButton, PrimaryButton } from "../../../components/ui";
 import { useAuth } from "../../../lib/AuthProvider";
-import { canShowMilestones, computeAge, MILESTONES_START_MONTHS } from "../../../lib/childAge";
+import {
+  canShowMilestones,
+  computeAge,
+  isBeyondMilestoneRange,
+  MILESTONES_START_MONTHS,
+} from "../../../lib/childAge";
 import * as growth from "../../../lib/db/growth";
 import * as plans from "../../../lib/db/plans";
 import { DOMAIN_LABEL, DOMAINS, type Activity, type DailyPlan, type Milestone, type Domain } from "../../../lib/db/types";
@@ -86,9 +91,21 @@ export default function Milestones() {
   const [expandedMilestoneId, setExpandedMilestoneId] = useState<string | null>(null);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
   const [showSecurePrompt, setShowSecurePrompt] = useState(false);
+  // Which "initial check" cards have their "Not yet" guidance open — kept
+  // separate from achievedMap since opening it is just looking, not a fact
+  // about the child.
+  const [notYetOpenIds, setNotYetOpenIds] = useState<Set<string>>(new Set());
+  const toggleNotYetOpen = (id: string) => {
+    setNotYetOpenIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
   const milestonesAvailable = canShowMilestones(ageMonths);
+  const beyondRange = isBeyondMilestoneRange(ageMonths);
   const currentStage = getStageLabelForAge(ageMonths);
   const nextStage = getNextStageLabel(currentStage);
 
@@ -406,35 +423,83 @@ export default function Milestones() {
           <Text style={styles.initialEyebrow}>A gentle beginning</Text>
           <Text style={styles.initialTitle}>Where is {child?.name ?? "your child"} today?</Text>
           <Text style={styles.initialBody}>
-            Mark a few moments you've already noticed. This gives us a starting point, not a scorecard.
+            Tell us what you've noticed — there's no pass or fail here, just a starting point.
           </Text>
           <Text style={styles.initialAgeNote}>
-            Showing a few milestones for the {currentStage} stage.
+            {beyondRange
+              ? "Milestone tracking here covers birth to 6 years — nothing further to check for now."
+              : `Showing a few milestones for the ${currentStage} stage.`}
           </Text>
 
-          {initialGroups.length > 0 ? (
+          {beyondRange ? null : initialGroups.length > 0 ? (
             initialGroups.map(({ domain, items }) => (
               <View key={domain} style={styles.initialGroup}>
                 <Text style={styles.initialGroupTitle}>{DOMAIN_LABEL[domain]}</Text>
                 {items.map((milestone) => {
                   const isAchieved = achievedMap.has(milestone.id);
+                  const notYetOpen = notYetOpenIds.has(milestone.id);
+                  const guide = milestone.guide;
                   return (
-                    <Pressable
+                    <View
                       key={milestone.id}
-                      onPress={() => toggleMilestone(milestone)}
-                      style={({ pressed }) => [
-                        styles.initialRow,
-                        isAchieved && styles.initialRowSelected,
-                        pressed && { opacity: 0.72 },
-                      ]}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: isAchieved }}
+                      style={[styles.initialMilestoneCard, isAchieved && styles.initialMilestoneCardOn]}
                     >
-                      <View style={[styles.initialCheck, isAchieved && styles.initialCheckOn]}>
-                        {isAchieved && <CheckIcon />}
+                      <Text style={styles.initialMilestoneText}>{milestone.description}</Text>
+                      <View style={styles.initialMilestoneActions}>
+                        <Pressable
+                          onPress={() => toggleMilestone(milestone)}
+                          style={[styles.initialMilestoneButton, isAchieved && styles.initialMilestoneButtonOn]}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: isAchieved }}
+                        >
+                          {isAchieved && <CheckIcon />}
+                          <Text
+                            style={[
+                              styles.initialMilestoneButtonText,
+                              isAchieved && styles.initialMilestoneButtonTextOn,
+                            ]}
+                          >
+                            {isAchieved ? "Noticed" : "I've noticed this"}
+                          </Text>
+                        </Pressable>
+                        {!isAchieved && (
+                          <Pressable
+                            onPress={() => toggleNotYetOpen(milestone.id)}
+                            style={[styles.initialGhostButton, notYetOpen && styles.initialGhostButtonOn]}
+                          >
+                            <Text style={styles.initialGhostButtonText}>
+                              {notYetOpen ? "Hide" : "Not yet"}
+                            </Text>
+                          </Pressable>
+                        )}
                       </View>
-                      <Text style={styles.initialRowText}>{milestone.description}</Text>
-                    </Pressable>
+
+                      {!isAchieved && notYetOpen && (
+                        <View style={styles.initialNotYetPanel}>
+                          <Text style={styles.initialNotYetIntro}>
+                            Completely normal — here's a little to go on.
+                          </Text>
+                          {guide?.try && (
+                            <View style={styles.initialNotYetRow}>
+                              <Text style={styles.initialNotYetLabel}>TRY</Text>
+                              <Text style={styles.initialNotYetText}>{guide.try}</Text>
+                            </View>
+                          )}
+                          {guide?.watch && (
+                            <View style={styles.initialNotYetRow}>
+                              <Text style={styles.initialNotYetLabel}>KEEP AN EYE ON</Text>
+                              <Text style={styles.initialNotYetText}>{guide.watch}</Text>
+                            </View>
+                          )}
+                          {guide?.see && (
+                            <View style={styles.initialNotYetRow}>
+                              <Text style={styles.initialNotYetLabel}>WORTH A CHAT WITH YOUR PAEDIATRICIAN IF</Text>
+                              <Text style={styles.initialNotYetText}>{guide.see}</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
                   );
                 })}
               </View>
@@ -473,7 +538,9 @@ export default function Milestones() {
         <Text style={styles.headerSubtitle}>
           {child
             ? milestonesAvailable
-              ? `${child.name} is in the ${currentStage} stage.`
+              ? beyondRange
+                ? `${child.name} has grown past what we track here — the last stage was ${currentStage}.`
+                : `${child.name} is in the ${currentStage} stage.`
               : `${child.name}'s milestones start at 3 months.`
             : "Your child's developmental journey."}
         </Text>
@@ -1184,37 +1251,91 @@ const styles = StyleSheet.create({
     color: colors.charcoal,
     marginBottom: spacing.sm,
   },
-  initialRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  initialMilestoneCard: {
     padding: spacing.md,
     marginBottom: spacing.sm,
     backgroundColor: colors.white,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
+    gap: spacing.sm,
   },
-  initialRowSelected: {
+  initialMilestoneCardOn: {
     backgroundColor: "rgba(168, 181, 164, 0.18)",
     borderColor: "rgba(168, 181, 164, 0.58)",
   },
-  initialCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  initialMilestoneText: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.45,
+    color: colors.charcoal,
+  },
+  initialMilestoneActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  initialMilestoneButton: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
   },
-  initialCheckOn: {
+  initialMilestoneButtonOn: {
     backgroundColor: colors.sage,
     borderColor: colors.sage,
   },
-  initialRowText: {
-    flex: 1,
+  initialMilestoneButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.charcoal,
+  },
+  initialMilestoneButtonTextOn: {
+    color: colors.white,
+  },
+  initialGhostButton: {
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "transparent",
+  },
+  initialGhostButtonOn: {
+    borderColor: colors.warmTaupe,
+  },
+  initialGhostButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
+  },
+  initialNotYetPanel: {
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
+  },
+  initialNotYetIntro: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.bodySmall,
+    color: colors.textMuted,
+  },
+  initialNotYetRow: {
+    gap: 2,
+  },
+  initialNotYetLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    color: colors.warmTaupe,
+  },
+  initialNotYetText: {
     fontFamily: fonts.body,
     fontSize: typeScale.bodySmall,
     lineHeight: typeScale.bodySmall * 1.45,

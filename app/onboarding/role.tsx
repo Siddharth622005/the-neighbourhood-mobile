@@ -10,7 +10,7 @@ import { spacing } from "../../lib/theme";
 
 const OPTIONS: { value: OnboardingDraft["role"]; label: string; gloss: string }[] = [
   { value: "mother", label: "I'm the mother", gloss: "Shapes your own recovery and wellbeing support." },
-  { value: "father", label: "I'm the father", gloss: "Shapes support built around your own role." },
+  { value: "father", label: "I'm the father", gloss: "Your role as a dad, understood and supported." },
   { value: "prefer_not_to_say", label: "Rather not say", gloss: "We'll keep your own space general." },
 ];
 

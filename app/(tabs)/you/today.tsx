@@ -248,8 +248,8 @@ export default function ParentToday() {
       )}
 
       <Text style={[styles.footer, { color: p.textMuted }]}>
-        The Neighbourhood supports your care. It does not replace your doctor,
-        midwife, or health visitor.
+        This is here to inform, not to replace. If something feels off, your
+        instinct is worth following. Reach out to your doctor.
       </Text>
     </ScrollView>
   );

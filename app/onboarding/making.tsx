@@ -19,6 +19,17 @@ const FACTS = [
   "Small daily activities create long-term developmental gains.",
 ];
 
+/** Warm and specific rather than technical — uses whatever names are
+ *  actually on hand, never "Setting up your experience". */
+function personalHeadline(parentName: string, childName: string): string {
+  const parent = parentName.trim().split(" ")[0];
+  const child = childName.trim().split(" ")[0];
+  if (parent && child) return `Getting things ready for you and ${child}.`;
+  if (child) return `A little space for you and ${child}.`;
+  if (parent) return `Getting things ready for you, ${parent}.`;
+  return "Getting things ready for your family.";
+}
+
 const FACT_INTERVAL = 1250; // ms per fact
 const BAR_DURATION = FACT_INTERVAL * FACTS.length; // 3750ms
 const READY_HOLD = 750; // ms spent on the "Ready." moment
@@ -223,7 +234,7 @@ export default function Making() {
       >
         <LogoMark size={44} />
 
-        <Text style={styles.headline}>Getting everything ready for your family.</Text>
+        <Text style={styles.headline}>{personalHeadline(draft.parentName, draft.childName)}</Text>
 
         <View style={styles.track}>
           <Animated.View style={[styles.fill, { width: barWidth }]} />

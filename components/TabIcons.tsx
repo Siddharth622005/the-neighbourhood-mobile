@@ -1,5 +1,7 @@
 import type { ColorValue } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+import { colors } from "../lib/theme";
 
 /**
  * The three tab glyphs, lifted out of the old hand-rolled BottomNav so the
@@ -36,22 +38,48 @@ export function HomeIcon({ color, focused }: IconProps) {
   );
 }
 
-/** Copilot — a speech bubble mid-conversation. */
-export function CopilotIcon({ color, focused }: IconProps) {
+/**
+ * Ask — the one tab with a persistent circular backdrop, so it reads as
+ * the row's central action without leaving the row. Solid warmTaupe (the
+ * app's existing primary/CTA colour, already what the Ask composer's own
+ * button uses on Home) rather than a pale tint, so it reads as "the main
+ * thing you can do here" — a constant, not a selected-state colour that
+ * happens to change with focus like the other four tabs.
+ */
+export function AskTabIcon() {
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H10l-4.5 3.8V16H6.5A2.5 2.5 0 0 1 4 13.5v-7Z"
-        stroke={color}
-        strokeWidth={w(focused)}
-        strokeLinejoin="round"
-      />
-      <Circle cx="9" cy="10" r="0.9" fill={color} />
-      <Circle cx="12.5" cy="10" r="0.9" fill={color} />
-      <Circle cx="16" cy="10" r="0.9" fill={color} />
-    </Svg>
+    <View style={askIconStyles.circle}>
+      <Svg width={19} height={19} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M12 4c.7 3.6 2.3 5.3 6 6-3.7.7-5.3 2.4-6 6-.7-3.6-2.3-5.3-6-6 3.7-.7 5.3-2.4 6-6Z"
+          fill="#FFFFFF"
+        />
+        <Path
+          d="M18.5 16c.3 1.5 1 2.2 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.3 2.2-1 2.5-2.5Z"
+          fill="#FFFFFF"
+        />
+      </Svg>
+    </View>
   );
 }
+
+const askIconStyles = StyleSheet.create({
+  circle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.warmTaupe,
+    marginTop: -6,
+    marginBottom: 6,
+    shadowColor: colors.charcoal,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+});
 
 /** Child — a heart. Care, plainly. */
 export function ChildIcon({ color, focused }: IconProps) {

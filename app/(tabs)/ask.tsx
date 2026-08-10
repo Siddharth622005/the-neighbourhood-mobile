@@ -2,6 +2,7 @@ import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useScreenFocus } from "../../lib/useScreenFocus";
 import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,6 +16,7 @@ import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge } from "../../lib/childAge";
 import { askCopilot, CopilotChatError, type AskMode } from "../../lib/copilotChat";
+import * as copilotDb from "../../lib/db/copilot";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
 import { deriveProfile, STAGE_LABEL } from "../../lib/parentCare";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
@@ -86,10 +88,44 @@ export default function Ask() {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [thinking, setThinking] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
     if (params.prompt) setDraft(params.prompt);
   }, [params.prompt]);
+
+  // Continue the child's most recent conversation rather than always
+  // starting blank — see lib/db/copilot.ts. child-scoped (not per-mode),
+  // matching the schema: one running history per child, same as any
+  // other parent would recognise as "our conversation with Copilot".
+  useEffect(() => {
+    let alive = true;
+    if (!child) {
+      setHistoryLoading(false);
+      return;
+    }
+    setHistoryLoading(true);
+    copilotDb
+      .getOrCreateConversation(child.id)
+      .then(async (id) => {
+        if (!alive) return;
+        setConversationId(id);
+        const rows = await copilotDb.getMessages(id);
+        if (!alive) return;
+        setMessages(rows.map((r) => ({ id: r.id, role: r.role, text: r.content })));
+      })
+      .catch(() => {
+        // History is a convenience, not a requirement — a fresh
+        // conversation still works fine if this fails.
+      })
+      .finally(() => {
+        if (alive) setHistoryLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [child]);
 
   const continueGuidedTour = () => {
     router.replace(`/child?guidedTour=1&step=3${tourNext}`);
@@ -125,6 +161,7 @@ export default function Ask() {
     setMessages((prev) => [...prev, { id: `${Date.now()}-p`, role: "parent", text: trimmed }]);
     setDraft("");
     setThinking(true);
+    if (conversationId) void copilotDb.appendMessage(conversationId, "parent", trimmed).catch(() => {});
     try {
       const reply = await askCopilot({
         message: trimmed,
@@ -134,6 +171,7 @@ export default function Ask() {
         context: contextForMode(),
       });
       setMessages((prev) => [...prev, { id: `${Date.now()}-c`, role: "copilot", text: reply }]);
+      if (conversationId) void copilotDb.appendMessage(conversationId, "copilot", reply).catch(() => {});
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -174,7 +212,11 @@ export default function Ask() {
         contentContainerStyle={styles.threadContent}
         keyboardShouldPersistTaps="handled"
       >
-        {messages.length === 0 ? (
+        {historyLoading ? (
+          <View style={styles.historyLoading}>
+            <ActivityIndicator color={colors.warmTaupe} />
+          </View>
+        ) : messages.length === 0 ? (
           <View style={styles.empty}>
             {mode === "parent" ? (
               <>
@@ -262,6 +304,7 @@ export default function Ask() {
           <Text style={styles.sendLabel}>Ask</Text>
         </Pressable>
       </View>
+      <Text style={styles.disclaimer}>General guidance, not medical advice.</Text>
       {guidedTour && (
         <GuidedTourDialog
           eyebrow="Ask"
@@ -313,6 +356,11 @@ const styles = StyleSheet.create({
   },
   empty: {
     flex: 1,
+    justifyContent: "center",
+  },
+  historyLoading: {
+    flex: 1,
+    alignItems: "center",
     justifyContent: "center",
   },
   emptyEyebrow: {
@@ -389,6 +437,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    backgroundColor: colors.cream,
+  },
+  disclaimer: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+    textAlign: "center",
+    paddingBottom: spacing.sm,
     backgroundColor: colors.cream,
   },
   tourHighlight: {
