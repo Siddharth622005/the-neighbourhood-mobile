@@ -188,12 +188,77 @@ export type Nutrient = {
   why: string;
 };
 
+/** A father's own basic nutrition — general adult targets, none of them
+ *  postpartum or lactation guidance, since neither applies to him. */
+function nutrientsForFather(): Nutrient[] {
+  return [
+    {
+      key: "protein",
+      label: "Protein",
+      unit: "g",
+      target: 56,
+      current: 38,
+      why: "Keeps your own energy steady through short nights too.",
+    },
+    {
+      key: "iron",
+      label: "Iron",
+      unit: "mg",
+      target: 8,
+      current: 5,
+      why: "Easy to run low on when meals get skipped in the rush.",
+    },
+    {
+      key: "calcium",
+      label: "Calcium",
+      unit: "mg",
+      target: 1000,
+      current: 600,
+      why: "Bone health doesn't pause just because life's busier.",
+    },
+    {
+      key: "vitamin_d",
+      label: "Vitamin D",
+      unit: "IU",
+      target: 400,
+      current: 180,
+      why: "Most people are low without noticing — worth keeping in the mix.",
+    },
+    {
+      key: "omega_3",
+      label: "Omega-3",
+      unit: "mg",
+      target: 300,
+      current: 110,
+      why: "Supports mood and focus when sleep is short for you as well.",
+    },
+    {
+      key: "folate",
+      label: "Folate",
+      unit: "mcg",
+      target: 400,
+      current: 280,
+      why: "Part of a basic balanced diet, not just a pregnancy nutrient.",
+    },
+    {
+      key: "fibre",
+      label: "Fibre",
+      unit: "g",
+      target: 28,
+      current: 16,
+      why: "Keeps digestion steady when routines are all over the place.",
+    },
+  ];
+}
+
 /**
  * Targets follow standard postpartum/lactation guidance, adjusted for feeding
  * method and diet. These are educational reference points, not prescriptions —
- * the UI says so wherever they appear.
+ * the UI says so wherever they appear. A father gets nutrientsForFather()
+ * instead — his own basic nutrition, not postpartum/lactation targets.
  */
 export function nutrientsFor(profile: ParentProfile): Nutrient[] {
+  if (profile.role === "father") return nutrientsForFather();
   const lactating =
     profile.feeding !== "formula" && profile.feeding !== "prefer_not_to_say";
   const plant = profile.diet === "vegan";
@@ -425,10 +490,107 @@ const MEALS: Meal[] = [
   },
 ];
 
-/** Meals filtered to the parent's diet and allergies, grouped by slot. */
+/**
+ * A father's own Nutrition timeline — not a postpartum-recovery plan, since
+ * none of that applies to him. Each slot covers one of: his own basic
+ * nutrition, supporting the mother's nutrition, family meals, or supporting
+ * feeding routines — same card shape as MEALS so the existing timeline UI
+ * needs no changes.
+ */
+const FATHER_MEALS: Meal[] = [
+  {
+    id: "f-breakfast-own",
+    slot: "breakfast",
+    title: "A proper breakfast, for you too",
+    blurb: "Whatever you make her, make yourself a plate — you're both running on broken sleep.",
+    minutes: 8,
+    delivers: ["protein", "fibre"],
+    ingredients: ["Eggs", "Whole wheat toast", "Fruit"],
+    steps: ["Fry or boil the eggs.", "Toast the bread.", "Sit down to eat it, even for five minutes."],
+    diets: ["omnivore", "vegetarian", "vegan"],
+    oneHanded: false,
+    logged: false,
+  },
+  {
+    id: "f-snack-support-mother",
+    slot: "morning_snack",
+    title: "Stock her one-handed snack basket",
+    blurb: "A snack she can eat one-handed while feeding is easy to run out of. Keep it topped up.",
+    minutes: 3,
+    delivers: ["fibre", "hydration"],
+    ingredients: ["Nuts", "Dates", "Cut fruit", "A full water bottle"],
+    steps: [
+      "Fill a small basket or box with grab-and-eat snacks.",
+      "Top up the water bottle beside her.",
+      "Leave it wherever she feeds most.",
+    ],
+    diets: ["omnivore", "vegetarian", "vegan"],
+    oneHanded: false,
+    logged: false,
+  },
+  {
+    id: "f-lunch-family",
+    slot: "lunch",
+    title: "A lunch that works for everyone",
+    blurb: "One pot, enough for the whole table — including whoever's too tired to cook today.",
+    minutes: 25,
+    delivers: ["protein", "iron", "fibre"],
+    ingredients: ["Rice", "Dal", "Mixed vegetables", "Ghee"],
+    steps: [
+      "Cook the rice and dal.",
+      "Sauté the vegetables with basic spices.",
+      "Serve everyone from the same pot — less washing up too.",
+    ],
+    diets: ["omnivore", "vegetarian", "vegan"],
+    oneHanded: false,
+    logged: false,
+  },
+  {
+    id: "f-afternoon-feeding-routine",
+    slot: "afternoon_snack",
+    title: "Take a feed off her plate",
+    blurb: "Burping, settling, or a bottle if that's part of your routine — so she gets a real break to eat.",
+    minutes: 15,
+    delivers: [],
+    ingredients: ["A burp cloth", "A bottle, if you're using one"],
+    steps: [
+      "Take over a feed or the settling-after routine.",
+      "Use the time to bring her something to eat.",
+      "Fifteen minutes off is still a real break.",
+    ],
+    diets: ["omnivore", "vegetarian", "vegan"],
+    oneHanded: false,
+    logged: false,
+  },
+  {
+    id: "f-dinner-family",
+    slot: "dinner",
+    title: "Dinner for the table",
+    blurb: "A simple dinner that covers you and whoever else is eating tonight.",
+    minutes: 30,
+    delivers: ["protein", "calcium", "fibre"],
+    ingredients: ["Roti or rice", "A vegetable curry", "Yoghurt"],
+    steps: [
+      "Cook a simple curry with what's in the fridge.",
+      "Warm through with roti or rice.",
+      "Sit down to eat it together if you can.",
+    ],
+    diets: ["omnivore", "vegetarian", "vegan"],
+    oneHanded: false,
+    logged: false,
+  },
+];
+
+/**
+ * Meals filtered to the parent's diet and allergies, grouped by slot. A
+ * father gets FATHER_MEALS instead of MEALS — his own basic nutrition,
+ * supporting the mother, family meals, and feeding-routine support, never
+ * postpartum recovery or breastfeeding content presented as his own.
+ */
 export function mealsFor(profile: ParentProfile, slot: MealSlot): Meal[] {
   const allergens = profile.allergies.map((a) => a.toLowerCase().trim()).filter(Boolean);
-  return MEALS.filter((meal) => {
+  const source = profile.role === "father" ? FATHER_MEALS : MEALS;
+  return source.filter((meal) => {
     if (meal.slot !== slot) return false;
     if (!meal.diets.includes(profile.diet)) return false;
     if (

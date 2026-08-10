@@ -38,19 +38,23 @@ import { fonts, radius, spacing, typeScale } from "../../../lib/theme";
  */
 export default function Nutrition() {
   const p = usePalette();
-  const { child } = useAuth();
+  const { child, profile: authProfile } = useAuth();
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openGroceries, setOpenGroceries] = useState(false);
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
-  const profile = useMemo(() => deriveProfile(ageMonths), [ageMonths]);
+  const profile = useMemo(() => deriveProfile(ageMonths, authProfile), [ageMonths, authProfile]);
   const nutrients = useMemo(() => nutrientsFor(profile), [profile]);
   const groceries = useMemo(() => groceriesFor(profile), [profile]);
   // Postpartum framing (title, "N weeks postpartum", the caesarean chip)
   // only fits roughly the first year — see lib/recoveryRelevance.ts. Past
   // that it's just "your everyday nutrition," same as you/today.tsx.
   const recoveryFramingApplies = isRecoveryRelevant(ageMonths);
+  // A father's Nutrition is about supporting her and the family, and his
+  // own basic wellbeing — never postpartum recovery or breastfeeding
+  // presented as if it were his own.
+  const isFather = profile.role === "father";
 
   const dietLabel =
     profile.diet === "vegan" ? "Vegan" : profile.diet === "vegetarian" ? "Vegetarian" : "No restrictions";
@@ -63,29 +67,37 @@ export default function Nutrition() {
     >
       <PageHeading
         eyebrow="Nutrition"
-        title={recoveryFramingApplies ? "Eating for the body that's healing." : "Eating well, day to day."}
+        title={
+          isFather
+            ? "Supporting her, and yourself."
+            : recoveryFramingApplies
+              ? "Eating for the body that's healing."
+              : "Eating well, day to day."
+        }
         body={
-          recoveryFramingApplies
-            ? `Built around ${
-                profile.feeding === "formula" ? "recovery" : "breastfeeding"
-              } at ${elapsedPhrase(
-                profile.weeksPostpartum
-              )}, and around the fact that you may be eating one-handed.`
-            : "Simple, steady meals built around your day."
+          isFather
+            ? "A few ways to help with meals, her nutrition, and your own energy today."
+            : recoveryFramingApplies
+              ? `Built around ${
+                  profile.feeding === "formula" ? "recovery" : "breastfeeding"
+                } at ${elapsedPhrase(
+                  profile.weeksPostpartum
+                )}, and around the fact that you may be eating one-handed.`
+              : "Simple, steady meals built around your day."
         }
       />
 
       {/* What this plan is adapted to — stated plainly, because a plan that
           silently assumes things about your body is not trustworthy. */}
       <View style={styles.chips}>
-        {recoveryFramingApplies && profile.feeding !== "formula" && (
+        {!isFather && recoveryFramingApplies && profile.feeding !== "formula" && (
           <Chip
             label={profile.feeding === "mixed" ? "Mixed feeding" : "Breastfeeding"}
             tone="accent"
           />
         )}
         <Chip label={dietLabel} />
-        {recoveryFramingApplies && profile.delivery === "caesarean" && (
+        {!isFather && recoveryFramingApplies && profile.delivery === "caesarean" && (
           <Chip label="Post-caesarean" />
         )}
         {profile.allergies.map((allergen) => (
@@ -159,7 +171,7 @@ export default function Nutrition() {
         >
           <View style={styles.rowBetween}>
             <Text style={[styles.discTitle, { color: p.text }]}>
-              What your body is asking for
+              {isFather ? "Your own basic nutrition" : "What your body is asking for"}
             </Text>
             <Text style={[styles.discToggle, { color: p.primary }]}>
               {openNutrients ? "Hide" : "Show"}
@@ -167,9 +179,11 @@ export default function Nutrition() {
           </View>
           {!openNutrients && (
             <Text style={[styles.discHint, { color: p.textMuted }]}>
-              {recoveryFramingApplies
-                ? "Seven nutrients that matter more while feeding."
-                : "Seven nutrients worth keeping an eye on."}
+              {isFather
+                ? "Seven nutrients worth keeping an eye on for yourself."
+                : recoveryFramingApplies
+                  ? "Seven nutrients that matter more while feeding."
+                  : "Seven nutrients worth keeping an eye on."}
             </Text>
           )}
         </Card>
