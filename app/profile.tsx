@@ -1,9 +1,10 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LogoMark } from "../components/Logo";
 import { ReplayTourDialog } from "../components/ReplayTourDialog";
+import { StartOverDialog } from "../components/StartOverDialog";
 import { GhostButton } from "../components/ui";
 import { useAuth } from "../lib/AuthProvider";
 import { EMAIL_OTP_READY } from "../lib/authMode";
@@ -21,6 +22,7 @@ export default function Profile() {
   const { parentName, child, signOut, accountLinked, accountEmail } = useAuth();
   const age = child ? computeAge(child.date_of_birth) : null;
   const [showReplayDialog, setShowReplayDialog] = useState(false);
+  const [showStartOverDialog, setShowStartOverDialog] = useState(false);
 
   const replayTour = () => {
     setShowReplayDialog(false);
@@ -109,20 +111,7 @@ export default function Profile() {
           ) : (
             <GhostButton
               title="Start over on this device"
-              onPress={() =>
-                Alert.alert(
-                  "Start over?",
-                  `This erases ${child?.name ?? "your child"}'s milestones, vaccination records and plans from this phone. Because no email is attached, there's no way to get them back.`,
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Keep it safe instead",
-                      onPress: () => router.push("/secure-account"),
-                    },
-                    { text: "Erase", style: "destructive", onPress: signOut },
-                  ]
-                )
-              }
+              onPress={() => setShowStartOverDialog(true)}
             />
           )}
         </View>
@@ -131,6 +120,19 @@ export default function Profile() {
         visible={showReplayDialog}
         onDismiss={() => setShowReplayDialog(false)}
         onConfirm={replayTour}
+      />
+      <StartOverDialog
+        visible={showStartOverDialog}
+        childName={child?.name ?? "your child"}
+        onCancel={() => setShowStartOverDialog(false)}
+        onKeepSafe={() => {
+          setShowStartOverDialog(false);
+          router.push("/secure-account");
+        }}
+        onErase={() => {
+          setShowStartOverDialog(false);
+          signOut();
+        }}
       />
     </SafeAreaView>
   );
