@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Session } from "@supabase/supabase-js";
+import { useRouter } from "expo-router";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as family from "./db/family";
 import { isAccountLinked } from "./db/session";
@@ -66,6 +67,7 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children: appChildren }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [familyLoading, setFamilyLoading] = useState(false);
@@ -162,6 +164,11 @@ export function AuthProvider({ children: appChildren }: { children: React.ReactN
     setChild(null);
     setKids([]);
     await supabase.auth.signOut();
+    // Without this, the app just stays on whatever screen was open (e.g.
+    // the Profile modal) instead of landing back on "/", which is what
+    // re-evaluates auth state and sends a signed-out family to /welcome —
+    // see app/index.tsx.
+    router.replace("/");
   };
 
   const hydrateFamily = (input: { profile: Profile; child: Child }) => {
