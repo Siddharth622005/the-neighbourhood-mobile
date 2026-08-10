@@ -20,6 +20,7 @@ import {
   mealsFor,
   nutrientsFor,
 } from "../../../lib/parentCare";
+import { isRecoveryRelevant } from "../../../lib/recoveryRelevance";
 import { fonts, radius, spacing, typeScale } from "../../../lib/theme";
 
 /**
@@ -46,6 +47,10 @@ export default function Nutrition() {
   const profile = useMemo(() => deriveProfile(ageMonths), [ageMonths]);
   const nutrients = useMemo(() => nutrientsFor(profile), [profile]);
   const groceries = useMemo(() => groceriesFor(profile), [profile]);
+  // Postpartum framing (title, "N weeks postpartum", the caesarean chip)
+  // only fits roughly the first year — see lib/recoveryRelevance.ts. Past
+  // that it's just "your everyday nutrition," same as you/today.tsx.
+  const recoveryFramingApplies = isRecoveryRelevant(ageMonths);
 
   const dietLabel =
     profile.diet === "vegan" ? "Vegan" : profile.diet === "vegetarian" ? "Vegetarian" : "No restrictions";
@@ -58,25 +63,31 @@ export default function Nutrition() {
     >
       <PageHeading
         eyebrow="Nutrition"
-        title="Eating for the body that's healing."
-        body={`Built around ${
-          profile.feeding === "formula" ? "recovery" : "breastfeeding"
-        } at ${elapsedPhrase(
-          profile.weeksPostpartum
-        )}, and around the fact that you may be eating one-handed.`}
+        title={recoveryFramingApplies ? "Eating for the body that's healing." : "Eating well, day to day."}
+        body={
+          recoveryFramingApplies
+            ? `Built around ${
+                profile.feeding === "formula" ? "recovery" : "breastfeeding"
+              } at ${elapsedPhrase(
+                profile.weeksPostpartum
+              )}, and around the fact that you may be eating one-handed.`
+            : "Simple, steady meals built around your day."
+        }
       />
 
       {/* What this plan is adapted to — stated plainly, because a plan that
           silently assumes things about your body is not trustworthy. */}
       <View style={styles.chips}>
-        {profile.feeding !== "formula" && (
+        {recoveryFramingApplies && profile.feeding !== "formula" && (
           <Chip
             label={profile.feeding === "mixed" ? "Mixed feeding" : "Breastfeeding"}
             tone="accent"
           />
         )}
         <Chip label={dietLabel} />
-        {profile.delivery === "caesarean" && <Chip label="Post-caesarean" />}
+        {recoveryFramingApplies && profile.delivery === "caesarean" && (
+          <Chip label="Post-caesarean" />
+        )}
         {profile.allergies.map((allergen) => (
           <Chip key={allergen} label={`No ${allergen}`} />
         ))}
@@ -156,7 +167,9 @@ export default function Nutrition() {
           </View>
           {!openNutrients && (
             <Text style={[styles.discHint, { color: p.textMuted }]}>
-              Seven nutrients that matter more while feeding.
+              {recoveryFramingApplies
+                ? "Seven nutrients that matter more while feeding."
+                : "Seven nutrients worth keeping an eye on."}
             </Text>
           )}
         </Card>
