@@ -22,6 +22,7 @@ import {
 } from "../../../lib/parentCare";
 import { isRecoveryRelevant } from "../../../lib/recoveryRelevance";
 import { spacing } from "../../../lib/theme";
+import { useGuidedTourStep } from "../../../lib/useGuidedTourStep";
 import { useScreenFocus } from "../../../lib/useScreenFocus";
 
 /**
@@ -61,7 +62,8 @@ export default function YouHub() {
   // on matching route with the right step may show a tour dialog.
   const isFocused = useScreenFocus();
   const isYouRoute = pathname === "/you";
-  const guidedTour = params.guidedTour === "1" && params.step === "4" && isFocused && isYouRoute;
+  const wantsGuidedTour = params.guidedTour === "1" && params.step === "4" && isFocused && isYouRoute;
+  const guidedTour = useGuidedTourStep(4, wantsGuidedTour);
   const afterOnboardingTour = params.next === "milestones";
 
   const finishGuidedTour = async () => {

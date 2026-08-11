@@ -1,12 +1,23 @@
 import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useScreenFocus } from "../../lib/useScreenFocus";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard } from "../../components/ActivityCard";
 import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { PrimaryButton } from "../../components/ui";
-import { useAuth } from "../../lib/AuthProvider";
+import { useAuth, type Child, type Profile } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
 import * as growth from "../../lib/db/growth";
 import { DOMAIN_LABEL, type Domain, type Milestone, type VaccinationScheduleItem } from "../../lib/db/types";
@@ -26,6 +37,7 @@ import {
   type CareArea,
   type CareTopic,
 } from "../../lib/parentCare";
+import { useGuidedTourStep } from "../../lib/useGuidedTourStep";
 import { useTodaysPlan } from "../../lib/useTodaysPlan";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
@@ -66,8 +78,9 @@ export default function Home() {
     next?: string;
     step?: string;
     tourComplete?: string;
+    replay?: string;
   }>();
-  const { child, parentName, profile: authProfile } = useAuth();
+  const { child, children: kids, parentName, profile: authProfile } = useAuth();
   const [coachVisible, setCoachVisible] = useState(false);
   const [coachStep, setCoachStep] = useState(0);
   const [showTourDone, setShowTourDone] = useState(params.tourComplete === "1");
@@ -76,20 +89,21 @@ export default function Home() {
   // See guide.tsx: only the focused screen on matching route with step 0 may show a tour dialog.
   const isFocused = useScreenFocus();
   const isHomeRoute = pathname === "/home" || pathname === "/";
-  const guidedTour = params.guidedTour === "1" && (params.step === "0" || !params.step) && isFocused && isHomeRoute;
+  const wantsGuidedTour =
+    params.guidedTour === "1" && (params.step === "0" || !params.step) && isFocused && isHomeRoute;
+  const guidedTour = useGuidedTourStep(0, wantsGuidedTour, params.replay === "1");
   const afterOnboardingTour = params.next === "milestones";
   const tourNext = afterOnboardingTour ? "&next=milestones" : "";
 
-  /** None expanded by default — the parent taps an activity to see it. */
-  const [expandedDomain, setExpandedDomain] = useState<Domain | null>(null);
-
   // The plan now comes from the database, cached locally so this renders
-  // immediately and completions never wait on the network.
-  const { plan, completed, loading, error, complete, swap } =
-    useTodaysPlan(child?.id ?? null);
+  // immediately and completions never wait on the network. Kept here only
+  // for the screen-level loading/error gate below — the actual activity
+  // list for each child now lives in ChildDayActivities, one instance per
+  // child, so more than one child's plan can be on screen (swipeable) at
+  // once instead of just the single active child's.
+  const { plan, loading, error } = useTodaysPlan(child?.id ?? null);
 
   const entrance = useRef(new Animated.Value(0)).current;
-  const cardOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(entrance, {
@@ -192,23 +206,6 @@ export default function Home() {
     router.replace("/home");
   };
 
-  const fadeSwap = useCallback(
-    (domain: Domain, run: () => Promise<void>) => {
-      Animated.timing(cardOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(
-        async () => {
-          await run();
-          Animated.timing(cardOpacity, {
-            toValue: 1,
-            duration: 220,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }).start();
-        }
-      );
-    },
-    [cardOpacity]
-  );
-
   if (!child || (loading && !plan)) {
     return (
       <View style={styles.screen}>
@@ -234,10 +231,8 @@ export default function Home() {
     );
   }
 
-  const activities = plan?.activities ?? [];
   const age = computeAge(child.date_of_birth);
   const ageMonths = age?.totalMonths ?? 0;
-  const allDone = activities.length > 0 && completed.length === activities.length;
 
   // A vaccination only earns a spot on Home when it's genuinely close —
   // otherwise it's not "today", it's just what the Vaccinations screen is
@@ -321,45 +316,7 @@ export default function Home() {
           <SectionLabel first accent={colors.warmTaupe}>
             TODAY
           </SectionLabel>
-          <View style={styles.childSection}>
-            <View style={styles.planHero}>
-              <Text style={styles.planTitle}>A few good things for {child.name}.</Text>
-              <Text style={styles.subline}>Pick one that feels right today.</Text>
-            </View>
-
-            <View style={styles.list}>
-              {activities.map((activity) => {
-                const isDone = completed.includes(activity.domain);
-                if (isDone) return <ActivityDoneRow key={activity.domain} activity={activity} />;
-
-                if (activity.domain === expandedDomain) {
-                  return (
-                    <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
-                      <ActivityExpandedCard
-                        activity={activity}
-                        canSwap
-                        highlighted={guidedTour}
-                        ageLabel={age?.label}
-                        onComplete={() => complete(activity)}
-                        onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
-                        onCollapse={() => setExpandedDomain(null)}
-                      />
-                    </Animated.View>
-                  );
-                }
-
-                return (
-                  <ActivityCollapsedRow
-                    key={activity.domain}
-                    activity={activity}
-                    onPress={() => setExpandedDomain(activity.domain)}
-                  />
-                );
-              })}
-            </View>
-
-            {allDone && <EndOfDay childName={child.name} />}
-          </View>
+          <TodayActivitiesPager kids={kids.length > 0 ? kids : [child]} activeChildId={child.id} guidedTour={guidedTour} />
 
           <CopilotHomeCard onPress={(prompt) => router.push(prompt ? `/ask?prompt=${encodeURIComponent(prompt)}` : "/ask")} />
 
@@ -367,6 +324,7 @@ export default function Home() {
           <ForYouCard
             childName={child.name}
             ageMonths={ageMonths}
+            authProfile={authProfile}
             area={topCareArea}
             topic={careTopic}
           />
@@ -453,6 +411,150 @@ const HOME_COACH = [
     body: "Milestones, memories, and progress collect gently over time.",
   },
 ];
+
+/**
+ * One child's "today" card — extracted so it can be mounted once per
+ * child. Each instance owns its own useTodaysPlan/expand state, so
+ * swiping between children never mixes up which activity is expanded
+ * where.
+ */
+function ChildDayActivities({
+  child,
+  guidedTour,
+  width,
+}: {
+  child: Child;
+  guidedTour: boolean;
+  width: number;
+}) {
+  const { plan, completed, complete, swap } = useTodaysPlan(child.id);
+  const [expandedDomain, setExpandedDomain] = useState<Domain | null>(null);
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+
+  const fadeSwap = useCallback(
+    (domain: Domain, run: () => Promise<void>) => {
+      Animated.timing(cardOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(
+        async () => {
+          await run();
+          Animated.timing(cardOpacity, {
+            toValue: 1,
+            duration: 220,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }).start();
+        }
+      );
+    },
+    [cardOpacity]
+  );
+
+  const age = computeAge(child.date_of_birth);
+  const activities = plan?.activities ?? [];
+  const allDone = activities.length > 0 && completed.length === activities.length;
+
+  return (
+    <View style={{ width }}>
+      <View style={styles.childSection}>
+        <View style={styles.planHero}>
+          <Text style={styles.planTitle}>A few good things for {child.name}.</Text>
+          <Text style={styles.subline}>Pick one that feels right today.</Text>
+        </View>
+
+        <View style={styles.list}>
+          {activities.map((activity) => {
+            const isDone = completed.includes(activity.domain);
+            if (isDone) return <ActivityDoneRow key={activity.domain} activity={activity} />;
+
+            if (activity.domain === expandedDomain) {
+              return (
+                <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
+                  <ActivityExpandedCard
+                    activity={activity}
+                    canSwap
+                    highlighted={guidedTour}
+                    ageLabel={age?.label}
+                    onComplete={() => complete(activity)}
+                    onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
+                    onCollapse={() => setExpandedDomain(null)}
+                  />
+                </Animated.View>
+              );
+            }
+
+            return (
+              <ActivityCollapsedRow
+                key={activity.domain}
+                activity={activity}
+                onPress={() => setExpandedDomain(activity.domain)}
+              />
+            );
+          })}
+        </View>
+
+        {allDone && <EndOfDay childName={child.name} />}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Wraps ChildDayActivities in a horizontal swipe pager once there's more
+ * than one child — otherwise renders exactly the single card it always
+ * has, so nothing changes for the common one-child case. Defaults to
+ * whichever child is active elsewhere in the app (Child tab's switcher);
+ * swiping here is just looking, it doesn't change that active child.
+ */
+function TodayActivitiesPager({
+  kids,
+  activeChildId,
+  guidedTour,
+}: {
+  kids: Child[];
+  activeChildId: string;
+  guidedTour: boolean;
+}) {
+  const width = Dimensions.get("window").width - spacing.lg * 2;
+  const initialIndex = Math.max(
+    0,
+    kids.findIndex((k) => k.id === activeChildId)
+  );
+  const scrollRef = useRef<ScrollView>(null);
+  const [pageIndex, setPageIndex] = useState(initialIndex);
+
+  if (kids.length <= 1) {
+    return <ChildDayActivities child={kids[0]} guidedTour={guidedTour} width={width} />;
+  }
+
+  return (
+    <View>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        contentOffset={{ x: initialIndex * width, y: 0 }}
+        onMomentumScrollEnd={(e) => {
+          const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+          setPageIndex(idx);
+        }}
+      >
+        {kids.map((kid) => (
+          <ChildDayActivities
+            key={kid.id}
+            child={kid}
+            guidedTour={guidedTour && kid.id === activeChildId}
+            width={width}
+          />
+        ))}
+      </ScrollView>
+      <View style={styles.pagerDots}>
+        {kids.map((kid, index) => (
+          <View key={kid.id} style={[styles.pagerDot, index === pageIndex && styles.pagerDotActive]} />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 function HomeCoachMark({
   visible,
@@ -571,11 +673,13 @@ function SectionLabel({
 function ForYouCard({
   childName,
   ageMonths,
+  authProfile,
   area,
   topic,
 }: {
   childName: string;
   ageMonths: number;
+  authProfile: Profile | null;
   area: { key: CareArea; label: string } | null;
   topic: CareTopic | null;
 }) {
@@ -606,7 +710,7 @@ function ForYouCard({
     );
   }
 
-  const bridge = bridgesFor(deriveProfile(ageMonths))[0];
+  const bridge = bridgesFor(deriveProfile(ageMonths, authProfile))[0];
   return (
     <Pressable
       onPress={() => router.push("/you/today")}
@@ -817,6 +921,22 @@ const styles = StyleSheet.create({
 
   list: {
     marginTop: spacing.lg,
+  },
+
+  pagerDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: spacing.sm,
+  },
+  pagerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(96, 79, 60, 0.18)",
+  },
+  pagerDotActive: {
+    backgroundColor: colors.warmTaupe,
   },
 
   endCard: {

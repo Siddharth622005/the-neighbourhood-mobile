@@ -114,6 +114,8 @@ export type ProfileInput = {
   relationship?: string | null;
   birth_method?: string | null;
   feeding_method?: string | null;
+  diet?: string | null;
+  allergies?: string[] | null;
 };
 
 /**
@@ -152,14 +154,24 @@ export function deriveProfile(
       ? input.relationship
       : "prefer_not_to_say";
 
+  // "vegetarian" is the fallback for anyone who hasn't answered yet —
+  // preserves existing behaviour for every account created before this
+  // question existed, rather than silently switching their meal plan.
+  let diet: DietaryPreference = "vegetarian";
+  if (input?.diet === "omnivore") diet = "omnivore";
+  else if (input?.diet === "vegetarian") diet = "vegetarian";
+  else if (input?.diet === "vegan") diet = "vegan";
+
+  const allergies = (input?.allergies ?? []).map((a) => a.trim()).filter(Boolean);
+
   return {
     weeksPostpartum: weeks,
     stage: stageFromWeeks(weeks),
     role,
     delivery,
     feeding,
-    diet: "vegetarian",
-    allergies: [],
+    diet,
+    allergies,
   };
 }
 

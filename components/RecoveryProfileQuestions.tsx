@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import {
   type DeliveryType,
+  type DietaryPreference,
   type FeedingMethod,
   type ParentRole,
 } from "../lib/parentCare";
@@ -51,6 +52,12 @@ const BIRTH_OPTIONS: Option<DeliveryType>[] = [
   { value: "prefer_not_to_say", label: "Rather not say", gloss: "We'll keep it general." },
 ];
 
+const DIET_OPTIONS: Option<DietaryPreference>[] = [
+  { value: "omnivore", label: "No restrictions", gloss: "Meat, fish, everything." },
+  { value: "vegetarian", label: "Vegetarian", gloss: "No meat or fish." },
+  { value: "vegan", label: "Vegan", gloss: "No animal products." },
+];
+
 function OptionList<T extends string>({
   options,
   selected,
@@ -99,16 +106,29 @@ export function RecoveryProfileQuestions({
   role,
   feedingMethod,
   birthMethod,
+  diet,
+  allergiesText,
   onRoleChange,
   onFeedingChange,
   onBirthChange,
+  onDietChange,
+  onAllergiesTextChange,
+  onAllergiesBlur,
 }: {
   role: ParentRole | "";
   feedingMethod: FeedingMethod | "";
   birthMethod: DeliveryType | "";
+  /** Your own diet — applies to both a mother and a father, unlike birth
+   *  method/feeding method, which describe the birthing parent's body. */
+  diet: DietaryPreference | "";
+  /** Comma-separated, exactly as typed — split into a list on save. */
+  allergiesText: string;
   onRoleChange: (value: ParentRole) => void;
   onFeedingChange: (value: FeedingMethod) => void;
   onBirthChange: (value: DeliveryType) => void;
+  onDietChange: (value: DietaryPreference) => void;
+  onAllergiesTextChange: (value: string) => void;
+  onAllergiesBlur: () => void;
 }) {
   const p = usePalette();
   // Birth/feeding are about the birthing parent's own body. Once someone
@@ -135,6 +155,19 @@ export function RecoveryProfileQuestions({
           <OptionList options={BIRTH_OPTIONS} selected={birthMethod} onSelect={onBirthChange} />
         </>
       )}
+
+      <Text style={[styles.question, { color: p.text }]}>What's your diet?</Text>
+      <OptionList options={DIET_OPTIONS} selected={diet} onSelect={onDietChange} />
+
+      <Text style={[styles.question, { color: p.text }]}>Any allergies?</Text>
+      <TextInput
+        value={allergiesText}
+        onChangeText={onAllergiesTextChange}
+        onBlur={onAllergiesBlur}
+        placeholder="e.g. peanuts, shellfish — separate with commas"
+        placeholderTextColor={p.textMuted}
+        style={[styles.allergiesInput, { color: p.text, borderColor: p.border, backgroundColor: p.surface }]}
+      />
     </View>
   );
 }
@@ -178,4 +211,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tick: { fontSize: 12, fontFamily: fonts.bodyBold },
+  allergiesInput: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    fontFamily: fonts.body,
+    fontSize: typeScale.body,
+  },
 });

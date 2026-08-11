@@ -20,6 +20,7 @@ import * as copilotDb from "../../lib/db/copilot";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
 import { deriveProfile, STAGE_LABEL } from "../../lib/parentCare";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
+import { useGuidedTourStep } from "../../lib/useGuidedTourStep";
 
 /**
  * Ask — the ONE AI entry point for the whole app.
@@ -69,7 +70,8 @@ export default function Ask() {
   const { child, parentName, profile: authProfile } = useAuth();
   const isFocused = useScreenFocus();
   const isAskRoute = pathname === "/ask";
-  const guidedTour = params.guidedTour === "1" && params.step === "2" && isFocused && isAskRoute;
+  const wantsGuidedTour = params.guidedTour === "1" && params.step === "2" && isFocused && isAskRoute;
+  const guidedTour = useGuidedTourStep(2, wantsGuidedTour);
   const afterOnboardingTour = params.next === "milestones";
   const tourNext = afterOnboardingTour ? "&next=milestones" : "";
 

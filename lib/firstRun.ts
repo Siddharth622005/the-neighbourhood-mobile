@@ -18,3 +18,31 @@ export async function hasCompletedHomeCoach(): Promise<boolean> {
 export async function markHomeCoachComplete(): Promise<void> {
   await AsyncStorage.setItem(HOME_COACH_COMPLETE_KEY, "true");
 }
+
+/**
+ * The 5-screen guided tour (Home -> Community -> Ask -> Child -> You) is
+ * driven by ?guidedTour=1&step=N in the URL. Tab navigators remember each
+ * tab's last route, so tapping the Community tab bar icon after the tour
+ * has already moved on restores its OLD url — including that stale
+ * guidedTour param — and re-shows a card the parent already dismissed.
+ * This tracks the highest step actually shown so a step never displays
+ * twice, independent of whatever the URL happens to say.
+ */
+const GUIDED_TOUR_MAX_STEP_KEY = "tn.guidedTour.maxStepShown.v1";
+
+export async function maxGuidedTourStepShown(): Promise<number> {
+  const raw = await AsyncStorage.getItem(GUIDED_TOUR_MAX_STEP_KEY);
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) ? parsed : -1;
+}
+
+export async function markGuidedTourStepShown(step: number): Promise<void> {
+  const current = await maxGuidedTourStepShown();
+  if (step > current) await AsyncStorage.setItem(GUIDED_TOUR_MAX_STEP_KEY, String(step));
+}
+
+/** Used only by "Take the tour again" (see app/profile.tsx), so a
+ *  deliberate replay isn't blocked by the same one-time gate. */
+export async function resetGuidedTourProgress(): Promise<void> {
+  await AsyncStorage.removeItem(GUIDED_TOUR_MAX_STEP_KEY);
+}

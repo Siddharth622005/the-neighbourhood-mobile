@@ -2,7 +2,6 @@ import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   View,
 } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+import { ActionSheetDialog } from "../../components/ActionSheetDialog";
 import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { useAuth } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
@@ -19,6 +19,7 @@ import * as communityDb from "../../lib/db/community";
 import { COMMUNITY_TOPICS, CommunityTopic, Discussion, TOPIC_LABEL } from "../../lib/db/communityTypes";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
+import { useGuidedTourStep } from "../../lib/useGuidedTourStep";
 import { useScreenFocus } from "../../lib/useScreenFocus";
 
 export default function Community() {
@@ -30,10 +31,15 @@ export default function Community() {
   const ageMonths = age?.totalMonths ?? 12;
 
   // See child/guide.tsx: only the focused screen on matching route with
-  // the right step may show a tour dialog.
+  // the right step may show a tour dialog. useGuidedTourStep additionally
+  // makes sure step 1 only ever shows once — otherwise tapping the
+  // Community tab bar icon after the tour has moved on restores this
+  // screen's old ?guidedTour=1&step=1 url and re-shows the card.
   const isFocused = useScreenFocus();
   const isCommunityRoute = pathname === "/community";
-  const guidedTour = params.guidedTour === "1" && params.step === "1" && isFocused && isCommunityRoute;
+  const wantsGuidedTour =
+    params.guidedTour === "1" && params.step === "1" && isFocused && isCommunityRoute;
+  const guidedTour = useGuidedTourStep(1, wantsGuidedTour);
   const tourNext = params.next === "milestones" ? "&next=milestones" : "";
 
   const skipGuidedTour = async () => {
@@ -48,6 +54,7 @@ export default function Community() {
   // Default feed is stage-relevant (±3 months) — "Browse all stages" is an
   // explicit opt-in, never the starting view.
   const [browseAllStages, setBrowseAllStages] = useState(false);
+  const [menuDiscussion, setMenuDiscussion] = useState<Discussion | null>(null);
 
   const loadDiscussions = useCallback(async () => {
     setLoading(true);
@@ -86,33 +93,36 @@ export default function Community() {
     );
   };
 
-  const handleMenu = (discussion: Discussion) => {
-    Alert.alert(discussion.title, undefined, [
-      {
-        text: "Report",
-        onPress: async () => {
-          await communityDb.reportDiscussion(discussion.id);
-          setDiscussions((prev) => prev.filter((d) => d.id !== discussion.id));
+  const handleMenu = (discussion: Discussion) => setMenuDiscussion(discussion);
+
+  const menuOptions = menuDiscussion
+    ? [
+        {
+          label: "Report",
+          onPress: async () => {
+            await communityDb.reportDiscussion(menuDiscussion.id);
+            setDiscussions((prev) => prev.filter((d) => d.id !== menuDiscussion.id));
+          },
         },
-      },
-      {
-        text: "Block this parent",
-        onPress: async () => {
-          await communityDb.blockAuthor(discussion.author_initial);
-          setDiscussions((prev) => prev.filter((d) => d.author_initial !== discussion.author_initial));
+        {
+          label: "Block this parent",
+          onPress: async () => {
+            await communityDb.blockAuthor(menuDiscussion.author_initial);
+            setDiscussions((prev) =>
+              prev.filter((d) => d.author_initial !== menuDiscussion.author_initial)
+            );
+          },
         },
-      },
-      {
-        text: "Escalate — needs urgent attention",
-        style: "destructive",
-        onPress: async () => {
-          await communityDb.reportDiscussion(discussion.id, "escalated");
-          setDiscussions((prev) => prev.filter((d) => d.id !== discussion.id));
+        {
+          label: "Escalate — needs urgent attention",
+          destructive: true,
+          onPress: async () => {
+            await communityDb.reportDiscussion(menuDiscussion.id, "escalated");
+            setDiscussions((prev) => prev.filter((d) => d.id !== menuDiscussion.id));
+          },
         },
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  };
+      ]
+    : [];
 
   const childStageName = stageLabel(ageMonths);
   const ageContextText = age
@@ -267,6 +277,13 @@ export default function Community() {
           onSkip={skipGuidedTour}
         />
       )}
+
+      <ActionSheetDialog
+        visible={!!menuDiscussion}
+        title={menuDiscussion?.title}
+        options={menuOptions}
+        onDismiss={() => setMenuDiscussion(null)}
+      />
     </View>
   );
 }

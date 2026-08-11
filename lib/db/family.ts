@@ -21,7 +21,14 @@ export async function updateProfile(
   patch: Partial<
     Pick<
       Profile,
-      "parent_name" | "relationship" | "birth_method" | "feeding_method" | "phone" | "timezone"
+      | "parent_name"
+      | "relationship"
+      | "birth_method"
+      | "feeding_method"
+      | "diet"
+      | "allergies"
+      | "phone"
+      | "timezone"
     >
   >
 ): Promise<Profile> {

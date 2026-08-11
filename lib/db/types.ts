@@ -194,6 +194,10 @@ export type Profile = {
   birth_method: string | null;
   /** exclusive | combination | formula | prefer_not_to_say — see lib/parentCare.ts FeedingMethod. */
   feeding_method: string | null;
+  /** omnivore | vegetarian | vegan — see lib/parentCare.ts DietaryPreference. */
+  diet: string | null;
+  /** Lowercased allergen names. */
+  allergies: string[];
   phone: string | null;
   /** IANA zone. Every "today" in the product derives from this. */
   timezone: string;

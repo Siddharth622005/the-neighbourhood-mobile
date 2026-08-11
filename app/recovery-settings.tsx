@@ -1,10 +1,16 @@
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RecoveryProfileQuestions } from "../components/RecoveryProfileQuestions";
 import { useAuth } from "../lib/AuthProvider";
 import * as family from "../lib/db/family";
-import { type DeliveryType, type FeedingMethod, type ParentRole } from "../lib/parentCare";
+import {
+  type DeliveryType,
+  type DietaryPreference,
+  type FeedingMethod,
+  type ParentRole,
+} from "../lib/parentCare";
 import { colors, fonts, spacing, typeScale } from "../lib/theme";
 
 /**
@@ -24,11 +30,17 @@ export default function RecoverySettings() {
   const role = (profile?.relationship as ParentRole | null) ?? "";
   const birthMethod = (profile?.birth_method as DeliveryType | null) ?? "";
   const feedingMethod = (profile?.feeding_method as FeedingMethod | null) ?? "";
+  const diet = (profile?.diet as DietaryPreference | null) ?? "";
+  // A local text buffer so a comma or a half-typed word isn't saved as an
+  // allergen on every keystroke — this only writes on blur.
+  const [allergiesText, setAllergiesText] = useState(() => (profile?.allergies ?? []).join(", "));
 
   const save = async (patch: {
     relationship?: string | null;
     birth_method?: string | null;
     feeding_method?: string | null;
+    diet?: string | null;
+    allergies?: string[];
   }) => {
     const userId = session?.user?.id;
     if (!userId) return;
@@ -56,6 +68,18 @@ export default function RecoverySettings() {
     void save({ feeding_method: value });
   };
 
+  const handleDiet = (value: DietaryPreference) => {
+    void save({ diet: value });
+  };
+
+  const handleAllergiesBlur = () => {
+    const list = allergiesText
+      .split(",")
+      .map((a) => a.trim().toLowerCase())
+      .filter(Boolean);
+    void save({ allergies: list });
+  };
+
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <ScrollView
@@ -79,9 +103,14 @@ export default function RecoverySettings() {
           role={role}
           feedingMethod={feedingMethod}
           birthMethod={birthMethod}
+          diet={diet}
+          allergiesText={allergiesText}
           onRoleChange={handleRole}
           onFeedingChange={handleFeeding}
           onBirthChange={handleBirth}
+          onDietChange={handleDiet}
+          onAllergiesTextChange={setAllergiesText}
+          onAllergiesBlur={handleAllergiesBlur}
         />
 
         <Text style={styles.reassurance}>

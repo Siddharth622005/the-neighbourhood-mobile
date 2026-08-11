@@ -71,12 +71,16 @@ export default function Profile() {
               </Text>
             </View>
           </Pressable>
-          <View style={styles.settingRow}>
+          <Pressable
+            onPress={() => router.push("/child/edit")}
+            style={styles.settingRow}
+            accessibilityRole="button"
+          >
             <View>
               <Text style={styles.settingTitle}>Child details</Text>
-              <Text style={styles.settingBody}>Name, birthday, and family preferences.</Text>
+              <Text style={styles.settingBody}>Name, birthday, and gender.</Text>
             </View>
-          </View>
+          </Pressable>
           <Pressable
             onPress={() => router.push("/recovery-settings")}
             style={styles.settingRow}

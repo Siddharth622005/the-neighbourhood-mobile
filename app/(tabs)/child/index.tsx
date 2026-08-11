@@ -20,6 +20,7 @@ import type { Domain, VaccinationScheduleItem } from "../../../lib/db/types";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../../lib/firstRun";
 import { STAGE_LABEL, stageForAgeMonths } from "../../../lib/kidMealPlanner";
 import { colors, fonts, spacing, typeScale } from "../../../lib/theme";
+import { useGuidedTourStep } from "../../../lib/useGuidedTourStep";
 import { useTodaysPlan } from "../../../lib/useTodaysPlan";
 
 /**
@@ -57,7 +58,9 @@ export default function ChildHome() {
   const ageMonths = age?.totalMonths ?? 0;
   const isFocused = useScreenFocus();
   const isChildRoute = pathname === "/child" || pathname === "/child/";
-  const guidedTour = params.guidedTour === "1" && params.step === "3" && isFocused && isChildRoute;
+  const wantsGuidedTour =
+    params.guidedTour === "1" && params.step === "3" && isFocused && isChildRoute;
+  const guidedTour = useGuidedTourStep(3, wantsGuidedTour);
   const afterOnboardingTour = params.next === "milestones";
   const tourNext = afterOnboardingTour ? "&next=milestones" : "";
 
