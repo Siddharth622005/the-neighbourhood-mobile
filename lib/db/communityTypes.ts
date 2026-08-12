@@ -48,6 +48,10 @@ export type Reply = {
 
 export type Discussion = {
   id: string;
+  /** Opaque owner id, used for blocking and for "is this mine". Null on
+   *  seeded starter content, which has no account behind it. Never shown
+   *  in the UI: parents see only an initial and a child's age. */
+  author_id: string | null;
   topic: CommunityTopic;
   title: string;
   body: string;

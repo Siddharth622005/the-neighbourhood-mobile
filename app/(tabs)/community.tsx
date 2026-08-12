@@ -95,6 +95,11 @@ export default function Community() {
 
   const handleMenu = (discussion: Discussion) => setMenuDiscussion(discussion);
 
+  // Blocking needs a real author to block. Starter content seeded with the
+  // app has no account behind it, so the option is left off rather than
+  // shown as something that would quietly do nothing.
+  const blockableAuthorId = menuDiscussion?.author_id ?? null;
+
   const menuOptions = menuDiscussion
     ? [
         {
@@ -104,15 +109,19 @@ export default function Community() {
             setDiscussions((prev) => prev.filter((d) => d.id !== menuDiscussion.id));
           },
         },
-        {
-          label: "Block this parent",
-          onPress: async () => {
-            await communityDb.blockAuthor(menuDiscussion.author_initial);
-            setDiscussions((prev) =>
-              prev.filter((d) => d.author_initial !== menuDiscussion.author_initial)
-            );
-          },
-        },
+        ...(blockableAuthorId
+          ? [
+              {
+                label: "Block this parent",
+                onPress: async () => {
+                  await communityDb.blockAuthor(blockableAuthorId);
+                  setDiscussions((prev) =>
+                    prev.filter((d) => d.author_id !== blockableAuthorId)
+                  );
+                },
+              },
+            ]
+          : []),
         {
           label: "Escalate — needs urgent attention",
           destructive: true,
