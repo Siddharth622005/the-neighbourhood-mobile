@@ -606,6 +606,13 @@ function TodayActivitiesPager({
   const scrollRef = useRef<ScrollView>(null);
   const [pageIndex, setPageIndex] = useState(initialIndex);
   const [hintSeen, setHintSeen] = useState(true); // default hidden until we know otherwise
+  // A horizontal ScrollView stretches every page to match its tallest
+  // sibling by default — fine when all children's cards run about the same
+  // length, but a child whose day is done collapses to a short summary
+  // while another's full four-item list stays tall, leaving dead space
+  // under the short one. Measuring each page and sizing the container to
+  // just the active one avoids that gap.
+  const [pageHeights, setPageHeights] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (kids.length > 1) {
@@ -635,6 +642,14 @@ function TodayActivitiesPager({
         decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
         contentOffset={{ x: initialIndex * pageWidth, y: 0 }}
+        // Without this, the row's default stretch makes every page report
+        // the SAME (tallest-sibling) height from onLayout below, which
+        // would defeat the measurement — each page needs to size to its
+        // own content first.
+        contentContainerStyle={{ alignItems: "flex-start" }}
+        style={
+          pageHeights[kids[pageIndex]?.id] ? { height: pageHeights[kids[pageIndex].id] } : undefined
+        }
         onScroll={(e) => {
           // Any real movement counts, not just a touch drag — trackpad/wheel
           // scrolling on web never fires onScrollBeginDrag, and would
@@ -654,6 +669,10 @@ function TodayActivitiesPager({
           <View
             key={kid.id}
             style={{ width: pageWidth, paddingRight: index === kids.length - 1 ? 0 : spacing.sm }}
+            onLayout={(e) => {
+              const height = e.nativeEvent.layout.height;
+              setPageHeights((prev) => (prev[kid.id] === height ? prev : { ...prev, [kid.id]: height }));
+            }}
           >
             <ChildDayActivities
               child={kid}

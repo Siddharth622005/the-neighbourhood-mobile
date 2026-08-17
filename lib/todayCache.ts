@@ -17,7 +17,16 @@ import type { DailyPlan, Domain } from "./db/types";
  * one thing that survives that — it's writes we haven't managed to send
  * yet, so it's cleared only once the server has acknowledged them.
  */
-const KEY = "tn.today.cache.v1";
+/**
+ * One slot per child, not a single shared slot — Home's multi-child pager
+ * mounts every child's useTodaysPlan at once (see TodayActivitiesPager in
+ * app/(tabs)/home.tsx), not lazily on swipe, so a single global key meant
+ * two children's concurrent reads/writes raced over the same slot: one
+ * child's cache write could clobber another's queued-but-unsynced
+ * completion, or a child's cold-start paint could momentarily race against
+ * a write mid-flight for a different child.
+ */
+const KEY = (childId: string) => `tn.today.cache.v1.${childId}`;
 
 export type TodayCache = {
   /** Family-local date this cache describes. */
@@ -53,7 +62,7 @@ export async function readCache(
   childId: string,
   planDate: string
 ): Promise<TodayCache | null> {
-  const raw = await AsyncStorage.getItem(KEY);
+  const raw = await AsyncStorage.getItem(KEY(childId));
   if (!raw) return null;
   try {
     const cache: TodayCache = JSON.parse(raw);
@@ -65,7 +74,7 @@ export async function readCache(
 }
 
 export async function writeCache(cache: TodayCache): Promise<void> {
-  await AsyncStorage.setItem(KEY, JSON.stringify(cache));
+  await AsyncStorage.setItem(KEY(cache.childId), JSON.stringify(cache));
 }
 
 /** Replaces cached server state, preserving anything not yet synced. */

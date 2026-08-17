@@ -54,7 +54,11 @@ export async function resetGuidedTourProgress(): Promise<void> {
  * actually swiped once — global rather than per-child, since the gesture
  * itself is what's being taught, not any one child's card.
  */
-const SWIPE_HINT_SEEN_KEY = "tn.homeActivityPager.swiped.v1";
+// v2: bumped to reset every device's dismissal, including parents who
+// already swiped once before the pager-height and per-child-cache fixes
+// landed — they'd earlier dismissed the hint while the feature was still
+// broken underneath it.
+const SWIPE_HINT_SEEN_KEY = "tn.homeActivityPager.swiped.v2";
 
 export async function hasSwipedActivityPager(): Promise<boolean> {
   return (await AsyncStorage.getItem(SWIPE_HINT_SEEN_KEY)) === "true";
