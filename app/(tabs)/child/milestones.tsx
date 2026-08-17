@@ -427,8 +427,8 @@ export default function Milestones() {
           </Text>
           <Text style={styles.initialAgeNote}>
             {beyondRange
-              ? "Milestone tracking here covers birth to 6 years — nothing further to check for now."
-              : `Showing a few milestones for the ${currentStage} stage.`}
+              ? "Discovery tracking here covers birth to 6 years — nothing further to check for now."
+              : `Showing a few discoveries for the ${currentStage} stage.`}
           </Text>
 
           {beyondRange ? null : initialGroups.length > 0 ? (
@@ -511,7 +511,7 @@ export default function Milestones() {
           )}
 
           <Text style={styles.initialReassurance}>
-            Every child develops at their own pace. You can update these moments anytime in Milestones.
+            Every child develops at their own pace. You can update these moments anytime in Discoveries.
           </Text>
         </ScrollView>
         <View style={styles.initialFooter}>
@@ -534,14 +534,14 @@ export default function Milestones() {
     >
       {/* Editorial Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Milestones</Text>
+        <Text style={styles.headerTitle}>Discoveries</Text>
         <Text style={styles.headerSubtitle}>
           {child
             ? milestonesAvailable
               ? beyondRange
                 ? `${child.name} has grown past what we track here — the last stage was ${currentStage}.`
                 : `${child.name} is in the ${currentStage} stage.`
-              : `${child.name}'s milestones start at 3 months.`
+              : `${child.name}'s discoveries start at 3 months.`
             : "Your child's developmental journey."}
         </Text>
 
@@ -556,13 +556,13 @@ export default function Milestones() {
           onPress={() =>
             router.push({
               pathname: "/ask",
-              params: { mode: "child", topic: "Milestones" },
+              params: { mode: "child", topic: "Discoveries" },
             })
           }
           accessibilityRole="button"
           style={({ pressed }) => [styles.askAboutRow, pressed && { opacity: 0.7 }]}
         >
-          <Text style={styles.askAboutText}>Ask about milestones →</Text>
+          <Text style={styles.askAboutText}>Ask about discoveries →</Text>
         </Pressable>
       </View>
 
@@ -599,7 +599,7 @@ export default function Milestones() {
           <View style={styles.notYetCard}>
             <Text style={styles.notYetTitle}>Nothing to complete yet.</Text>
             <Text style={styles.notYetBody}>
-              Milestone tracking will open when {child?.name ?? "your child"} reaches 3 months.
+              Discovery tracking will open when {child?.name ?? "your child"} reaches 3 months.
               Until then, Home keeps daily ideas soft and newborn-friendly.
             </Text>
           </View>
@@ -608,15 +608,15 @@ export default function Milestones() {
             {/* FOCUS RIGHT NOW */}
             <View style={styles.sectionHeaderWrap}>
               <Text style={styles.sectionTitle}>Focus Right Now</Text>
-              <Text style={styles.sectionSub}>Milestones that typically blossom at this stage.</Text>
+              <Text style={styles.sectionSub}>Discoveries that typically blossom at this stage.</Text>
             </View>
 
             {focusMilestones.length === 0 ? (
               <View style={styles.celebrationCard}>
                 <Text style={styles.celebrationEmoji}>🎉</Text>
-                <Text style={styles.celebrationTitle}>All Focus Milestones Achieved!</Text>
+                <Text style={styles.celebrationTitle}>All Focus Discoveries Noticed!</Text>
                 <Text style={styles.celebrationBody}>
-                  {child?.name ?? "Your child"} has checked off every milestone for this stage. Keep exploring and enjoying the journey.
+                  {child?.name ?? "Your child"} has checked off every discovery for this stage. Keep exploring and enjoying the journey.
                 </Text>
               </View>
             ) : (
@@ -670,7 +670,7 @@ export default function Milestones() {
               <View style={styles.marginTopLg}>
                 <View style={styles.sectionHeaderWrap}>
                   <Text style={styles.sectionTitle}>Journey Journal</Text>
-                  <Text style={styles.sectionSub}>Beautiful memories and milestones logged so far.</Text>
+                  <Text style={styles.sectionSub}>Beautiful memories and discoveries logged so far.</Text>
                 </View>
                 {recentlyAchieved.map((milestone) => (
                   <MilestoneCard

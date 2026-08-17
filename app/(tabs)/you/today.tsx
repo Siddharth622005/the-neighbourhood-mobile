@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Card, Chevron, PageHeading, SectionLabel } from "../../../components/parentUI";
 import { useAuth } from "../../../lib/AuthProvider";
 import { computeAge } from "../../../lib/childAge";
@@ -20,6 +20,9 @@ import { fonts, radius, spacing, typeScale } from "../../../lib/theme";
  * The parent's own daily companion — reached from the "Today" card on
  * You's hub. This is the content that used to BE all of You (before the
  * hub redesign moved the landing spot to a feature grid, matching Child).
+ * The mood check-in that used to open this screen has since moved up to
+ * the hub itself (see app/(tabs)/you/index.tsx) so it doesn't take an
+ * extra tap to reach; everything below is what's left once that's gone.
  *
  * Role and child age are known from main onboarding by the time this
  * screen can even be reached (see app/onboarding/role.tsx), so nothing
@@ -36,29 +39,10 @@ function greeting(hour: number) {
   return "Good evening";
 }
 
-const FEELINGS = [
-  { key: "bright", icon: "😊", label: "Bright" },
-  { key: "steady", icon: "🙂", label: "Steady" },
-  { key: "flat", icon: "😐", label: "Flat" },
-  { key: "tired", icon: "😴", label: "Tired" },
-  { key: "low", icon: "😔", label: "Low" },
-] as const;
-
-type FeelingKey = (typeof FEELINGS)[number]["key"];
-
-const LIGHTER_DAY: Record<FeelingKey, string> = {
-  bright: "You seem to have a little more room today, so the suggestions stay practical but not demanding.",
-  steady: "A steady day is enough. Today's ideas are small, useful, and easy to leave unfinished.",
-  flat: "Flat days do not need fixing. The plan below keeps decisions low and asks very little of you.",
-  tired: "You chose tired, so today stays lighter: food you can assemble, five minutes of movement, and permission to lower the bar.",
-  low: "Low counts as information, not failure. Today's support is gentle, and reaching out to someone kind is a good next step.",
-};
-
 export default function ParentToday() {
   const router = useRouter();
   const p = usePalette();
   const { parentName, child, profile: authProfile } = useAuth();
-  const [feeling, setFeeling] = useState<FeelingKey>("tired");
 
   const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
   const profile = useMemo(
@@ -109,34 +93,6 @@ export default function ParentToday() {
         title={`${greeting(new Date().getHours())}${firstName ? `, ${firstName}` : ""}.`}
         body="How can we make today a little easier for you?"
       />
-
-      <Card style={styles.checkIn}>
-        <Text style={[styles.checkTitle, { color: p.text }]}>How are you feeling today?</Text>
-        <View style={styles.feelings}>
-          {FEELINGS.map((item) => {
-            const selected = feeling === item.key;
-            return (
-              <Pressable
-                key={item.key}
-                onPress={() => setFeeling(item.key)}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-                style={({ pressed }) => [
-                  styles.feelingButton,
-                  {
-                    backgroundColor: selected ? p.primary : p.surfaceAlt,
-                    borderColor: selected ? p.primary : p.border,
-                  },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.feelingIcon}>{item.icon}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text style={[styles.checkCopy, { color: p.textMuted }]}>{LIGHTER_DAY[feeling]}</Text>
-      </Card>
 
       <Card style={styles.intelligentNudge}>
         <Text style={[styles.nudgeEyebrow, { color: p.primary }]}>TODAY'S REMINDER</Text>
@@ -261,36 +217,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
   },
-  checkIn: {
-    padding: spacing.lg,
-  },
-  checkTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.h3,
-  },
-  feelings: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  feelingButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  feelingIcon: {
-    fontSize: 22,
-    lineHeight: 26,
-  },
-  checkCopy: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
-    marginTop: spacing.md,
-  },
   intelligentNudge: {
     padding: spacing.lg,
     marginTop: spacing.md,
@@ -411,8 +337,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     textAlign: "center",
     paddingHorizontal: spacing.md,
-  },
-  pressed: {
-    opacity: 0.72,
   },
 });

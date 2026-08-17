@@ -129,6 +129,8 @@ export async function getVaccinationSchedule(): Promise<VaccinationScheduleItem[
   );
 }
 
+/** Only rows with status "given" — what reminders and progress counts
+ *  should treat as actually done. */
 export async function getAdministeredVaccinations(
   childId: string
 ): Promise<ChildVaccination[]> {
@@ -138,7 +140,17 @@ export async function getAdministeredVaccinations(
       .from("child_vaccinations")
       .select("*")
       .eq("child_id", childId)
+      .eq("status", "given")
       .order("administered_on", { ascending: false })
+  );
+}
+
+/** Every record for this child, given and unsure alike — what the
+ *  Vaccinations screen itself needs to render notes and the unsure state. */
+export async function getVaccinationRecords(childId: string): Promise<ChildVaccination[]> {
+  return unwrap<ChildVaccination[]>(
+    "growth.getVaccinationRecords",
+    await supabase.from("child_vaccinations").select("*").eq("child_id", childId)
   );
 }
 
@@ -169,8 +181,39 @@ export async function recordVaccination(input: {
         {
           child_id: input.childId,
           vaccination_id: input.vaccinationId,
+          status: "given",
           administered_on: input.administeredOn,
           notes: input.notes ?? null,
+        },
+        { onConflict: "child_id,vaccination_id" }
+      )
+      .select()
+      .single()
+  );
+}
+
+/**
+ * Flags a dose as unsure whether it happened, with an optional note.
+ * Upserts the same row recordVaccination would use, so moving between
+ * unsure and given on the same dose just overwrites it rather than
+ * leaving two conflicting records.
+ */
+export async function markVaccinationUnsure(input: {
+  childId: string;
+  vaccinationId: string;
+  note?: string | null;
+}): Promise<ChildVaccination> {
+  return unwrap<ChildVaccination>(
+    "growth.markVaccinationUnsure",
+    await supabase
+      .from("child_vaccinations")
+      .upsert(
+        {
+          child_id: input.childId,
+          vaccination_id: input.vaccinationId,
+          status: "unsure",
+          administered_on: null,
+          notes: input.note ?? null,
         },
         { onConflict: "child_id,vaccination_id" }
       )

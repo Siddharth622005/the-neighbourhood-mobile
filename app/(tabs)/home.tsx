@@ -14,14 +14,20 @@ import {
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard } from "../../components/ActivityCard";
+import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard, EndOfDay } from "../../components/ActivityCard";
 import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth, type Child, type Profile } from "../../lib/AuthProvider";
 import { computeAge, stageLabel } from "../../lib/childAge";
 import * as growth from "../../lib/db/growth";
 import { DOMAIN_LABEL, type Domain, type Milestone, type VaccinationScheduleItem } from "../../lib/db/types";
-import { hasCompletedHomeCoach, markFirstRunComplete, markHomeCoachComplete } from "../../lib/firstRun";
+import {
+  hasCompletedHomeCoach,
+  hasSwipedActivityPager,
+  markFirstRunComplete,
+  markHomeCoachComplete,
+  markSwipedActivityPager,
+} from "../../lib/firstRun";
 import {
   mealsFor as kidMealsFor,
   slotsForStage,
@@ -382,7 +388,7 @@ export default function Home() {
           eyebrow="Home"
           focus="Your family, at a glance"
           title="Start here each day."
-          body="What matters today for your family — activities, milestones, vaccinations, and support for you."
+          body="What matters today for your family — activities, discoveries, vaccinations, and support for you."
           step={0}
           total={5}
           primaryTitle="Continue"
@@ -408,7 +414,7 @@ const HOME_COACH = [
   {
     label: "Your child",
     title: "Your child's story builds here.",
-    body: "Milestones, memories, and progress collect gently over time.",
+    body: "Discoveries, memories, and progress collect gently over time.",
   },
 ];
 
@@ -452,47 +458,115 @@ function ChildDayActivities({
   const activities = plan?.activities ?? [];
   const allDone = activities.length > 0 && completed.length === activities.length;
 
+  // Folds the four rows away the moment the last one is done — and on a
+  // later visit, where the day is already finished. Tracked separately from
+  // `allDone` so reopening the summary survives re-renders.
+  const [dayCollapsed, setDayCollapsed] = useState(false);
+  useEffect(() => {
+    if (allDone) {
+      setDayCollapsed(true);
+      setExpandedDomain(null);
+    }
+  }, [allDone]);
+
   return (
     <View style={{ width }}>
       <View style={styles.childSection}>
+        {/* Once there's nothing left to pick, "Pick one" is stale copy —
+            the hero switches to acknowledging the day instead. */}
         <View style={styles.planHero}>
-          <Text style={styles.planTitle}>A few good things for {child.name}.</Text>
-          <Text style={styles.subline}>Pick one that feels right today.</Text>
+          <Text style={styles.planTitle}>
+            {allDone ? "Nicely done today." : `A few good things for ${child.name}.`}
+          </Text>
+          <Text style={styles.subline}>
+            {allDone
+              ? `You and ${child.name} got through all four.`
+              : "Pick one that feels right today."}
+          </Text>
         </View>
 
-        <View style={styles.list}>
-          {activities.map((activity) => {
-            const isDone = completed.includes(activity.domain);
-            if (isDone) return <ActivityDoneRow key={activity.domain} activity={activity} />;
+        {activities.length === 0 ? (
+          <EmptyPlan childName={child.name} />
+        ) : allDone && dayCollapsed ? (
+          <EndOfDay childName={child.name} collapsed onToggle={() => setDayCollapsed(false)} />
+        ) : (
+          <>
+            <View style={styles.list}>
+              {activities.map((activity) => {
+                const isDone = completed.includes(activity.domain);
 
-            if (activity.domain === expandedDomain) {
-              return (
-                <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
-                  <ActivityExpandedCard
+                // Expansion is checked before completion so a done activity
+                // can still be reopened — see ActivityDoneRow.
+                if (activity.domain === expandedDomain) {
+                  return (
+                    <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
+                      <ActivityExpandedCard
+                        activity={activity}
+                        canSwap
+                        highlighted={guidedTour}
+                        isDone={isDone}
+                        ageLabel={age?.label}
+                        onComplete={() => {
+                          complete(activity);
+                          setExpandedDomain(null);
+                        }}
+                        onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
+                        onCollapse={() => setExpandedDomain(null)}
+                      />
+                    </Animated.View>
+                  );
+                }
+
+                if (isDone) {
+                  return (
+                    <ActivityDoneRow
+                      key={activity.domain}
+                      activity={activity}
+                      onPress={() => setExpandedDomain(activity.domain)}
+                    />
+                  );
+                }
+
+                return (
+                  <ActivityCollapsedRow
+                    key={activity.domain}
                     activity={activity}
-                    canSwap
-                    highlighted={guidedTour}
-                    ageLabel={age?.label}
-                    onComplete={() => complete(activity)}
-                    onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
-                    onCollapse={() => setExpandedDomain(null)}
+                    onPress={() => setExpandedDomain(activity.domain)}
                   />
-                </Animated.View>
-              );
-            }
+                );
+              })}
+            </View>
 
-            return (
-              <ActivityCollapsedRow
-                key={activity.domain}
-                activity={activity}
-                onPress={() => setExpandedDomain(activity.domain)}
+            <Text style={styles.safetyNote}>
+              General ideas for typical development, not instructions to follow exactly — stay
+              close, and skip anything that doesn&rsquo;t feel right for {child.name} today.
+            </Text>
+
+            {allDone && (
+              <EndOfDay
+                childName={child.name}
+                collapsed={false}
+                onToggle={() => setDayCollapsed(true)}
               />
-            );
-          })}
-        </View>
-
-        {allDone && <EndOfDay childName={child.name} />}
+            )}
+          </>
+        )}
       </View>
+    </View>
+  );
+}
+
+/** Shown only when the plan genuinely has nothing for today — distinct
+ *  from the loading and error states, which are handled a level up in
+ *  Home itself. Never invents activities to fill the gap. */
+function EmptyPlan({ childName }: { childName: string }) {
+  return (
+    <View style={styles.emptyPlanCard}>
+      <Text style={styles.emptyPlanTitle}>Nothing planned for today.</Text>
+      <Text style={styles.emptyPlanBody}>
+        We don&rsquo;t have activities queued up for {childName} right now. This is usually
+        temporary — check back shortly, or look at Discoveries for what to try next.
+      </Text>
     </View>
   );
 }
@@ -503,7 +577,16 @@ function ChildDayActivities({
  * has, so nothing changes for the common one-child case. Defaults to
  * whichever child is active elsewhere in the app (Child tab's switcher);
  * swiping here is just looking, it doesn't change that active child.
+ *
+ * Two things make the pager itself discoverable, since a single card
+ * filling the screen gives no hint there's a second one:
+ *  - each page is narrower than the screen so the next card visibly peeks
+ *    in at the edge, always on;
+ *  - a text hint names the next child explicitly, shown until the parent
+ *    has actually swiped once (see lib/firstRun.ts), then never again.
  */
+const PAGER_PEEK = 22;
+
 function TodayActivitiesPager({
   kids,
   activeChildId,
@@ -513,38 +596,71 @@ function TodayActivitiesPager({
   activeChildId: string;
   guidedTour: boolean;
 }) {
-  const width = Dimensions.get("window").width - spacing.lg * 2;
+  const screenWidth = Dimensions.get("window").width;
+  const cardWidth = screenWidth - spacing.lg * 2 - PAGER_PEEK;
+  const pageWidth = cardWidth + spacing.sm;
   const initialIndex = Math.max(
     0,
     kids.findIndex((k) => k.id === activeChildId)
   );
   const scrollRef = useRef<ScrollView>(null);
   const [pageIndex, setPageIndex] = useState(initialIndex);
+  const [hintSeen, setHintSeen] = useState(true); // default hidden until we know otherwise
+
+  useEffect(() => {
+    if (kids.length > 1) {
+      hasSwipedActivityPager()
+        .then((seen) => setHintSeen(seen))
+        .catch(() => setHintSeen(true));
+    }
+  }, [kids.length]);
 
   if (kids.length <= 1) {
+    const width = screenWidth - spacing.lg * 2;
     return <ChildDayActivities child={kids[0]} guidedTour={guidedTour} width={width} />;
   }
 
+  const nextKid = kids[(pageIndex + 1) % kids.length];
+
   return (
     <View>
+      {!hintSeen && (
+        <Text style={styles.pagerHint}>Swipe for {nextKid.name}&rsquo;s activities →</Text>
+      )}
       <ScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
+        snapToInterval={pageWidth}
+        decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
-        contentOffset={{ x: initialIndex * width, y: 0 }}
+        contentOffset={{ x: initialIndex * pageWidth, y: 0 }}
+        onScroll={(e) => {
+          // Any real movement counts, not just a touch drag — trackpad/wheel
+          // scrolling on web never fires onScrollBeginDrag, and would
+          // otherwise leave the hint stuck forever for those parents.
+          if (!hintSeen && e.nativeEvent.contentOffset.x > 4) {
+            setHintSeen(true);
+            void markSwipedActivityPager();
+          }
+        }}
+        scrollEventThrottle={32}
         onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+          const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
           setPageIndex(idx);
         }}
       >
-        {kids.map((kid) => (
-          <ChildDayActivities
+        {kids.map((kid, index) => (
+          <View
             key={kid.id}
-            child={kid}
-            guidedTour={guidedTour && kid.id === activeChildId}
-            width={width}
-          />
+            style={{ width: pageWidth, paddingRight: index === kids.length - 1 ? 0 : spacing.sm }}
+          >
+            <ChildDayActivities
+              child={kid}
+              guidedTour={guidedTour && kid.id === activeChildId}
+              width={cardWidth}
+            />
+          </View>
         ))}
       </ScrollView>
       <View style={styles.pagerDots}>
@@ -594,17 +710,6 @@ function HomeCoachMark({
 }
 
 /** Acknowledgement, not celebration. No confetti, no "come back tomorrow". */
-function EndOfDay({ childName }: { childName: string }) {
-  return (
-    <View style={styles.endCard}>
-      <Text style={styles.endTitle}>That&rsquo;s all four.</Text>
-      <Text style={styles.endBody}>
-        Motor, communication, cognitive and social — {childName} had a bit of each today.
-      </Text>
-    </View>
-  );
-}
-
 function DiscoveryRow({
   eyebrow,
   title,
@@ -923,6 +1028,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
 
+  pagerHint: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
+    marginBottom: spacing.sm,
+  },
   pagerDots: {
     flexDirection: "row",
     justifyContent: "center",
@@ -939,25 +1050,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warmTaupe,
   },
 
-  endCard: {
+  safetyNote: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.45,
+    color: colors.textMuted,
+    marginTop: spacing.md,
+  },
+  emptyPlanCard: {
     marginTop: spacing.md,
     padding: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: "rgba(168, 181, 164, 0.20)",
+    backgroundColor: colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(96, 79, 60, 0.1)",
   },
-  endTitle: {
+  emptyPlanTitle: {
     fontFamily: fonts.bodySemiBold,
     fontSize: typeScale.h3,
     color: colors.charcoal,
   },
-  endBody: {
+  emptyPlanBody: {
     fontFamily: fonts.body,
     fontSize: typeScale.bodySmall,
     lineHeight: typeScale.bodySmall * 1.5,
     color: colors.textMuted,
     marginTop: 4,
   },
-
   askRow: {
     flexDirection: "row",
     alignItems: "center",

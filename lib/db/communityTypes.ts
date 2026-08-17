@@ -63,4 +63,7 @@ export type Discussion = {
   age_relevance_min: number; // months
   age_relevance_max: number; // months
   saved?: boolean;
+  /** Set by the discussion's own author once their question is answered.
+   *  Anyone can read it; only the author can change it. */
+  is_resolved: boolean;
 };

@@ -46,9 +46,6 @@ export function ActivityCollapsedRow({
       <View style={styles.rowText}>
         <Text style={styles.rowDomain}>{DOMAIN_LABEL[activity.domain]}</Text>
         <Text style={styles.rowTitle}>{activity.title}</Text>
-        <Text style={styles.rowWhat} numberOfLines={1}>
-          {activity.why}
-        </Text>
       </View>
       <View style={styles.rowMeta}>
         <Text style={styles.rowDuration}>
@@ -60,10 +57,56 @@ export function ActivityCollapsedRow({
   );
 }
 
-/** Done, and staying visible — quieter, but not struck through or greyed out. */
-export function ActivityDoneRow({ activity }: { activity: Activity }) {
+/**
+ * Once every domain for the day is done, the list of rows has nothing left
+ * to act on, so it folds into this single card — the day's result without
+ * the clutter. Still tappable: reopens the full list to look back at what
+ * was done. Shared between Home and the Child hub, same as the rows above.
+ */
+export function EndOfDay({
+  childName,
+  collapsed,
+  onToggle,
+}: {
+  childName: string;
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <View style={[styles.row, styles.rowDone]}>
+    <Pressable
+      onPress={onToggle}
+      style={({ pressed }) => [styles.endCard, pressed && { opacity: 0.7 }]}
+      accessibilityRole="button"
+      accessibilityLabel={collapsed ? "Show today's four activities" : "Hide today's activities"}
+    >
+      {/* No title here — callers that want a headline show it themselves
+          (see Home's "Nicely done today."); repeating it read as the same
+          sentence twice. */}
+      <Text style={styles.endBody}>
+        Motor, communication, cognitive and social — {childName} had a bit of each today.
+      </Text>
+      <Text style={styles.endToggle}>{collapsed ? "Show what we did ›" : "Hide"}</Text>
+    </Pressable>
+  );
+}
+
+/** Done, and staying visible — quieter, but not struck through or greyed out.
+ *  Still opens on tap: finishing an activity shouldn't lock the parent out of
+ *  the steps they just followed, or of doing it a second time. */
+export function ActivityDoneRow({
+  activity,
+  onPress,
+}: {
+  activity: Activity;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, styles.rowDone, pressed && { opacity: 0.5 }]}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${activity.title}, completed`}
+    >
       <CheckIcon />
       <View style={styles.rowText}>
         <Text style={styles.rowDomainDone}>{DOMAIN_LABEL[activity.domain]}</Text>
@@ -71,7 +114,8 @@ export function ActivityDoneRow({ activity }: { activity: Activity }) {
           {activity.title}
         </Text>
       </View>
-    </View>
+      <ChevronRight />
+    </Pressable>
   );
 }
 
@@ -81,6 +125,7 @@ export function ActivityExpandedCard({
   activity,
   canSwap,
   highlighted = false,
+  isDone = false,
   ageLabel,
   onComplete,
   onSwap,
@@ -89,6 +134,8 @@ export function ActivityExpandedCard({
   activity: Activity;
   canSwap: boolean;
   highlighted?: boolean;
+  /** Already completed today — reopened to re-read, not to re-log. */
+  isDone?: boolean;
   /** e.g. "8 months" — powers the optional "Why this?" explanation. */
   ageLabel?: string | null;
   onComplete: () => void;
@@ -121,9 +168,6 @@ export function ActivityExpandedCard({
           </Text>
         </View>
       </Pressable>
-
-      {/* WHAT — the same one-sentence description the collapsed row showed. */}
-      <Text style={styles.why}>{activity.why}</Text>
 
       {ageLabel && (
         <Pressable onPress={() => setShowWhyThis((v) => !v)} hitSlop={6} accessibilityRole="button">
@@ -178,15 +222,24 @@ export function ActivityExpandedCard({
       </View>
 
       <View style={styles.actionRow}>
-        <Pressable
-          style={styles.activityButton}
-          onPress={onComplete}
-          accessibilityRole="button"
-          accessibilityLabel={`Mark ${activity.title} done`}
-        >
-          <Text style={styles.activityButtonText}>Done</Text>
-        </Pressable>
-        {canSwap && (
+        {isDone ? (
+          // Already logged today. Shown as a quiet marker rather than a live
+          // button so a second tap can't double-log the same activity.
+          <View style={styles.doneMarker}>
+            <CheckIcon />
+            <Text style={styles.doneMarkerText}>Done today</Text>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.activityButton}
+            onPress={onComplete}
+            accessibilityRole="button"
+            accessibilityLabel={`Mark ${activity.title} done`}
+          >
+            <Text style={styles.activityButtonText}>Done</Text>
+          </Pressable>
+        )}
+        {canSwap && !isDone && (
           <Pressable
             onPress={onSwap}
             style={styles.swapButton}
@@ -294,12 +347,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: typeScale.bodySmall,
     color: colors.charcoal,
-    marginTop: 1,
-  },
-  rowWhat: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    color: colors.textMuted,
     marginTop: 1,
   },
   rowDuration: {
@@ -421,13 +468,6 @@ const styles = StyleSheet.create({
     color: colors.warmTaupe,
     marginTop: spacing.sm,
   },
-  why: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
   whyThisLink: {
     fontFamily: fonts.bodySemiBold,
     fontSize: typeScale.caption,
@@ -483,6 +523,17 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     color: colors.white,
   },
+  doneMarker: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 40,
+  },
+  doneMarkerText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.textMuted,
+  },
   swapButton: {
     width: 40,
     height: 40,
@@ -492,5 +543,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  endCard: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(168, 181, 164, 0.20)",
+  },
+  endBody: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.5,
+    color: colors.textMuted,
+  },
+  endToggle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
+    marginTop: spacing.sm,
   },
 });

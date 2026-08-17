@@ -85,7 +85,7 @@ export default function SecureAccount() {
 
           <View style={styles.stakes}>
             {[
-              `${childName}'s milestones and the notes you wrote`,
+              `${childName}'s discoveries and the notes you wrote`,
               "Vaccination records and what's still due",
               "Your daily plans and everything already done",
             ].map((line) => (

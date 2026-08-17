@@ -17,6 +17,7 @@ import { useAuth } from "../../lib/AuthProvider";
 import { computeAge } from "../../lib/childAge";
 import * as communityDb from "../../lib/db/community";
 import { Discussion, Reply, TOPIC_LABEL } from "../../lib/db/communityTypes";
+import { currentUserId } from "../../lib/db/session";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 export default function DiscussionDetail() {
@@ -33,6 +34,12 @@ export default function DiscussionDetail() {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [togglingResolved, setTogglingResolved] = useState(false);
+
+  useEffect(() => {
+    void currentUserId().then(setViewerId);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!discussionId) return;
@@ -69,6 +76,20 @@ export default function DiscussionDetail() {
       setReplyText("");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleToggleResolved = async () => {
+    if (!discussion) return;
+    const next = !discussion.is_resolved;
+    setTogglingResolved(true);
+    setDiscussion((prev) => (prev ? { ...prev, is_resolved: next } : null));
+    try {
+      await communityDb.setDiscussionResolved(discussion.id, next);
+    } catch {
+      setDiscussion((prev) => (prev ? { ...prev, is_resolved: !next } : null));
+    } finally {
+      setTogglingResolved(false);
     }
   };
 
@@ -111,6 +132,11 @@ export default function DiscussionDetail() {
           <View style={styles.tagRow}>
             <Text style={styles.topicTag}>{TOPIC_LABEL[discussion.topic].toUpperCase()}</Text>
             <Text style={styles.stageTag}>{discussion.author_child_age_months}m stage</Text>
+            {discussion.is_resolved && (
+              <View style={styles.resolvedTag}>
+                <Text style={styles.resolvedTagText}>Resolved</Text>
+              </View>
+            )}
           </View>
 
           {/* Question Title & Body */}
@@ -126,6 +152,31 @@ export default function DiscussionDetail() {
               Parent of {discussion.author_child_age_months}m old · {discussion.created_at}
             </Text>
           </View>
+
+          {/* Only the parent who posted this can close it out — nobody
+              else's discussion can be marked resolved out from under
+              them. */}
+          {viewerId && discussion.author_id === viewerId && (
+            <Pressable
+              onPress={handleToggleResolved}
+              disabled={togglingResolved}
+              style={({ pressed }) => [
+                styles.resolveButton,
+                discussion.is_resolved && styles.resolveButtonActive,
+                (pressed || togglingResolved) && { opacity: 0.7 },
+              ]}
+              accessibilityRole="button"
+            >
+              <Text
+                style={[
+                  styles.resolveButtonText,
+                  discussion.is_resolved && styles.resolveButtonTextActive,
+                ]}
+              >
+                {discussion.is_resolved ? "Resolved · tap to reopen" : "Mark as resolved"}
+              </Text>
+            </Pressable>
+          )}
 
           <View style={styles.divider} />
 
@@ -319,6 +370,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: radius.pill,
+  },
+  resolvedTag: {
+    backgroundColor: "rgba(168, 181, 164, 0.28)",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  resolvedTagText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 10,
+    letterSpacing: 0.4,
+    color: "#5E7360",
+  },
+  resolveButton: {
+    marginTop: spacing.md,
+    alignSelf: "flex-start",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm - 2,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  resolveButtonActive: {
+    backgroundColor: "rgba(168, 181, 164, 0.22)",
+    borderColor: "rgba(168, 181, 164, 0.5)",
+  },
+  resolveButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.caption,
+    color: colors.warmTaupe,
+  },
+  resolveButtonTextActive: {
+    color: "#5E7360",
   },
 
   discussionTitle: {

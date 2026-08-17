@@ -58,7 +58,7 @@ export default function AddChild() {
     >
       <FadeIn>
         <Prompt>Add another child</Prompt>
-        <Hint>Their own activities, milestones and vaccinations — kept separate from the rest.</Hint>
+        <Hint>Their own activities, discoveries and vaccinations — kept separate from the rest.</Hint>
 
         <DisplayField
           label="Their name"

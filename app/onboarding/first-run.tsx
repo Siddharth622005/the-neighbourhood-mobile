@@ -23,20 +23,20 @@ type Phase = "welcome" | "milestones" | "plan";
 const WELCOME_LINES = [
   "Creating a personalized experience",
   "Curating activities by age",
-  "Preparing developmental milestones",
+  "Preparing developmental discoveries",
   "Personalizing recommendations",
 ];
 
 const REASSURANCE = [
   "Every child develops at their own pace.",
-  "Milestones are guides, not deadlines.",
-  "Small moments lead to big milestones.",
+  "Discoveries are guides, not deadlines.",
+  "Small moments lead to big discoveries.",
   "You're doing a great job by simply paying attention.",
 ];
 
 const PLAN_LINES = [
   "Choosing age-appropriate activities",
-  "Highlighting helpful milestones",
+  "Highlighting helpful discoveries",
   "Preparing development recommendations",
   "Gathering resources for the days ahead",
 ];
@@ -277,7 +277,7 @@ export default function FirstRun() {
         {loadingMilestones ? (
           <View style={styles.loadingBlock}>
             <ActivityIndicator color={colors.warmTaupe} />
-            <Text style={styles.smallMuted}>Finding a few milestones that fit {childName}'s age.</Text>
+            <Text style={styles.smallMuted}>Finding a few discoveries that fit {childName}'s age.</Text>
           </View>
         ) : (
           <View style={styles.milestoneStack}>

@@ -51,6 +51,7 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   // Default feed is stage-relevant (±3 months) — "Browse all stages" is an
   // explicit opt-in, never the starting view.
   const [browseAllStages, setBrowseAllStages] = useState(false);
@@ -58,6 +59,7 @@ export default function Community() {
 
   const loadDiscussions = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const data = await communityDb.getDiscussionsForAge(
         ageMonths,
@@ -66,7 +68,12 @@ export default function Community() {
       );
       setDiscussions(data);
     } catch {
-      // Graceful fallback
+      // A real load failure must not look identical to "no discussions
+      // here yet" — the empty state below reads that as an invitation to
+      // post, which is the wrong message when the feed simply failed to
+      // load.
+      setDiscussions([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -251,6 +258,21 @@ export default function Community() {
               <ActivityIndicator color={colors.warmTaupe} size="small" />
               <Text style={styles.emptyText}>Loading discussions for your stage…</Text>
             </View>
+          ) : loadError ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyTitle}>We couldn&rsquo;t load the feed.</Text>
+              <Text style={styles.emptyText}>
+                Check your connection and try again — anything you&rsquo;ve posted or saved is
+                safe.
+              </Text>
+              <Pressable
+                onPress={() => void loadDiscussions()}
+                style={({ pressed }) => [styles.retryButton, pressed && { opacity: 0.75 }]}
+                accessibilityRole="button"
+              >
+                <Text style={styles.retryButtonText}>Try again</Text>
+              </Pressable>
+            </View>
           ) : (
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyTitle}>No discussions found</Text>
@@ -314,6 +336,11 @@ function DiscussionCard({
         <View style={styles.cardTagRow}>
           <Text style={styles.cardTopic}>{TOPIC_LABEL[discussion.topic].toUpperCase()}</Text>
           <Text style={styles.cardAgeTag}>{discussion.author_child_age_months}m stage</Text>
+          {discussion.is_resolved && (
+            <View style={styles.resolvedPill}>
+              <Text style={styles.resolvedPillText}>Resolved</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.cardHeaderActions}>
@@ -625,6 +652,18 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: radius.pill,
   },
+  resolvedPill: {
+    backgroundColor: "rgba(168, 181, 164, 0.28)",
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+  },
+  resolvedPillText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 9,
+    letterSpacing: 0.4,
+    color: "#5E7360",
+  },
   cardTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: typeScale.body,
@@ -742,6 +781,18 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: "center",
     marginTop: 4,
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.warmTaupe,
+  },
+  retryButtonText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
+    color: colors.white,
   },
 
   // FAB

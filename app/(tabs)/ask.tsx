@@ -31,7 +31,7 @@ import { useGuidedTourStep } from "../../lib/useGuidedTourStep";
  * mode to be in anymore.
  *
  *   Bare tab tap            → mode "family": general-purpose, any topic.
- *   From Child > Milestones → mode "child", topic "Milestones": arrives
+ *   From Child > Discoveries → mode "child", topic "Discoveries": arrives
  *                              knowing this is about the child.
  *   From You > Care > Sleep → mode "parent", topic "Sleep": arrives
  *                              knowing this is about the parent.

@@ -32,6 +32,7 @@ type DiscussionRow = {
   body: string;
   age_relevance_min: number;
   age_relevance_max: number;
+  is_resolved: boolean;
   created_at: string;
   replies?: ReplyRow[] | null;
   saves?: { user_id: string }[] | null;
@@ -54,7 +55,7 @@ type ReplyRow = {
 
 const DISCUSSION_SELECT = `
   id, author_id, author_initial, author_child_age_months, topic, title, body,
-  age_relevance_min, age_relevance_max, created_at,
+  age_relevance_min, age_relevance_max, is_resolved, created_at,
   replies:community_replies (
     id, discussion_id, author_id, author_initial, author_child_age_months, body,
     is_expert, expert_name, credential, is_verified, is_hidden, created_at
@@ -125,6 +126,7 @@ function toDiscussion(row: DiscussionRow): Discussion {
     age_relevance_min: row.age_relevance_min,
     age_relevance_max: row.age_relevance_max,
     saved: (row.saves ?? []).length > 0,
+    is_resolved: row.is_resolved,
   };
 }
 
@@ -288,6 +290,19 @@ export async function toggleSaveDiscussion(discussionId: string): Promise<boolea
 
   await supabase.from("community_saves").insert({ user_id: userId, discussion_id: discussionId });
   return true;
+}
+
+/**
+ * Marks a discussion resolved or reopens it. Enforced author-only by the
+ * "update own discussions" RLS policy — this can't be called for a
+ * discussion the caller didn't post.
+ */
+export async function setDiscussionResolved(discussionId: string, resolved: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("community_discussions")
+    .update({ is_resolved: resolved })
+    .eq("id", discussionId);
+  if (error) throw error;
 }
 
 /**

@@ -46,3 +46,20 @@ export async function markGuidedTourStepShown(step: number): Promise<void> {
 export async function resetGuidedTourProgress(): Promise<void> {
   await AsyncStorage.removeItem(GUIDED_TOUR_MAX_STEP_KEY);
 }
+
+/**
+ * Home's multi-child activity pager (see TodayActivitiesPager in
+ * app/(tabs)/home.tsx) is swipeable but easy to miss with only a dot
+ * indicator. A "Swipe for X's activities" hint shows until the parent has
+ * actually swiped once — global rather than per-child, since the gesture
+ * itself is what's being taught, not any one child's card.
+ */
+const SWIPE_HINT_SEEN_KEY = "tn.homeActivityPager.swiped.v1";
+
+export async function hasSwipedActivityPager(): Promise<boolean> {
+  return (await AsyncStorage.getItem(SWIPE_HINT_SEEN_KEY)) === "true";
+}
+
+export async function markSwipedActivityPager(): Promise<void> {
+  await AsyncStorage.setItem(SWIPE_HINT_SEEN_KEY, "true");
+}

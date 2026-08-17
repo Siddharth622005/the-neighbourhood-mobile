@@ -14,16 +14,23 @@
  * in one place."
  *
  * This list is age-invariant: a 2-week-old and a 7-year-old see the same
- * seven cards in the same order. Age changes what's INSIDE a section —
+ * six cards in the same order. Age changes what's INSIDE a section —
  * vaccination entries thin out, milestone density drops, kit
  * recommendations advance, meal stage moves on — never which sections exist.
  */
 export type ChildSection = {
   /** Route segment under app/(tabs)/child/ */
-  slug: "milestones" | "guide" | "kit" | "vaccinations" | "meals" | "reports" | "products";
+  slug: "milestones" | "guide" | "kit" | "vaccinations" | "meals" | "reports";
   title: string;
   /** One short line, shown on the card. */
   description: string;
+  /**
+   * Unset sections render in the main grid. "library" sections render in
+   * their own group below it — still one tap away and just as much a card
+   * as any other, just filed under reference material rather than daily
+   * or growth-tracking use. See CHILD_SECTIONS / LIBRARY_SECTIONS below.
+   */
+  group?: "library";
 };
 
 export const CHILD_SECTIONS: ChildSection[] = [
@@ -34,7 +41,7 @@ export const CHILD_SECTIONS: ChildSection[] = [
   },
   {
     slug: "milestones",
-    title: "Milestones",
+    title: "Discoveries",
     description: "What's typical now, and what they've already done.",
   },
   {
@@ -51,17 +58,16 @@ export const CHILD_SECTIONS: ChildSection[] = [
     slug: "reports",
     title: "Reports",
     description: "Quiet weekly and monthly summaries.",
+    group: "library",
   },
   {
     slug: "guide",
     title: "The Guide",
     description: "Courses and live workshops, expert-backed.",
-  },
-  {
-    slug: "products",
-    title: "Product Guide",
-    description: "A short, curated list for this age.",
+    group: "library",
   },
 ];
+
+export const LIBRARY_SECTIONS = CHILD_SECTIONS.filter((s) => s.group === "library");
 
 export const childHref = (slug: ChildSection["slug"]) => `/child/${slug}` as const;

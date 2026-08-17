@@ -55,7 +55,7 @@ export default function Birthday() {
       <FadeIn>
         <Prompt>When was {draft.childName || "your child"} born?</Prompt>
         <Hint>
-          We use their date of birth to personalize developmental milestones and activities to
+          We use their date of birth to personalize developmental discoveries and activities to
           their exact age.
         </Hint>
 

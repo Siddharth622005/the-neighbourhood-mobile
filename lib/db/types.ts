@@ -267,11 +267,21 @@ export type ChildMilestone = {
   note: string | null;
 };
 
+/**
+ * given  — administered_on is set, the dose actually happened.
+ * unsure — a parent flagged the dose as unsure whether it happened, with
+ *          an optional note; administered_on is null.
+ */
+export const VACCINATION_STATUSES = ["given", "unsure"] as const;
+export type VaccinationStatus = (typeof VACCINATION_STATUSES)[number];
+
 export type ChildVaccination = {
   id: string;
   child_id: string;
   vaccination_id: string;
-  administered_on: string;
+  status: VaccinationStatus;
+  /** Set only when status is "given". */
+  administered_on: string | null;
   notes: string | null;
 };
 

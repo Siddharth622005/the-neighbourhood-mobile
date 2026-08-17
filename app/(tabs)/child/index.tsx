@@ -2,7 +2,7 @@ import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { useScreenFocus } from "../../../lib/useScreenFocus";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard } from "../../../components/ActivityCard";
+import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard, EndOfDay } from "../../../components/ActivityCard";
 import {
   FeatureCard,
   FeatureGrid,
@@ -14,7 +14,7 @@ import {
 import { GuidedTourDialog } from "../../../components/GuidedTourDialog";
 import { useAuth } from "../../../lib/AuthProvider";
 import { computeAge } from "../../../lib/childAge";
-import { CHILD_SECTIONS, childHref, type ChildSection } from "../../../lib/childSections";
+import { CHILD_SECTIONS, LIBRARY_SECTIONS, childHref, type ChildSection } from "../../../lib/childSections";
 import * as growth from "../../../lib/db/growth";
 import type { Domain, VaccinationScheduleItem } from "../../../lib/db/types";
 import { markFirstRunComplete, markHomeCoachComplete } from "../../../lib/firstRun";
@@ -46,8 +46,11 @@ const ICONS: Record<ChildSection["slug"], FeatureIconName> = {
   kit: "kit",
   reports: "reports",
   guide: "guide",
-  products: "product",
 };
+
+// The main grid is everything not filed under Library — see
+// lib/childSections.ts for what "library" means and why.
+const MAIN_SECTIONS = CHILD_SECTIONS.filter((s) => s.group !== "library");
 
 export default function ChildHome() {
   const router = useRouter();
@@ -72,6 +75,20 @@ export default function ChildHome() {
   const { plan, completed, complete, swap } = useTodaysPlan(child?.id ?? null);
   const [expandedDomain, setExpandedDomain] = useState<Domain | null>(null);
   const cardOpacity = useRef(new Animated.Value(1)).current;
+
+  const activities = plan?.activities ?? [];
+  const allDone = activities.length > 0 && completed.length === activities.length;
+
+  // Same fold as Home once every domain for the day is done — see
+  // components/ActivityCard.tsx EndOfDay. Kept as its own flag (not derived
+  // straight from allDone) so reopening the summary survives re-renders.
+  const [dayCollapsed, setDayCollapsed] = useState(false);
+  useEffect(() => {
+    if (allDone) {
+      setDayCollapsed(true);
+      setExpandedDomain(null);
+    }
+  }, [allDone]);
   const fadeSwap = useCallback(
     (domain: Domain, run: () => Promise<void>) => {
       Animated.timing(cardOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(async () => {
@@ -133,6 +150,33 @@ export default function ChildHome() {
     }
   };
 
+  /**
+   * Only three sections get their caption rewritten per child — the ones
+   * with real, already-loaded data to draw on (age, next vaccination).
+   * Development Kit and Reports are still backend scaffolds with nothing
+   * genuine to say beyond the static line (see lib/childSections.ts), so
+   * they fall through unchanged rather than being personalized with
+   * nothing but the child's name.
+   */
+  const descriptionFor = (section: ChildSection): string => {
+    if (!child || !age) return section.description;
+    switch (section.slug) {
+      case "meals":
+        return `Feeding guidance for ${child.name}, at ${age.label}.`;
+      case "milestones":
+        return `What's typical for ${child.name} at ${age.label}.`;
+      case "vaccinations":
+        // The due date already lives in the status line below (see
+        // statusFor) — repeating it here just duplicated the same phrase
+        // twice on a two-line card.
+        return nextVaccination
+          ? `${child.name}'s next: ${nextVaccination.vaccine_name}.`
+          : `${child.name}'s schedule — up to date for now.`;
+      default:
+        return section.description;
+    }
+  };
+
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -161,44 +205,91 @@ export default function ChildHome() {
           </Pressable>
         </View>
 
-        {plan && plan.activities.length > 0 && (
+        {activities.length > 0 && (
           <>
             <FeatureGroupLabel>TODAY'S ACTIVITIES</FeatureGroupLabel>
-            <View style={styles.activityList}>
-              {plan.activities.map((activity) => {
-                const isDone = completed.includes(activity.domain);
-                if (isDone) return <ActivityDoneRow key={activity.domain} activity={activity} />;
+            {allDone && dayCollapsed ? (
+              <View style={styles.activityList}>
+                <EndOfDay
+                  childName={child?.name ?? "your child"}
+                  collapsed
+                  onToggle={() => setDayCollapsed(false)}
+                />
+              </View>
+            ) : (
+              <View style={styles.activityList}>
+                {activities.map((activity) => {
+                  const isDone = completed.includes(activity.domain);
 
-                if (activity.domain === expandedDomain) {
-                  return (
-                    <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
-                      <ActivityExpandedCard
+                  // Expansion is checked before completion so a done
+                  // activity can still be reopened — see ActivityDoneRow.
+                  if (activity.domain === expandedDomain) {
+                    return (
+                      <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
+                        <ActivityExpandedCard
+                          activity={activity}
+                          canSwap
+                          isDone={isDone}
+                          ageLabel={age?.label}
+                          onComplete={() => {
+                            complete(activity);
+                            setExpandedDomain(null);
+                          }}
+                          onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
+                          onCollapse={() => setExpandedDomain(null)}
+                        />
+                      </Animated.View>
+                    );
+                  }
+
+                  if (isDone) {
+                    return (
+                      <ActivityDoneRow
+                        key={activity.domain}
                         activity={activity}
-                        canSwap
-                        ageLabel={age?.label}
-                        onComplete={() => complete(activity)}
-                        onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
-                        onCollapse={() => setExpandedDomain(null)}
+                        onPress={() => setExpandedDomain(activity.domain)}
                       />
-                    </Animated.View>
-                  );
-                }
+                    );
+                  }
 
-                return (
-                  <ActivityCollapsedRow
-                    key={activity.domain}
-                    activity={activity}
-                    onPress={() => setExpandedDomain(activity.domain)}
+                  return (
+                    <ActivityCollapsedRow
+                      key={activity.domain}
+                      activity={activity}
+                      onPress={() => setExpandedDomain(activity.domain)}
+                    />
+                  );
+                })}
+                {allDone && (
+                  <EndOfDay
+                    childName={child?.name ?? "your child"}
+                    collapsed={false}
+                    onToggle={() => setDayCollapsed(true)}
                   />
-                );
-              })}
-            </View>
+                )}
+              </View>
+            )}
           </>
         )}
 
         <FeatureGroupLabel>EXPLORE</FeatureGroupLabel>
         <FeatureGrid>
-          {CHILD_SECTIONS.map((section) => (
+          {MAIN_SECTIONS.map((section) => (
+            <FeatureCard
+              key={section.slug}
+              icon={<FeatureIcon name={ICONS[section.slug]} color={colors.warmTaupe} />}
+              title={section.title}
+              description={descriptionFor(section)}
+              status={statusFor(section.slug)}
+              onPress={() => router.push(childHref(section.slug))}
+              highlighted={guidedTour && section.slug === "milestones"}
+            />
+          ))}
+        </FeatureGrid>
+
+        <FeatureGroupLabel>LIBRARY</FeatureGroupLabel>
+        <FeatureGrid>
+          {LIBRARY_SECTIONS.map((section) => (
             <FeatureCard
               key={section.slug}
               icon={<FeatureIcon name={ICONS[section.slug]} color={colors.warmTaupe} />}
@@ -206,7 +297,6 @@ export default function ChildHome() {
               description={section.description}
               status={statusFor(section.slug)}
               onPress={() => router.push(childHref(section.slug))}
-              highlighted={guidedTour && section.slug === "milestones"}
             />
           ))}
         </FeatureGrid>
@@ -216,7 +306,7 @@ export default function ChildHome() {
           eyebrow="Child"
           focus="Everything about your child"
           title="Growth becomes a story."
-          body="Activities, milestones, vaccinations, meals — everything you want to keep track of as they grow."
+          body="Activities, discoveries, vaccinations, meals — everything you want to keep track of as they grow."
           step={3}
           total={5}
           primaryTitle="Continue"
