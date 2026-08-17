@@ -658,6 +658,15 @@ function TodayActivitiesPager({
             setHintSeen(true);
             void markSwipedActivityPager();
           }
+          // Tracks the page live off scroll position rather than waiting for
+          // onMomentumScrollEnd below — on real mobile Safari that event
+          // doesn't reliably fire, which left pageIndex stuck on whichever
+          // page loaded first. Since the container's height (see `style`
+          // above) is keyed off pageIndex, a stuck index meant the page you
+          // actually swiped to could render at the WRONG, smaller height and
+          // clip its own activity list.
+          const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+          setPageIndex((prev) => (prev === idx ? prev : idx));
         }}
         scrollEventThrottle={32}
         onMomentumScrollEnd={(e) => {
