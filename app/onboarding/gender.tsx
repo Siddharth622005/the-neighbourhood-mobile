@@ -12,12 +12,28 @@ export default function Gender() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
   const [gender, setGender] = useState(draft.gender);
+  const [navError, setNavError] = useState(false);
   const childName = draft.childName || "your child";
 
+  /**
+   * A parent on iOS reported this screen's Continue visibly pressing but
+   * never navigating, on a real device only — never reproduced locally or
+   * in any emulated test. Cause unconfirmed (couldn't reproduce to debug
+   * further), so this wraps the one operation that could plausibly fail
+   * silently (router.push) in a try/catch and surfaces a retry instead of
+   * leaving a parent stuck with no feedback at all. `replace` instead of
+   * `push` also avoids leaving a dangling history entry back to this
+   * finished question.
+   */
   const handleContinue = () => {
     if (!gender) return;
+    setNavError(false);
     update({ gender });
-    router.push("/onboarding/making");
+    try {
+      router.replace("/onboarding/making");
+    } catch {
+      setNavError(true);
+    }
   };
 
   return (
@@ -45,6 +61,11 @@ export default function Gender() {
             );
           })}
         </View>
+        {navError && (
+          <Text style={styles.error}>
+            That didn&rsquo;t go through — tap Continue again.
+          </Text>
+        )}
       </FadeIn>
     </OnboardingScreen>
   );
@@ -54,6 +75,12 @@ const styles = StyleSheet.create({
   stack: {
     marginTop: spacing.xl,
     gap: spacing.sm,
+  },
+  error: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.bodySmall,
+    color: colors.error,
+    marginTop: spacing.lg,
   },
   card: {
     flexDirection: "row",
