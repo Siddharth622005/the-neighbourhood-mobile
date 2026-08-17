@@ -27,7 +27,7 @@ export default function Gender() {
     >
       <FadeIn>
         <Prompt>What&rsquo;s {childName}&rsquo;s gender?</Prompt>
-        <Hint>This helps us personalize content where relevant.</Hint>
+        <Hint>This helps us personalise information where biological differences matter.</Hint>
         <View style={styles.stack}>
           {GENDER_OPTIONS.map((option) => {
             const selected = gender === option;

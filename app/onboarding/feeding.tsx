@@ -48,7 +48,7 @@ export default function Feeding() {
     >
       <FadeIn>
         <Prompt>How are you feeding your baby?</Prompt>
-        <Hint>This personalises your own nutrition support. Nothing is shared.</Hint>
+        <Hint>This personalises your own nutrition support. Used only to personalise your experience.</Hint>
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
           {OPTIONS.map((option) => (
             <SelectableCard

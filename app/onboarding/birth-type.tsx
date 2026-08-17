@@ -45,7 +45,7 @@ export default function BirthType() {
     >
       <FadeIn>
         <Prompt>What type of birth did you have?</Prompt>
-        <Hint>This personalises your own recovery guidance. Nothing is shared.</Hint>
+        <Hint>This personalises your own recovery guidance. Used only to personalise your experience.</Hint>
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
           {OPTIONS.map((option) => (
             <SelectableCard
