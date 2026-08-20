@@ -1,11 +1,10 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { ActivityVideo } from "./ActivityVideo";
 import { kitItemsFor } from "../lib/devKit";
 import { DOMAIN_LABEL, type Activity, type Domain } from "../lib/db/types";
-import { colors, fonts, radius, spacing, typeScale } from "../lib/theme";
+import { colors, radius, spacing, type } from "../lib/theme";
 
 /**
  * The day's activity cards — shared between Home and the Child hub so
@@ -83,7 +82,7 @@ export function EndOfDay({
           (see Home's "Nicely done today."); repeating it read as the same
           sentence twice. */}
       <Text style={styles.endBody}>
-        Motor, communication, cognitive and social — {childName} had a bit of each today.
+        Motor, communication, cognitive and social. {childName} had a bit of each today.
       </Text>
       <Text style={styles.endToggle}>{collapsed ? "Show what we did ›" : "Hide"}</Text>
     </Pressable>
@@ -119,6 +118,86 @@ export function ActivityDoneRow({
   );
 }
 
+/**
+ * The one activity Home leads with — prominent, but compact, and not a
+ * full detail view. Category, title and duration are all a parent needs
+ * to decide whether to open it; HOW, WHY, and the Done button live one
+ * tap away, inside the same ActivityExpandedCard the collapsed rows
+ * already use. Done is deliberately NOT offered here — logging an
+ * activity you haven't actually opened would let a parent mark something
+ * complete without ever reading it, which is worse for the recommendation
+ * signal Done exists to feed, not just worse UX.
+ *
+ * The "more ideas" toggle is the one action this collapsed state does
+ * offer, since picking a different activity doesn't require opening this
+ * one first.
+ */
+export function FeaturedActivityCard({
+  activity,
+  highlighted = false,
+  moreIdeasCount,
+  moreIdeasOpen,
+  onOpen,
+  onToggleMoreIdeas,
+}: {
+  activity: Activity;
+  highlighted?: boolean;
+  /** Activities not shown here, tucked behind the toggle. 0 hides it. */
+  moreIdeasCount: number;
+  moreIdeasOpen: boolean;
+  onOpen: () => void;
+  onToggleMoreIdeas: () => void;
+}) {
+  return (
+    <View style={[styles.card, styles.featuredCard, highlighted && styles.tourHighlight]}>
+      <Pressable
+        onPress={onOpen}
+        style={styles.cardHeader}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${activity.title}`}
+      >
+        <View style={styles.cardCopy}>
+          <Text style={styles.domainLabel}>{DOMAIN_LABEL[activity.domain].toUpperCase()}</Text>
+          <Text style={styles.featuredTitle}>{activity.title}</Text>
+        </View>
+        <View style={styles.featuredMeta}>
+          <View style={styles.duration}>
+            <ClockIcon />
+            <Text style={styles.durationText}>
+              {activity.duration_label ?? `${activity.duration_minutes} min`}
+            </Text>
+          </View>
+          {/* The only cue that this header is tappable — the chevron
+              alone read as decoration, so it's paired with the words it's
+              pointing at. */}
+          <View style={styles.featuredTapRow}>
+            <Text style={styles.featuredTapHint}>Tap for how &amp; why</Text>
+            <ChevronRight />
+          </View>
+        </View>
+      </Pressable>
+
+      {moreIdeasCount > 0 && (
+        <Pressable
+          onPress={onToggleMoreIdeas}
+          style={({ pressed }) => [styles.moreIdeasRow, pressed && { opacity: 0.6 }]}
+          accessibilityRole="button"
+          accessibilityLabel={moreIdeasOpen ? "Hide more ideas" : "Show more ideas"}
+        >
+          <Text style={styles.moreIdeasRowText}>
+            {moreIdeasOpen
+              ? "Fewer ideas"
+              : `${moreIdeasCount} more ${moreIdeasCount === 1 ? "idea" : "ideas"} for today`}
+          </Text>
+          <View style={moreIdeasOpen && styles.moreIdeasChevronOpen}>
+            <ChevronRight />
+          </View>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 /** Opened on tap — WHAT is already visible above (the collapsed row); this
  *  adds HOW, WHY THIS MATTERS, an optional trust marker, and what's needed. */
 export function ActivityExpandedCard({
@@ -126,7 +205,6 @@ export function ActivityExpandedCard({
   canSwap,
   highlighted = false,
   isDone = false,
-  ageLabel,
   onComplete,
   onSwap,
   onCollapse,
@@ -136,14 +214,11 @@ export function ActivityExpandedCard({
   highlighted?: boolean;
   /** Already completed today — reopened to re-read, not to re-log. */
   isDone?: boolean;
-  /** e.g. "8 months" — powers the optional "Why this?" explanation. */
-  ageLabel?: string | null;
   onComplete: () => void;
   onSwap: () => void;
   onCollapse: () => void;
 }) {
   const router = useRouter();
-  const [showWhyThis, setShowWhyThis] = useState(false);
   // Matched on the activity's own band rather than the child's, so a
   // swapped-in activity for an adjacent stage still suggests the right thing.
   const kitItem = kitItemsFor(activity.materials, activity.age_band)[0];
@@ -169,24 +244,11 @@ export function ActivityExpandedCard({
         </View>
       </Pressable>
 
-      {ageLabel && (
-        <Pressable onPress={() => setShowWhyThis((v) => !v)} hitSlop={6} accessibilityRole="button">
-          <Text style={styles.whyThisLink}>{showWhyThis ? "Hide" : "Why this?"}</Text>
-        </Pressable>
-      )}
-      {ageLabel && showWhyThis && (
-        <Text style={styles.whyThisText}>
-          Your child is {ageLabel}, and this {DOMAIN_LABEL[activity.domain].toLowerCase()} activity
-          supports skills developing around this stage.
-        </Text>
-      )}
-
       {steps.length > 0 && (
         <View style={styles.howBlock}>
           <Text style={styles.blockLabel}>HOW</Text>
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <View key={step} style={styles.stepRow}>
-              {steps.length > 1 && <Text style={styles.stepNumber}>{i + 1}</Text>}
               <Text style={styles.stepText}>{step}</Text>
             </View>
           ))}
@@ -215,7 +277,7 @@ export function ActivityExpandedCard({
             style={({ pressed }) => pressed && { opacity: 0.55 }}
           >
             <Text style={styles.kitNote}>
-              We also make one — {kitItem.name.toLowerCase()} ›
+              We also make one: {kitItem.name.toLowerCase()} ›
             </Text>
           </Pressable>
         )}
@@ -297,7 +359,7 @@ function CheckIcon() {
   );
 }
 
-function ChevronRight() {
+export function ChevronRight() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
       <Path
@@ -337,33 +399,24 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowDomain: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+    ...type.eyebrow,
     color: colors.warmTaupe,
   },
   rowTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.charcoal,
     marginTop: 1,
   },
   rowDuration: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.textMuted,
   },
   rowDomainDone: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+    ...type.eyebrow,
     color: colors.textMuted,
   },
   rowTitleDone: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
+    ...type.body,
     color: colors.textMuted,
     marginTop: 1,
   },
@@ -387,23 +440,74 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
     elevation: 6,
   },
-  domainLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.4,
+  // Same card shell as the full expanded view, just without its HOW/WHY
+  // sections — that's what makes it read as "one thing to act on" rather
+  // than a fifth kind of surface to learn. Tighter padding and gap than
+  // the shared `card` style so it reads closer to a single collapsed row
+  // plus a button than a scaled-down detail card.
+  featuredCard: {
+    padding: spacing.sm + 2,
+  },
+  // Full `title` weight, same as the collapsed and expanded views. This
+  // was previously two steps smaller than the "For you" card's heading,
+  // which inverted the hierarchy: the day's one suggested activity read
+  // as less important than an article recommendation beneath it.
+  featuredTitle: {
+    ...type.title,
+    color: colors.charcoal,
+  },
+  featuredMeta: {
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  // A parent who's never opened this card has no reason to assume the
+  // header is tappable — the chevron alone was too easy to miss the first
+  // time, so this spells it out once, right-aligned under the duration
+  // it sits beneath.
+  featuredTapRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    marginTop: 1,
+  },
+  featuredTapHint: {
+    ...type.meta,
+    color: colors.textMuted,
+  },
+  // A footer row rather than a floating pill — full-width and divided by
+  // a hairline, so it reads as part of the card instead of a stray
+  // control sitting in leftover space beside it.
+  moreIdeasRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 40,
+    marginTop: spacing.xs,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  moreIdeasRowText: {
+    ...type.label,
     color: colors.warmTaupe,
-    marginBottom: 2,
+  },
+  // Points down instead of right once the list is open, so the chevron
+  // still reads as "this is what happens if you tap" rather than dangling
+  // in its collapsed direction.
+  moreIdeasChevronOpen: {
+    transform: [{ rotate: "90deg" }],
+  },
+  domainLabel: {
+    ...type.eyebrow,
+    color: colors.warmTaupe,
+    marginBottom: 3,
   },
   title: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.body,
-    lineHeight: typeScale.body * 1.25,
+    ...type.title,
     color: colors.charcoal,
   },
   blockLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.3,
+    ...type.eyebrow,
     color: colors.warmTaupe,
     marginBottom: spacing.sm,
   },
@@ -418,17 +522,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.xs,
   },
-  stepNumber: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
-    color: colors.softSand,
-    width: 14,
-  },
   stepText: {
     flex: 1,
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
+    ...type.body,
     color: colors.textMuted,
   },
   whyMattersBlock: {
@@ -438,9 +534,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   whyMattersText: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
+    ...type.body,
     color: colors.textMuted,
   },
   needBlock: {
@@ -450,36 +544,18 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   needPrimary: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
+    ...type.label,
     color: colors.charcoal,
   },
   needAlt: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
+    ...type.body,
     color: colors.textMuted,
     marginTop: 2,
   },
   kitNote: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.warmTaupe,
     marginTop: spacing.sm,
-  },
-  whyThisLink: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    color: colors.warmTaupe,
-    marginTop: spacing.xs,
-  },
-  whyThisText: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    lineHeight: typeScale.caption * 1.5,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
   },
   activityVideo: {
     width: "100%",
@@ -499,8 +575,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   durationText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.textMuted,
   },
   actionRow: {
@@ -519,8 +594,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warmTaupe,
   },
   activityButtonText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
+    ...type.label,
     color: colors.white,
   },
   doneMarker: {
@@ -530,8 +604,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
   },
   doneMarkerText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
+    ...type.label,
     color: colors.textMuted,
   },
   swapButton: {
@@ -551,14 +624,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(168, 181, 164, 0.20)",
   },
   endBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
+    ...type.body,
     color: colors.textMuted,
   },
   endToggle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
+    ...type.label,
     color: colors.warmTaupe,
     marginTop: spacing.sm,
   },

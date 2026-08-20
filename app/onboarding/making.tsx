@@ -33,7 +33,7 @@ function personalHeadline(parentName: string, childName: string): string {
 const FACT_INTERVAL = 1250; // ms per fact
 const BAR_DURATION = FACT_INTERVAL * FACTS.length; // 3750ms
 const READY_HOLD = 750; // ms spent on the "Ready." moment
-const NAVIGATE_AT = BAR_DURATION + READY_HOLD; // 4500ms — comfortably under 5s
+const NAVIGATE_AT = BAR_DURATION + READY_HOLD; // 4500ms, comfortably under 5s
 
 export default function Making() {
   const router = useRouter();
@@ -186,12 +186,14 @@ export default function Making() {
               name: draft.childName,
               date_of_birth: draft.dateOfBirth,
               gender: draft.gender || null,
+              gestational_weeks: draft.gestationalWeeks,
             })
           : await family.createChild({
               parentId: userId,
               name: draft.childName,
               dateOfBirth: draft.dateOfBirth,
               gender: draft.gender || null,
+              gestationalWeeks: draft.gestationalWeeks,
             });
 
       // A plan is persisted for the day. Clear today's copy when the child
@@ -243,7 +245,7 @@ export default function Making() {
         <View style={styles.factSlot}>
           {saveError ? (
             <Text style={styles.errorText}>
-              We couldn&rsquo;t finish setting up your family. Nothing is lost — your
+              We couldn&rsquo;t finish setting up your family. Nothing is lost, your
               answers are still here.
             </Text>
           ) : !ready ? (

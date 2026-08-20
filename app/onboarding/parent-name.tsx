@@ -1,8 +1,7 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { PrimaryButton } from "../../components/ui";
 import { DisplayField, FadeIn, Hint, OnboardingScreen, Prompt } from "../../components/onboarding";
-import { useOnboarding } from "../../lib/OnboardingProvider";
+import { useDraftState, useOnboarding } from "../../lib/OnboardingProvider";
 
 /**
  * Parent name — one question per screen, matching the rest of the flow.
@@ -13,8 +12,11 @@ import { useOnboarding } from "../../lib/OnboardingProvider";
  */
 export default function ParentName() {
   const router = useRouter();
-  const { draft, update } = useOnboarding();
-  const [name, setName] = useState(draft.parentName);
+  const { update } = useOnboarding();
+  const [name, setName] = useDraftState(
+    (d) => d.parentName,
+    (v) => v.trim() === ""
+  );
 
   const ready = name.trim().length > 0;
 

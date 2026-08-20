@@ -13,7 +13,7 @@ import {
 } from "../../../components/FeatureHub";
 import { GuidedTourDialog } from "../../../components/GuidedTourDialog";
 import { useAuth } from "../../../lib/AuthProvider";
-import { computeAge } from "../../../lib/childAge";
+import { computeAge, developmentalAgeMonths } from "../../../lib/childAge";
 import { CHILD_SECTIONS, LIBRARY_SECTIONS, childHref, type ChildSection } from "../../../lib/childSections";
 import * as growth from "../../../lib/db/growth";
 import type { Domain, VaccinationScheduleItem } from "../../../lib/db/types";
@@ -57,8 +57,11 @@ export default function ChildHome() {
   const pathname = usePathname();
   const params = useLocalSearchParams<{ guidedTour?: string; step?: string; next?: string }>();
   const { child, children, setActiveChild } = useAuth();
+  // Two ages, deliberately. `age` is chronological — it's what gets shown
+  // to the parent, who knows how old their child is. `ageMonths` is
+  // corrected, and drives which developmental content applies.
   const age = child ? computeAge(child.date_of_birth) : null;
-  const ageMonths = age?.totalMonths ?? 0;
+  const ageMonths = developmentalAgeMonths(child);
   const isFocused = useScreenFocus();
   const isChildRoute = pathname === "/child" || pathname === "/child/";
   const wantsGuidedTour =
@@ -171,7 +174,7 @@ export default function ChildHome() {
         // twice on a two-line card.
         return nextVaccination
           ? `${child.name}'s next: ${nextVaccination.vaccine_name}.`
-          : `${child.name}'s schedule — up to date for now.`;
+          : `${child.name}'s schedule, up to date for now.`;
       default:
         return section.description;
     }
@@ -230,7 +233,6 @@ export default function ChildHome() {
                           activity={activity}
                           canSwap
                           isDone={isDone}
-                          ageLabel={age?.label}
                           onComplete={() => {
                             complete(activity);
                             setExpandedDomain(null);
@@ -306,7 +308,7 @@ export default function ChildHome() {
           eyebrow="Child"
           focus="Everything about your child"
           title="Growth becomes a story."
-          body="Activities, discoveries, vaccinations, meals — everything you want to keep track of as they grow."
+          body="Activities, discoveries, vaccinations, meals. Everything you want to keep track of as they grow."
           step={3}
           total={5}
           primaryTitle="Continue"

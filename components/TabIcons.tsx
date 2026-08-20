@@ -81,6 +81,31 @@ const askIconStyles = StyleSheet.create({
   },
 });
 
+/** Three lines — opens the Ask screen's chat history drawer. */
+export function HamburgerIcon({ size = 22, color = colors.charcoal }: { size?: number; color?: ColorValue }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 7h16M4 12h16M4 17h10" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * The same four-point sparkle as the Ask tab's badge, on its own and
+ * scaled up — for moments where Ask wants to introduce itself (the
+ * empty-thread greeting) rather than just mark its place in the tab bar.
+ */
+export function SparkleMark({ size = 40, color = colors.warmTaupe }: { size?: number; color?: ColorValue }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 4c.7 3.6 2.3 5.3 6 6-3.7.7-5.3 2.4-6 6-.7-3.6-2.3-5.3-6-6 3.7-.7 5.3-2.4 6-6Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
 /** Child — a heart. Care, plainly. */
 export function ChildIcon({ color, focused }: IconProps) {
   return (

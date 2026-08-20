@@ -20,6 +20,7 @@ import { cancelReminder, scheduleVaccinationReminders } from "../../../lib/notif
 import {
   VACCINE_TIERS,
   VACCINE_TIER_BLURB,
+  VACCINE_TIER_HIGHLIGHT,
   VACCINE_TIER_LABEL,
   type ChildVaccination,
   type VaccinationScheduleItem,
@@ -233,7 +234,7 @@ export default function Vaccinations() {
           </Text>
           <Text style={styles.emptyBody}>
             {error
-              ? "Check your connection and try again — anything you've recorded is safe."
+              ? "Check your connection and try again. Anything you've recorded is safe."
               : "It'll appear here shortly. In the meantime, please follow the schedule your paediatrician gave you."}
           </Text>
         </View>
@@ -242,12 +243,15 @@ export default function Vaccinations() {
   }
 
   const activeItems = schedule.filter((s) => s.tier === activeTier);
+  const activeSources = Array.from(
+    new Set(activeItems.map((s) => s.source).filter((s): s is string => !!s))
+  );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.intro}>
-        Tap anything {child?.name ?? "your child"} has already had. This is a record to
-        help you keep track — your paediatrician decides what&rsquo;s right.
+        A gentle record of {child?.name ?? "your little one"}&rsquo;s vaccines — tap
+        anything already done. Your paediatrician always has the final word.
       </Text>
 
       {nextDue && !allRecorded && (
@@ -268,11 +272,14 @@ export default function Vaccinations() {
           </Text>
           <Text style={[styles.upNextMeta, dueSoon && styles.upNextMetaSoon]}>
             {daysUntilDue !== null && daysUntilDue <= 0
-              ? "Due now — worth booking soon"
+              ? "Due now, worth booking soon"
               : daysUntilDue !== null && dueSoon
-                ? `Due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"} — worth booking soon`
+                ? `Due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}, worth booking soon`
                 : `Due around ${nextDue.age_label}`}
           </Text>
+          {nextDue.source && (
+            <Text style={styles.upNextSource}>Source: {sourceLabel(nextDue.source)}</Text>
+          )}
         </Pressable>
       )}
 
@@ -294,7 +301,18 @@ export default function Vaccinations() {
       </View>
 
       <View style={styles.tierBlock}>
-        <Text style={styles.tierBlurb}>{VACCINE_TIER_BLURB[activeTier]}</Text>
+        <Text style={styles.tierBlurb}>
+          {VACCINE_TIER_BLURB[activeTier]}
+          {VACCINE_TIER_HIGHLIGHT[activeTier] && (
+            <Text style={styles.tierBlurbStrong}> {VACCINE_TIER_HIGHLIGHT[activeTier]}</Text>
+          )}
+        </Text>
+        {activeSources.length > 0 && (
+          <Text style={styles.tierSource}>
+            {activeSources.length > 1 ? "Sources" : "Source"}:{" "}
+            {activeSources.map(sourceLabel).join(" · ")}
+          </Text>
+        )}
 
         {activeItems.length === 0 ? (
           <Text style={styles.tierEmpty}>
@@ -312,6 +330,10 @@ export default function Vaccinations() {
                 unsure={record?.status === "unsure"}
                 unsureNote={record?.status === "unsure" ? record.notes : null}
                 due={ageDays >= item.age_days}
+                /* Only worth repeating per row when the tier draws on more
+                   than one source — otherwise the line under the tabs
+                   already says it, and every row saying it again is noise. */
+                showSource={activeSources.length > 1}
                 onPress={() => toggle(item)}
                 onUnsurePress={() => openUnsureEditor(item)}
               />
@@ -331,10 +353,10 @@ export default function Vaccinations() {
         </View>
       )}
 
+      {/* Sources are named per tier above, so this is the disclaimer only. */}
       <Text style={styles.footnote}>
-        Sources: National Immunization Schedule (Government of India) and the IAP-ACVIP
-        Recommended Immunization Schedule 2023. Not a substitute for your
-        paediatrician&rsquo;s advice.
+        A record to help you keep track — not a substitute for your paediatrician&rsquo;s
+        advice.
       </Text>
 
       <Modal
@@ -351,7 +373,7 @@ export default function Vaccinations() {
                 : "Not sure?"}
             </Text>
             <Text style={styles.modalBody}>
-              This won&rsquo;t mark it as given — just flags it as unsure, with an optional note
+              This won&rsquo;t mark it as given. Just flags it as unsure, with an optional note
               for yourself.
             </Text>
             <TextInput
@@ -405,6 +427,7 @@ function Row({
   unsure,
   unsureNote,
   due,
+  showSource,
   onPress,
   onUnsurePress,
 }: {
@@ -413,6 +436,7 @@ function Row({
   unsure: boolean;
   unsureNote: string | null;
   due: boolean;
+  showSource: boolean;
   onPress: () => void;
   onUnsurePress: () => void;
 }) {
@@ -437,7 +461,9 @@ function Row({
           {item.dose_label ? ` · ${item.dose_label}` : ""}
         </Text>
         {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
-        {item.source && <Text style={styles.source}>Source: {sourceLabel(item.source)}</Text>}
+        {showSource && item.source && (
+          <Text style={styles.source}>Source: {sourceLabel(item.source)}</Text>
+        )}
         {unsure && unsureNote && <Text style={styles.parentNote}>Your note: {unsureNote}</Text>}
         {!recorded && (
           <Pressable
@@ -532,6 +558,12 @@ const styles = StyleSheet.create({
     color: "#96703A",
     fontFamily: fonts.bodySemiBold,
   },
+  upNextSource: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 8,
+  },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "rgba(139, 115, 85, 0.06)",
@@ -575,6 +607,16 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     lineHeight: typeScale.caption * 1.5,
     color: colors.textMuted,
+    marginBottom: 4,
+  },
+  tierBlurbStrong: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.charcoal,
+  },
+  tierSource: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: colors.textMuted,
     marginBottom: spacing.md,
   },
   tierEmpty: {
@@ -587,12 +629,12 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm + 2,
+    gap: spacing.md,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     backgroundColor: "rgba(255, 255, 255, 0.55)",
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   rowDone: { backgroundColor: "rgba(168, 181, 164, 0.20)" },
   rowUnsure: { backgroundColor: "rgba(201, 165, 142, 0.16)" },
@@ -624,13 +666,13 @@ const styles = StyleSheet.create({
     fontSize: typeScale.caption,
     lineHeight: typeScale.caption * 1.45,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: 6,
   },
   source: {
     fontFamily: fonts.bodyMedium,
     fontSize: 10,
     color: colors.textMuted,
-    marginTop: 3,
+    marginTop: 6,
   },
   due: {
     fontFamily: fonts.bodyMedium,
@@ -656,7 +698,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMedium,
     fontSize: typeScale.caption,
     color: colors.warmTaupe,
-    marginTop: 6,
+    marginTop: 8,
   },
   celebrationCard: {
     marginTop: spacing.md,

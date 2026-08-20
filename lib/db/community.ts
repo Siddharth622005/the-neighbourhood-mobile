@@ -187,6 +187,36 @@ export async function getDiscussionsForAge(
     .sort((a, b) => (b.expert_reply ? 1 : 0) - (a.expert_reply ? 1 : 0));
 }
 
+/**
+ * Every discussion this parent has bookmarked, most recently saved first.
+ * Not filtered by age/stage or topic — a save is a deliberate "come back
+ * to this" action, so unlike the main feed it shouldn't quietly drop out
+ * once the child ages past its relevance window.
+ */
+export async function getSavedDiscussions(): Promise<Discussion[]> {
+  const userId = await currentUserId();
+  if (!userId) return [];
+
+  const [rows, hidden] = await Promise.all([
+    unwrap<{ discussion: (DiscussionRow & { is_hidden: boolean }) | null }[]>(
+      "community.getSavedDiscussions",
+      await supabase
+        .from("community_saves")
+        .select(`discussion:community_discussions ( ${DISCUSSION_SELECT}, is_hidden )`)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+    ),
+    hiddenForCaller(),
+  ]);
+
+  return rows
+    .map((r) => r.discussion)
+    .filter((d): d is DiscussionRow & { is_hidden: boolean } => !!d && !d.is_hidden)
+    .filter((row) => !hidden.discussions.has(row.id))
+    .filter((row) => !(row.author_id && hidden.authors.has(row.author_id)))
+    .map(toDiscussion);
+}
+
 export async function getDiscussionById(
   id: string
 ): Promise<{ discussion: Discussion; replies: Reply[] } | null> {

@@ -250,7 +250,7 @@ export default function YouHub() {
           eyebrow="You"
           focus="And don't forget yourself"
           title="This part is yours."
-          body="Parent Care, wellbeing, and nutrition — personalised to your role and your child's stage."
+          body="Parent Care, wellbeing, and nutrition. Personalised to your role and your child's stage."
           step={4}
           total={5}
           primaryTitle="Start exploring"

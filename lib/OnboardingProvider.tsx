@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { EMAIL_AUTH_ENABLED } from "./authMode";
 import { computeAge } from "./childAge";
 import { isRecoveryRelevant } from "./recoveryRelevance";
@@ -31,6 +31,14 @@ export type OnboardingDraft = {
   role: "" | "mother" | "father" | "prefer_not_to_say";
   childName: string;
   dateOfBirth: string; // YYYY-MM-DD
+  /**
+   * Weeks of gestation at birth — 40 for full term, lower for preterm,
+   * null for never asked. Collected inline on the birthday screen rather
+   * than as its own step, and only for a child under two, so it costs the
+   * flow nothing for the parents it doesn't apply to. See
+   * components/BornEarlyQuestion.tsx and lib/childAge.ts developmentalAge.
+   */
+  gestationalWeeks: number | null;
   birthMethod: "" | "vaginal" | "caesarean" | "prefer_not_to_say";
   feedingMethod: "" | "exclusive" | "combination" | "formula" | "prefer_not_to_say";
   gender: string; // Boy | Girl | Prefer not to say
@@ -43,6 +51,7 @@ const EMPTY: OnboardingDraft = {
   role: "",
   childName: "",
   dateOfBirth: "",
+  gestationalWeeks: null,
   birthMethod: "",
   feedingMethod: "",
   gender: "",
@@ -50,6 +59,11 @@ const EMPTY: OnboardingDraft = {
 
 // Bumped from v2: the draft shape gained role/birthMethod/feedingMethod,
 // and a half-finished v2 draft would resume into a screen expecting them.
+//
+// Deliberately NOT bumped for gestationalWeeks: that addition is purely
+// additive (a v3 draft picks up `null` from EMPTY on the spread below,
+// and resumeFromDraft never branches on it), so a bump would throw away
+// in-progress drafts to fix a problem that doesn't exist.
 const STORAGE_KEY = "tn.onboarding.draft.v3";
 
 /**
@@ -157,6 +171,41 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       {children}
     </OnboardingContext.Provider>
   );
+}
+
+/**
+ * Screen state seeded from the draft, correctly across hydration.
+ *
+ * The draft starts EMPTY and is filled in asynchronously from
+ * AsyncStorage, so a plain `useState(draft.x)` captures the empty value
+ * on any screen that mounts before that read resolves — a reload or a
+ * deep link straight onto the screen — and the parent finds the answer
+ * they already gave missing. This seeds the state once hydration lands,
+ * and only while the parent hasn't answered in the meantime: a value
+ * they typed or picked post-mount always wins over the stored one.
+ */
+export function useDraftState<T>(
+  select: (draft: OnboardingDraft) => T,
+  isUnanswered: (value: T) => boolean
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const { draft, hydrated } = useOnboarding();
+  const [value, setValue] = useState<T>(() => select(draft));
+
+  // Read through refs so the seeding effect can depend on `hydrated`
+  // alone — the callers pass inline functions, which change identity on
+  // every render and would otherwise re-run it constantly.
+  const latest = useRef({ draft, select, isUnanswered });
+  latest.current = { draft, select, isUnanswered };
+
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!hydrated || seeded.current) return;
+    seeded.current = true;
+    const { draft: d, select: pick, isUnanswered: blank } = latest.current;
+    setValue((current) => (blank(current) ? pick(d) : current));
+  }, [hydrated]);
+
+  return [value, setValue];
 }
 
 export function useOnboarding() {

@@ -2,7 +2,7 @@ import { Tabs, useRouter } from "expo-router";
 import { AvatarButton } from "../../components/AvatarButton";
 import { LogoMark } from "../../components/Logo";
 import { AskTabIcon, ChildIcon, CommunityIcon, HomeIcon, YouIcon } from "../../components/TabIcons";
-import { colors, fonts, spacing } from "../../lib/theme";
+import { colors, spacing, type } from "../../lib/theme";
 
 /**
  * The app shell: ONE permanent bottom bar, five destinations, no toggle.
@@ -39,8 +39,7 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: colors.cream },
         headerShadowVisible: false,
         headerTitleStyle: {
-          fontFamily: fonts.bodySemiBold,
-          fontSize: 16,
+          ...type.title,
           color: colors.charcoal,
         },
         headerRight: () => <AvatarButton />,
@@ -53,9 +52,13 @@ export default function TabsLayout() {
           paddingBottom: spacing.sm,
           height: 76,
         },
+        // On the scale, and SemiBold rather than Medium — the tab bar was
+        // the last place Medium survived, and 10px sat below every other
+        // size in the app.
         tabBarLabelStyle: {
-          fontFamily: fonts.bodyMedium,
-          fontSize: 10,
+          ...type.eyebrow,
+          letterSpacing: 0.2,
+          textTransform: "none",
         },
       }}
     >

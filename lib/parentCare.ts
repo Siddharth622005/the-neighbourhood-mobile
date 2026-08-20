@@ -234,7 +234,7 @@ function nutrientsForFather(): Nutrient[] {
       unit: "IU",
       target: 400,
       current: 180,
-      why: "Most people are low without noticing — worth keeping in the mix.",
+      why: "Most people are low without noticing, worth keeping in the mix.",
     },
     {
       key: "omega_3",
@@ -440,7 +440,7 @@ const MEALS: Meal[] = [
       "Simmer lentils with turmeric until collapsing.",
       "Wilt spinach through at the end.",
       "Bloom cumin and garlic in ghee or oil, pour over.",
-      "Finish with lemon — it helps the iron absorb.",
+      "Finish with lemon, it helps the iron absorb.",
     ],
     diets: ["omnivore", "vegetarian", "vegan"],
     oneHanded: true,
@@ -514,7 +514,7 @@ const FATHER_MEALS: Meal[] = [
     id: "f-breakfast-own",
     slot: "breakfast",
     title: "A proper breakfast, for you too",
-    blurb: "Whatever you make her, make yourself a plate — you're both running on broken sleep.",
+    blurb: "Whatever you make her, make yourself a plate. You're both running on broken sleep.",
     minutes: 8,
     delivers: ["protein", "fibre"],
     ingredients: ["Eggs", "Whole wheat toast", "Fruit"],
@@ -544,14 +544,14 @@ const FATHER_MEALS: Meal[] = [
     id: "f-lunch-family",
     slot: "lunch",
     title: "A lunch that works for everyone",
-    blurb: "One pot, enough for the whole table — including whoever's too tired to cook today.",
+    blurb: "One pot, enough for the whole table. Including whoever's too tired to cook today.",
     minutes: 25,
     delivers: ["protein", "iron", "fibre"],
     ingredients: ["Rice", "Dal", "Mixed vegetables", "Ghee"],
     steps: [
       "Cook the rice and dal.",
       "Sauté the vegetables with basic spices.",
-      "Serve everyone from the same pot — less washing up too.",
+      "Serve everyone from the same pot, less washing up too.",
     ],
     diets: ["omnivore", "vegetarian", "vegan"],
     oneHanded: false,
@@ -561,7 +561,7 @@ const FATHER_MEALS: Meal[] = [
     id: "f-afternoon-feeding-routine",
     slot: "afternoon_snack",
     title: "Take a feed off her plate",
-    blurb: "Burping, settling, or a bottle if that's part of your routine — so she gets a real break to eat.",
+    blurb: "Burping, settling, or a bottle if that's part of your routine. So she gets a real break to eat.",
     minutes: 15,
     delivers: [],
     ingredients: ["A burp cloth", "A bottle, if you're using one"],
@@ -744,7 +744,7 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "Scar massage",
-        body: "Once fully closed and cleared by your doctor — usually around six weeks — gentle massage helps the layers glide. Two minutes, small circles, firm enough to move the skin but never enough to hurt.",
+        body: "Once fully closed and cleared by your doctor (usually around six weeks)gentle massage helps the layers glide. Two minutes, small circles, firm enough to move the skin but never enough to hurt.",
       },
     ],
     seekHelp: [
@@ -763,11 +763,11 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Why it feels different",
-        body: "A caesarean cuts through skin, fascia, and the abdominal wall to reach the uterus. Those deeper layers need time to knit back together before they can do their job again. A weak or absent core is not laziness — it is healing.",
+        body: "A caesarean cuts through skin, fascia, and the abdominal wall to reach the uterus. Those deeper layers need time to knit back together before they can do their job again. A weak or absent core is not laziness, it is healing.",
       },
       {
         heading: "Starting small",
-        body: "Gentle diaphragmatic breathing — expanding the ribcage on the inhale, feeling it draw inward on the exhale — begins reconnecting the deep core. This can start as soon as you feel ready, even in the first week.",
+        body: "Gentle diaphragmatic breathing (expanding the ribcage on the inhale, feeling it draw inward on the exhale)begins reconnecting the deep core. This can start as soon as you feel ready, even in the first week.",
       },
       {
         heading: "Building up",
@@ -793,7 +793,7 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "How to lift when you must",
-        body: "Exhale as you lift, keep the weight close to your body, and engage your pelvic floor before you move. Avoid twisting — turn your whole body instead.",
+        body: "Exhale as you lift, keep the weight close to your body, and engage your pelvic floor before you move. Avoid twisting, turn your whole body instead.",
       },
       {
         heading: "Returning to normal",
@@ -812,7 +812,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Finding the right muscles",
-        body: "Imagine stopping wind, then gently lifting that feeling up and in. Your stomach, thighs and buttocks should stay relaxed. If everything clenches at once, you've recruited too much — start smaller.",
+        body: "Imagine stopping wind, then gently lifting that feeling up and in. Your stomach, thighs and buttocks should stay relaxed. If everything clenches at once, you've recruited too much, start smaller.",
       },
       {
         heading: "Both halves matter",
@@ -820,7 +820,7 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "A realistic week",
-        body: "Three sets of eight, most days, attached to something you already do — feeding, kettle boiling, red lights. Changes usually show up somewhere between six and twelve weeks.",
+        body: "Three sets of eight, most days, attached to something you already do. Feeding, kettle boiling, red lights. Changes usually show up somewhere between six and twelve weeks.",
       },
     ],
     seekHelp: [
@@ -839,7 +839,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "The first two weeks",
-        body: "Swelling, bruising, and soreness are all expected. Stitches — if you had them — dissolve on their own, usually within two to three weeks. Keep the area clean with warm water after using the toilet.",
+        body: "Swelling, bruising, and soreness are all expected. Stitches (if you had them)dissolve on their own, usually within two to three weeks. Keep the area clean with warm water after using the toilet.",
       },
       {
         heading: "Sitz baths and cold packs",
@@ -847,7 +847,7 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "Sitting and moving",
-        body: "A cushion or rolled towel can take pressure off the area. Change position often. Walking is good — it improves blood flow to the area and helps healing, even when it feels slow.",
+        body: "A cushion or rolled towel can take pressure off the area. Change position often. Walking is good. It improves blood flow to the area and helps healing, even when it feels slow.",
       },
     ],
     seekHelp: [
@@ -866,15 +866,15 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "The first six weeks",
-        body: "Gentle walking and pelvic floor exercises are enough. Your body did something extraordinary and it needs time to recover — not prove itself.",
+        body: "Gentle walking and pelvic floor exercises are enough. Your body did something extraordinary and it needs time to recover, not prove itself.",
       },
       {
         heading: "After your check-up",
-        body: "Once cleared, you can gradually add low-impact activity — swimming, yoga, light strength work. If anything causes leaking, heaviness, or pain, ease back a step. That is not failure, it is feedback.",
+        body: "Once cleared, you can gradually add low-impact activity. Swimming, yoga, light strength work. If anything causes leaking, heaviness, or pain, ease back a step. That is not failure, it is feedback.",
       },
       {
         heading: "What to watch for",
-        body: "Pelvic floor symptoms during exercise — leaking, pressure, dragging — mean the intensity has outpaced your recovery. A women's health physiotherapist can help you find the right level.",
+        body: "Pelvic floor symptoms during exercise (leaking, pressure, dragging)mean the intensity has outpaced your recovery. A women's health physiotherapist can help you find the right level.",
       },
     ],
     seekHelp: [
@@ -896,7 +896,7 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "Pain relief",
-        body: "Paracetamol and ibuprofen are usually safe and effective — your midwife or GP can confirm. Keeping on top of pain relief in the early days helps you rest and feed more comfortably.",
+        body: "Paracetamol and ibuprofen are usually safe and effective. Your midwife or GP can confirm. Keeping on top of pain relief in the early days helps you rest and feed more comfortably.",
       },
       {
         heading: "When pain changes",
@@ -920,7 +920,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "The first six weeks",
-        body: "Lochia (postpartum bleeding), cramping as the uterus shrinks, and profound tiredness are common to all births. Most of this settles gradually. Keep an eye on the trajectory — improvement, even slow, is the right direction.",
+        body: "Lochia (postpartum bleeding), cramping as the uterus shrinks, and profound tiredness are common to all births. Most of this settles gradually. Keep an eye on the trajectory. Improvement, even slow, is the right direction.",
       },
       {
         heading: "Three to six months",
@@ -934,7 +934,7 @@ export const CARE_TOPICS: CareTopic[] = [
     seekHelp: [
       "Bleeding that returns after stopping, or suddenly becomes much heavier",
       "Persistent pain anywhere that isn't improving",
-      "A feeling that something is wrong, even without a specific symptom — trust that feeling",
+      "A feeling that something is wrong, even without a specific symptom, trust that feeling",
     ],
   },
   /* ---- Mental health ---- */
@@ -947,7 +947,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Overwhelm has a shape",
-        body: "It's rarely one big thing — it's the accumulation of small, constant demands with no clear end point. Naming it as \"overwhelm\" rather than \"failing to cope\" is often the first thing that makes it feel manageable.",
+        body: "It's rarely one big thing. It's the accumulation of small, constant demands with no clear end point. Naming it as \"overwhelm\" rather than \"failing to cope\" is often the first thing that makes it feel manageable.",
       },
       {
         heading: "Lower the bar on purpose",
@@ -968,15 +968,15 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "You are part of the system you're caring for",
-        body: "A parent who is fed, rested, and occasionally alone is better able to care for their baby than one running on nothing. Looking after yourself isn't competing with looking after them — it's part of the same job.",
+        body: "A parent who is fed, rested, and occasionally alone is better able to care for their baby than one running on nothing. Looking after yourself isn't competing with looking after them. It's part of the same job.",
       },
       {
         heading: "It doesn't need to be big",
-        body: "A shower without rushing, ten minutes with a coffee that's still hot, five minutes outside without the pram — small, frequent moments do more for most parents than an occasional big gesture that takes weeks to arrange.",
+        body: "A shower without rushing, ten minutes with a coffee that's still hot, five minutes outside without the pram. Small, frequent moments do more for most parents than an occasional big gesture that takes weeks to arrange.",
       },
       {
         heading: "Guilt is common, not a signal you're doing something wrong",
-        body: "Most parents feel a flicker of guilt the first few times they hand the baby over to rest. That feeling fades with repetition — it's not a sign you should stop, it's a sign you're not used to it yet.",
+        body: "Most parents feel a flicker of guilt the first few times they hand the baby over to rest. That feeling fades with repetition. It's not a sign you should stop, it's a sign you're not used to it yet.",
       },
     ],
   },
@@ -989,7 +989,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Different people, different kinds of help",
-        body: "One friend might be good for a vent, another for practical help, another for just sitting with you in silence. Spreading what you need across a few people is more sustainable than expecting one person — usually your partner — to be everything.",
+        body: "One friend might be good for a vent, another for practical help, another for just sitting with you in silence. Spreading what you need across a few people is more sustainable than expecting one person (usually your partner)to be everything.",
       },
       {
         heading: "Other parents get it fastest",
@@ -1005,7 +1005,7 @@ export const CARE_TOPICS: CareTopic[] = [
     slug: "anxiety-after-parenthood",
     area: "mental",
     title: "Anxiety after becoming a parent",
-    blurb: "Racing thoughts and constant checking are common — and treatable.",
+    blurb: "Racing thoughts and constant checking are common, and treatable.",
     minutes: 5,
     sections: [
       {
@@ -1014,11 +1014,11 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "Intrusive thoughts are not a warning sign about you",
-        body: "Sudden, unwanted images of harm coming to your baby are extremely common, and are the opposite of an intention — they happen precisely because you care so much about keeping your baby safe. They become concerning only if they bring an urge to act on them, which is a different and much rarer thing.",
+        body: "Sudden, unwanted images of harm coming to your baby are extremely common, and are the opposite of an intention. They happen precisely because you care so much about keeping your baby safe. They become concerning only if they bring an urge to act on them, which is a different and much rarer thing.",
       },
       {
         heading: "It responds well to treatment",
-        body: "Talking therapies, peer support, and — when appropriate — medication compatible with breastfeeding all help. Anxiety that's interfering with sleep, eating, or daily function is worth raising with your GP, not something to just wait out.",
+        body: "Talking therapies, peer support, and (when appropriate)medication compatible with breastfeeding all help. Anxiety that's interfering with sleep, eating, or daily function is worth raising with your GP, not something to just wait out.",
       },
     ],
     seekHelp: [
@@ -1050,7 +1050,7 @@ export const CARE_TOPICS: CareTopic[] = [
     seekHelp: [
       "Low mood or anxiety lasting more than two weeks",
       "Feeling unable to care for yourself or your baby",
-      "Any thought of harming yourself or your baby — contact your doctor or emergency services now",
+      "Any thought of harming yourself or your baby. Contact your doctor or emergency services now",
     ],
   },
   {
@@ -1062,11 +1062,11 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Burnout builds slowly",
-        body: "It rarely arrives as a single bad day — it's weeks of depleted reserves with no real refuelling. Constant fatigue that sleep doesn't fix, irritability at small things, and feeling emotionally flat toward things you normally enjoy are early signs, not personal failings.",
+        body: "It rarely arrives as a single bad day. It's weeks of depleted reserves with no real refuelling. Constant fatigue that sleep doesn't fix, irritability at small things, and feeling emotionally flat toward things you normally enjoy are early signs, not personal failings.",
       },
       {
         heading: "Recovery needs more than rest",
-        body: "Sleep helps, but burnout also needs moments where you're not \"on call\" — even twenty minutes where someone else has the baby and your attention is genuinely free. Rest without that mental off-switch doesn't refill the tank the same way.",
+        body: "Sleep helps, but burnout also needs moments where you're not \"on call\". Even twenty minutes where someone else has the baby and your attention is genuinely free. Rest without that mental off-switch doesn't refill the tank the same way.",
       },
       {
         heading: "Say it before it's a crisis",
@@ -1076,7 +1076,7 @@ export const CARE_TOPICS: CareTopic[] = [
     seekHelp: [
       "Feeling emotionally numb or detached from your baby for more than a few days",
       "Persistent exhaustion that doesn't lift with rest",
-      "Thoughts that you'd be better off not being here — contact your doctor or emergency services now",
+      "Thoughts that you'd be better off not being here. Contact your doctor or emergency services now",
     ],
   },
   {
@@ -1092,17 +1092,17 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "You don't need the \"right\" words",
-        body: "\"I don't feel like myself\" or \"I'm struggling more than I think I should be\" is enough to start the conversation. A good GP will ask the follow-up questions — you don't need a diagnosis prepared before you go in.",
+        body: "\"I don't feel like myself\" or \"I'm struggling more than I think I should be\" is enough to start the conversation. A good GP will ask the follow-up questions. You don't need a diagnosis prepared before you go in.",
       },
       {
         heading: "Help works, and often works quickly",
-        body: "Talking therapy, peer support, and medication — including options compatible with breastfeeding — all have strong evidence behind them in the postpartum period. Many parents notice a real difference within a few weeks of starting support.",
+        body: "Talking therapy, peer support, and medication (including options compatible with breastfeeding)all have strong evidence behind them in the postpartum period. Many parents notice a real difference within a few weeks of starting support.",
       },
     ],
     seekHelp: [
       "Low mood or anxiety lasting more than two weeks",
       "Feeling unable to care for yourself or your baby",
-      "Any thought of harming yourself or your baby — contact your doctor or emergency services now",
+      "Any thought of harming yourself or your baby. Contact your doctor or emergency services now",
     ],
   },
   /* ---- Sleep ---- */
@@ -1136,15 +1136,15 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "There is no schedule yet",
-        body: "Newborns sleep in short, frequent bursts around the clock — typically 14 to 17 hours a day, in stretches of one to three hours, because their stomachs are small and need refilling often. A predictable pattern isn't something you're failing to establish; it isn't available yet.",
+        body: "Newborns sleep in short, frequent bursts around the clock. Typically 14 to 17 hours a day, in stretches of one to three hours, because their stomachs are small and need refilling often. A predictable pattern isn't something you're failing to establish; it isn't available yet.",
       },
       {
         heading: "Day and night take time to sort themselves out",
-        body: "Babies are born without a working body clock and develop one gradually, usually by around three to four months. Bright light and activity in the day, dim and quiet at night, help nudge this along — but the confusion itself is expected, not a problem to fix immediately.",
+        body: "Babies are born without a working body clock and develop one gradually, usually by around three to four months. Bright light and activity in the day, dim and quiet at night, help nudge this along. But the confusion itself is expected, not a problem to fix immediately.",
       },
       {
         heading: "The four-hour stretch is a milestone, not a baseline",
-        body: "A single longer stretch — often the first sign of things settling — tends to arrive somewhere in the six-to-twelve-week range, and it moves around a lot. Comparing your baby's stretch to another baby's rarely tells you anything useful.",
+        body: "A single longer stretch (often the first sign of things settling)tends to arrive somewhere in the six-to-twelve-week range, and it moves around a lot. Comparing your baby's stretch to another baby's rarely tells you anything useful.",
       },
     ],
   },
@@ -1152,12 +1152,12 @@ export const CARE_TOPICS: CareTopic[] = [
     slug: "safe-sleep-practices",
     area: "sleep",
     title: "Safe sleep, made simple",
-    blurb: "The handful of things that measurably lower risk — and nothing beyond them is required.",
+    blurb: "The handful of things that measurably lower risk. And nothing beyond them is required.",
     minutes: 4,
     sections: [
       {
         heading: "Back, alone, and on a firm flat surface",
-        body: "Every sleep, including naps, on their back, on a firm flat mattress, with nothing else in the cot — no pillows, loose blankets, bumpers, or soft toys. This single set of choices is the most evidence-backed way to lower the risk of sudden infant death.",
+        body: "Every sleep, including naps, on their back, on a firm flat mattress, with nothing else in the cot. No pillows, loose blankets, bumpers, or soft toys. This single set of choices is the most evidence-backed way to lower the risk of sudden infant death.",
       },
       {
         heading: "Room-sharing, not bed-sharing",
@@ -1177,16 +1177,16 @@ export const CARE_TOPICS: CareTopic[] = [
     slug: "sleep-regressions",
     area: "sleep",
     title: "Sleep regressions, explained",
-    blurb: "Why a baby who was sleeping well suddenly isn't — a sign of progress, not a step backward.",
+    blurb: "Why a baby who was sleeping well suddenly isn't. A sign of progress, not a step backward.",
     minutes: 4,
     sections: [
       {
         heading: "They usually track development",
-        body: "The common regression windows — around four months, eight to ten months, and eighteen months — line up with real developmental leaps: a maturing sleep cycle, new mobility, language coming online. Sleep gets disrupted because the brain is busy doing something else important.",
+        body: "The common regression windows (around four months, eight to ten months, and eighteen months)line up with real developmental leaps: a maturing sleep cycle, new mobility, language coming online. Sleep gets disrupted because the brain is busy doing something else important.",
       },
       {
         heading: "The four-month regression is different from the rest",
-        body: "At four months, a baby's sleep cycles permanently mature to look more like an adult's, with more, lighter wake-ups between cycles. This one doesn't fully pass — it's a new normal a baby then learns to sleep through, not a phase that ends on its own.",
+        body: "At four months, a baby's sleep cycles permanently mature to look more like an adult's, with more, lighter wake-ups between cycles. This one doesn't fully pass. It's a new normal a baby then learns to sleep through, not a phase that ends on its own.",
       },
       {
         heading: "What helps without undoing progress",
@@ -1198,16 +1198,16 @@ export const CARE_TOPICS: CareTopic[] = [
     slug: "managing-night-wakings",
     area: "sleep",
     title: "Managing night wakings",
-    blurb: "Not every waking needs a full response — knowing the difference changes a lot.",
+    blurb: "Not every waking needs a full response. Knowing the difference changes a lot.",
     minutes: 4,
     sections: [
       {
         heading: "Pause before you pick up",
-        body: "Babies stir and vocalise between sleep cycles without actually waking. Giving a minute or two before going in — long enough to see whether they resettle on their own — avoids turning a normal stir into a full waking.",
+        body: "Babies stir and vocalise between sleep cycles without actually waking. Giving a minute or two before going in (long enough to see whether they resettle on their own)avoids turning a normal stir into a full waking.",
       },
       {
         heading: "Keep it boring",
-        body: "Dim light, a quiet voice, minimal handling. The less stimulating a night waking is, the faster your baby learns that night-time isn't when the interesting things happen — which, over weeks, tends to shorten the wakings themselves.",
+        body: "Dim light, a quiet voice, minimal handling. The less stimulating a night waking is, the faster your baby learns that night-time isn't when the interesting things happen. Which, over weeks, tends to shorten the wakings themselves.",
       },
       {
         heading: "Rule out the obvious first",
@@ -1228,7 +1228,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Wake windows change fast",
-        body: "How long a baby can comfortably stay awake between sleeps grows quickly across the first year — roughly 45 minutes to an hour for a newborn, stretching to two to three hours by six months. Watching the clock alongside your baby's cues works better than either alone.",
+        body: "How long a baby can comfortably stay awake between sleeps grows quickly across the first year. Roughly 45 minutes to an hour for a newborn, stretching to two to three hours by six months. Watching the clock alongside your baby's cues works better than either alone.",
       },
       {
         heading: "Read the early tired signs",
@@ -1249,7 +1249,7 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Consistency, not complexity",
-        body: "A bath, a feed, a dim room, and the same few words every time — repeated nightly, it becomes a cue your baby's brain learns to associate with sleep. It doesn't need to be elaborate, just genuinely the same most nights.",
+        body: "A bath, a feed, a dim room, and the same few words every time. Repeated nightly, it becomes a cue your baby's brain learns to associate with sleep. It doesn't need to be elaborate, just genuinely the same most nights.",
       },
       {
         heading: "When to start",
@@ -1257,7 +1257,7 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "Keep it portable",
-        body: "A routine built entirely around your own nursery falls apart the first time you travel or a grandparent does bedtime. A version that fits in a bag — a particular song, a specific phrase, a small comfort object — travels with you.",
+        body: "A routine built entirely around your own nursery falls apart the first time you travel or a grandparent does bedtime. A version that fits in a bag (a particular song, a specific phrase, a small comfort object)travels with you.",
       },
     ],
   },
@@ -1301,11 +1301,11 @@ export const CARE_TOPICS: CareTopic[] = [
       },
       {
         heading: "Small, not grand",
-        body: "This isn't the season for date nights that need planning. A two-minute check-in before sleep, sitting close on the sofa instead of across the room, a text in the middle of the day — these rebuild connection faster than waiting for the energy to do something bigger.",
+        body: "This isn't the season for date nights that need planning. A two-minute check-in before sleep, sitting close on the sofa instead of across the room, a text in the middle of the day. These rebuild connection faster than waiting for the energy to do something bigger.",
       },
       {
         heading: "Say the tired part out loud",
-        body: "\"I miss us\" lands better than silence, and better than resentment that builds because neither of you named what's happening. Most partners are relieved to hear it — they've usually felt it too.",
+        body: "\"I miss us\" lands better than silence, and better than resentment that builds because neither of you named what's happening. Most partners are relieved to hear it, they've usually felt it too.",
       },
     ],
   },
@@ -1318,14 +1318,14 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "It's not just tasks",
-        body: "Remembering the next vaccination is due, noticing the wipes are running low, tracking whose turn it is to be tired — this mental load is real labour, and it's often invisible precisely to the partner not carrying it. Naming it out loud is the first step to sharing it.",
+        body: "Remembering the next vaccination is due, noticing the wipes are running low, tracking whose turn it is to be tired. This mental load is real labour, and it's often invisible precisely to the partner not carrying it. Naming it out loud is the first step to sharing it.",
       },
       {
         heading: "Divide by ownership, not just chores",
-        body: "\"You do bath, I do bottles\" works better long-term than splitting each task in half every time. Full ownership of a piece means one of you isn't managing a helper — you both simply have your part.",
+        body: "\"You do bath, I do bottles\" works better long-term than splitting each task in half every time. Full ownership of a piece means one of you isn't managing a helper. You both simply have your part.",
       },
       {
-        heading: "Revisit it — this isn't a one-time conversation",
+        heading: "Revisit it. This isn't a one-time conversation",
         body: "What worked at six weeks won't fit at six months. A short, regular check-in (even five minutes on a Sunday) keeps the split honest as both your capacities and the baby's needs change.",
       },
     ],
@@ -1339,11 +1339,11 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Sleep debt talks for you",
-        body: "Snapping over something small — whose turn it was, where the muslin went — is usually exhaustion speaking, not a verdict on the relationship. Naming that pattern to each other in a calm moment takes the sting out of it in the hard ones.",
+        body: "Snapping over something small (whose turn it was, where the muslin went)is usually exhaustion speaking, not a verdict on the relationship. Naming that pattern to each other in a calm moment takes the sting out of it in the hard ones.",
       },
       {
         heading: "State the need, not just the complaint",
-        body: "\"I need forty-five minutes alone this evening\" gets heard. \"You never give me a break\" gets defended against. Both are asking for the same thing — one is far more likely to get it.",
+        body: "\"I need forty-five minutes alone this evening\" gets heard. \"You never give me a break\" gets defended against. Both are asking for the same thing. One is far more likely to get it.",
       },
       {
         heading: "Timing matters more than wording",
@@ -1360,15 +1360,15 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "More arguments is not a red flag on its own",
-        body: "Sleep deprivation, hormonal shifts, and the sheer logistics of keeping a baby alive raise the friction in any relationship. More disagreements than before is expected in this season — what matters is how you're having them.",
+        body: "Sleep deprivation, hormonal shifts, and the sheer logistics of keeping a baby alive raise the friction in any relationship. More disagreements than before is expected in this season. What matters is how you're having them.",
       },
       {
         heading: "Pause before you're past the point of useful",
-        body: "\"Can we come back to this in twenty minutes\" is not avoidance — it's recognising that a conversation had by two exhausted people rarely reaches anywhere good. Actually returning to it is the part that makes this work rather than becoming a dodge.",
+        body: "\"Can we come back to this in twenty minutes\" is not avoidance. It's recognising that a conversation had by two exhausted people rarely reaches anywhere good. Actually returning to it is the part that makes this work rather than becoming a dodge.",
       },
       {
         heading: "Repair matters more than avoiding the fight",
-        body: "Every couple argues. The ones who come through this season well are not the ones who never clash — they're the ones who reliably circle back and repair afterward, even briefly.",
+        body: "Every couple argues. The ones who come through this season well are not the ones who never clash. They're the ones who reliably circle back and repair afterward, even briefly.",
       },
     ],
     seekHelp: [
@@ -1380,16 +1380,16 @@ export const CARE_TOPICS: CareTopic[] = [
     slug: "intimacy-after-childbirth",
     area: "relationships",
     title: "Intimacy after childbirth",
-    blurb: "Physically, emotionally, and on your own timeline — not a deadline.",
+    blurb: "Physically, emotionally, and on your own timeline, not a deadline.",
     minutes: 5,
     sections: [
       {
         heading: "There's no correct timeline",
-        body: "Most guidance suggests waiting until any bleeding has stopped and a healthcare provider has confirmed healing — often around six weeks — but readiness afterward varies hugely and honestly. Fatigue, body-image shifts, and touch-fatigue from being needed by a baby all day are all real, common reasons it takes longer.",
+        body: "Most guidance suggests waiting until any bleeding has stopped and a healthcare provider has confirmed healing (often around six weeks)but readiness afterward varies hugely and honestly. Fatigue, body-image shifts, and touch-fatigue from being needed by a baby all day are all real, common reasons it takes longer.",
       },
       {
         heading: "Intimacy is bigger than sex",
-        body: "Physical closeness that doesn't lead anywhere — a hand held, a long hug, lying close before sleep — keeps a physical connection alive during a stretch where sex itself may not feel available yet. Neither of you should read its absence as rejection.",
+        body: "Physical closeness that doesn't lead anywhere (a hand held, a long hug, lying close before sleep)keeps a physical connection alive during a stretch where sex itself may not feel available yet. Neither of you should read its absence as rejection.",
       },
       {
         heading: "Talk before you're both guessing",
@@ -1409,7 +1409,7 @@ export const CARE_TOPICS: CareTopic[] = [
     minutes: 4,
     sections: [
       {
-        heading: "You will disagree on approach — that's fine",
+        heading: "You will disagree on approach, that's fine",
         body: "Different instincts about soothing, routine, or how much to intervene are normal, not a sign one of you is doing it wrong. The goal is alignment on the big things, not identical instincts on every small one.",
       },
       {
@@ -1432,11 +1432,11 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Logistics are love, right now",
-        body: "Bringing water without being asked, handling the pharmacy run, taking the baby for twenty minutes so she can shower alone — this is not the small stuff while the real support happens elsewhere. In the fourth trimester, this is the support.",
+        body: "Bringing water without being asked, handling the pharmacy run, taking the baby for twenty minutes so she can shower alone. This is not the small stuff while the real support happens elsewhere. In the fourth trimester, this is the support.",
       },
       {
         heading: "Notice before she has to ask",
-        body: "Asking for help takes energy she often doesn't have. Watching for the signs — she's wincing when she stands, she hasn't eaten, she's been holding the baby for two hours straight — and stepping in without waiting to be asked removes a whole layer of labour from her day.",
+        body: "Asking for help takes energy she often doesn't have. Watching for the signs (she's wincing when she stands, she hasn't eaten, she's been holding the baby for two hours straight)and stepping in without waiting to be asked removes a whole layer of labour from her day.",
       },
       {
         heading: "Believe what she tells you about her body",
@@ -1453,21 +1453,21 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "This is a real transition for you, not a side story",
-        body: "New identity, new financial pressure, new relationship dynamics, and often far less acknowledgment than she gets — all landing at once. Finding it disorienting doesn't mean you're not coping; it means it's disorienting.",
+        body: "New identity, new financial pressure, new relationship dynamics, and often far less acknowledgment than she gets. All landing at once. Finding it disorienting doesn't mean you're not coping; it means it's disorienting.",
       },
       {
         heading: "Paternal postnatal depression is real",
-        body: "Studies put it at roughly one in ten fathers, often peaking a few months in rather than right at birth — which is part of why it gets missed. It doesn't always look like sadness; irritability, withdrawal, or losing interest in things you used to enjoy all count.",
+        body: "Studies put it at roughly one in ten fathers, often peaking a few months in rather than right at birth. Which is part of why it gets missed. It doesn't always look like sadness; irritability, withdrawal, or losing interest in things you used to enjoy all count.",
       },
       {
         heading: "You don't have to hold it alone",
-        body: "Other fathers, a GP, a therapist — any of these count as legitimate support, not an overreaction. Naming that you're struggling to one person is usually the hardest part, and the part that changes things most.",
+        body: "Other fathers, a GP, a therapist. Any of these count as legitimate support, not an overreaction. Naming that you're struggling to one person is usually the hardest part, and the part that changes things most.",
       },
     ],
     seekHelp: [
       "Low mood, irritability, or numbness lasting more than two weeks",
       "Losing interest in the baby, your partner, or things you used to care about",
-      "Any thought of harming yourself — contact your doctor or emergency services now",
+      "Any thought of harming yourself. Contact your doctor or emergency services now",
     ],
   },
   {
@@ -1479,15 +1479,15 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Most of it doesn't show",
-        body: "A healing uterus, a recovering pelvic floor, hormones resetting over months — almost none of this is visible from the outside, which makes it easy to underestimate how much recovery is still happening once she looks and sounds like herself again.",
+        body: "A healing uterus, a recovering pelvic floor, hormones resetting over months. Almost none of this is visible from the outside, which makes it easy to underestimate how much recovery is still happening once she looks and sounds like herself again.",
       },
       {
         heading: "Six weeks is not a finish line",
-        body: "The six-week check-up is a checkpoint, not a discharge from recovery. Energy, strength, and healing continue well beyond it — often for the better part of a year. Pacing your expectations to that timeline, not to the six-week mark, helps both of you.",
+        body: "The six-week check-up is a checkpoint, not a discharge from recovery. Energy, strength, and healing continue well beyond it. Often for the better part of a year. Pacing your expectations to that timeline, not to the six-week mark, helps both of you.",
       },
       {
         heading: "Take the physical load off where you can",
-        body: "Carrying the car seat, handling the stairs with the pram, doing the lifting she's been told to avoid — small, consistent choices that protect her healing add up more than one big gesture.",
+        body: "Carrying the car seat, handling the stairs with the pram, doing the lifting she's been told to avoid. Small, consistent choices that protect her healing add up more than one big gesture.",
       },
     ],
   },
@@ -1500,15 +1500,15 @@ export const CARE_TOPICS: CareTopic[] = [
     sections: [
       {
         heading: "Skin-to-skin works for you too",
-        body: "Holding your baby against bare skin — after a bath, during a nap, first thing in the morning — builds the same calming, bonding response for you that it does for a breastfeeding parent. It's not a consolation version of connection; it's a real one.",
+        body: "Holding your baby against bare skin (after a bath, during a nap, first thing in the morning)builds the same calming, bonding response for you that it does for a breastfeeding parent. It's not a consolation version of connection; it's a real one.",
       },
       {
         heading: "Claim something as yours",
-        body: "The bedtime routine, the morning nappy change, the walk before dinner — a small ritual that's reliably yours builds a bond of its own, on a rhythm that doesn't depend on feeding at all.",
+        body: "The bedtime routine, the morning nappy change, the walk before dinner. A small ritual that's reliably yours builds a bond of its own, on a rhythm that doesn't depend on feeding at all.",
       },
       {
         heading: "Your voice is already familiar",
-        body: "Babies recognise a voice they heard often before birth. Talking, singing, narrating what you're doing — none of it requires feeding to matter, and all of it is already building recognition.",
+        body: "Babies recognise a voice they heard often before birth. Talking, singing, narrating what you're doing. None of it requires feeding to matter, and all of it is already building recognition.",
       },
     ],
   },
@@ -1622,7 +1622,7 @@ export function bridgesFor(profile: ParentProfile): Bridge[] {
     {
       childMoment: "Nap started",
       parentOffer: "Eat something that isn't standing up",
-      detail: "The dal is in the fridge. Sit for it — digestion works better than you'd think.",
+      detail: "The dal is in the fridge. Sit for it. Digestion works better than you'd think.",
       minutes: 10,
     },
     {
@@ -1644,7 +1644,7 @@ export function bridgesFor(profile: ParentProfile): Bridge[] {
     bridges.push({
       childMoment: "Feed finished",
       parentOffer: "Three gentle pelvic floor lifts",
-      detail: "Attach them to something you already do. Squeeze, hold, release — three is plenty.",
+      detail: "Attach them to something you already do. Squeeze, hold, release, three is plenty.",
       minutes: 1,
     });
   }

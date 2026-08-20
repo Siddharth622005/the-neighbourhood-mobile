@@ -1,11 +1,13 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { BornEarlyQuestion } from "../../components/BornEarlyQuestion";
 import { DateWheel, MONTHS, isComplete, type DateParts } from "../../components/DateWheel";
 import { DisplayField, FadeIn, Hint, OnboardingScreen, Prompt } from "../../components/onboarding";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
-import { computeAge } from "../../lib/childAge";
+import { CORRECTION_UNTIL_MONTHS, computeAge } from "../../lib/childAge";
+import { parseAllergies } from "../../lib/childAllergies";
 import * as family from "../../lib/db/family";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
@@ -38,6 +40,13 @@ export default function EditChild() {
     child ? fromISO(child.date_of_birth) : { year: null, month: null, day: null }
   );
   const [gender, setGender] = useState<string | null>(child?.gender ?? null);
+  const [gestationalWeeks, setGestationalWeeks] = useState<number | null>(
+    child?.gestational_weeks ?? null
+  );
+  // A text buffer rather than a live array, for the same reason
+  // recovery-settings.tsx uses one: splitting on every keystroke would
+  // save half-typed words as allergens.
+  const [allergiesText, setAllergiesText] = useState(() => (child?.allergies ?? []).join(", "));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
@@ -47,12 +56,20 @@ export default function EditChild() {
   const age = iso && !inFuture ? computeAge(iso) : null;
   const ready = !!child && name.trim().length > 0 && dateComplete && !inFuture && !saving;
 
+  const asksBornEarly = !!age && age.totalMonths < CORRECTION_UNTIL_MONTHS;
+
   const handleSave = async () => {
     if (!ready || !iso || !child) return;
     setSaving(true);
     setSaveError(false);
     try {
-      await family.updateChild(child.id, { name: name.trim(), date_of_birth: iso, gender });
+      await family.updateChild(child.id, {
+        name: name.trim(),
+        date_of_birth: iso,
+        gender,
+        gestational_weeks: asksBornEarly ? gestationalWeeks : null,
+        allergies: parseAllergies(allergiesText),
+      });
       await refreshFamily();
       router.back();
     } catch {
@@ -68,7 +85,7 @@ export default function EditChild() {
     >
       <FadeIn>
         <Prompt>Child details</Prompt>
-        <Hint>Name, birthday, and gender — update these anytime.</Hint>
+        <Hint>Name, birthday, and anything we should plan around. Update these anytime.</Hint>
 
         <DisplayField
           label="Their name"
@@ -88,9 +105,17 @@ export default function EditChild() {
           dateComplete &&
           age && (
             <Text style={styles.echo}>
-              {parts.day} {MONTHS[parts.month]} {parts.year} — that makes them {age.label}.
+              {parts.day} {MONTHS[parts.month]} {parts.year}, that makes them {age.label}.
             </Text>
           )
+        )}
+
+        {asksBornEarly && (
+          <BornEarlyQuestion
+            value={gestationalWeeks}
+            onChange={setGestationalWeeks}
+            childName={name}
+          />
         )}
 
         <View style={styles.spacer} />
@@ -113,6 +138,22 @@ export default function EditChild() {
           })}
         </View>
 
+        <View style={styles.spacer} />
+
+        <DisplayField
+          label="Allergies (optional)"
+          value={allergiesText}
+          onChangeText={setAllergiesText}
+          placeholder="e.g. peanut, egg"
+          autoFocus={false}
+          autoCapitalize="none"
+          style={styles.allergyField}
+        />
+        <Text style={styles.allergyHint}>
+          Separate with commas. Meals containing these are left out of the meal planner. This
+          isn&rsquo;t medical advice. Your paediatrician is still the one who knows their history.
+        </Text>
+
         {saveError && (
           <Text style={styles.error}>
             We couldn&rsquo;t save that. Check your connection and try again.
@@ -125,6 +166,19 @@ export default function EditChild() {
 
 const styles = StyleSheet.create({
   spacer: { height: spacing.lg },
+  // Smaller than the name field: a comma-separated list wraps, and 30pt
+  // display type turns three allergens into four lines.
+  allergyField: {
+    fontSize: typeScale.h3,
+    marginTop: spacing.xs,
+  },
+  allergyHint: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.55,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
   echo: {
     fontFamily: fonts.bodyMedium,
     fontSize: typeScale.body,

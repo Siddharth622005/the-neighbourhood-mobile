@@ -5,7 +5,7 @@ import { PrimaryButton } from "../../components/ui";
 import { FadeIn, Hint, OnboardingScreen, Prompt, SelectableCard } from "../../components/onboarding";
 import { useAuth } from "../../lib/AuthProvider";
 import * as family from "../../lib/db/family";
-import { useOnboarding, type OnboardingDraft } from "../../lib/OnboardingProvider";
+import { useDraftState, useOnboarding, type OnboardingDraft } from "../../lib/OnboardingProvider";
 import { spacing } from "../../lib/theme";
 
 const OPTIONS: { value: OnboardingDraft["role"]; label: string; gloss: string }[] = [
@@ -29,10 +29,13 @@ const OPTIONS: { value: OnboardingDraft["role"]; label: string; gloss: string }[
 export default function Role() {
   const router = useRouter();
   const params = useLocalSearchParams<{ complete?: string }>();
-  const { draft, update } = useOnboarding();
+  const { update } = useOnboarding();
   const { session, refreshFamily } = useAuth();
   const isCompletingExisting = params.complete === "1";
-  const [role, setRole] = useState<OnboardingDraft["role"]>(draft.role);
+  const [role, setRole] = useDraftState<OnboardingDraft["role"]>(
+    (d) => d.role,
+    (v) => v === ""
+  );
   const [saving, setSaving] = useState(false);
 
   const handleContinue = async () => {

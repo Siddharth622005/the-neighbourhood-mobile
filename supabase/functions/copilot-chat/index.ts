@@ -14,12 +14,20 @@
 //
 // Deploy:  supabase functions deploy copilot-chat
 // Secret:  supabase secrets set GROQ_API_KEY=gsk_...
-// Model override (optional): supabase secrets set GROQ_MODEL=llama-3.3-70b-versatile
+// Model override (optional): supabase secrets set GROQ_MODEL=openai/gpt-oss-120b
+//
+// DEFAULT_MODEL history: llama-3.3-70b-versatile was retired from Groq's
+// catalog (confirmed via GET /openai/v1/models against this project's own
+// key — it 404s as model_not_found and doesn't appear in the list at all).
+// Swapped 2026-08-20 for openai/gpt-oss-120b, the closest replacement in
+// size and generality (131k context, tool/json_mode/reasoning support) —
+// see https://console.groq.com/docs/models for the current catalog if
+// this needs revisiting again.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

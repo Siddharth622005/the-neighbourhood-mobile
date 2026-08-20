@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../lib/AuthProvider";
-import { colors, fonts, spacing, typeScale } from "../lib/theme";
+import { colors, spacing, type } from "../lib/theme";
 
 /**
  * Profile and settings live behind this, in the top corner — deliberately
@@ -46,8 +46,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   initial: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.warmTaupe,
   },
 });

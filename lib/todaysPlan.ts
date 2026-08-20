@@ -1,4 +1,4 @@
-import { computeAge } from "./childAge";
+import { developmentalAgeMonths } from "./childAge";
 import type { Child } from "./AuthProvider";
 
 /**
@@ -117,7 +117,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Social & Emotional",
         title: "Face to face, close up",
-        why: "At this age they focus about 30cm away — roughly the distance to your face while feeding.",
+        why: "At this age they focus about 30cm away. Roughly the distance to your face while feeding.",
         durationMins: 5,
         materials: "Just the two of you",
       },
@@ -151,7 +151,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Communication",
         title: "Copy their sounds back",
-        why: "Echoing their babble teaches turn-taking — the shape of conversation before the words arrive.",
+        why: "Echoing their babble teaches turn-taking. The shape of conversation before the words arrive.",
         durationMins: 10,
         materials: "Nothing at all",
       },
@@ -227,7 +227,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Cognitive",
         title: "Peek-a-boo, three ways",
-        why: "Object permanence is clicking into place right now — this is that idea, as a game.",
+        why: "Object permanence is clicking into place right now. This is that idea, as a game.",
         durationMins: 10,
         materials: "A scarf and your hands",
       },
@@ -261,7 +261,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Motor",
         title: "One-bowl sorting",
-        why: "Sorting is the earliest form of staying with one thing — the beginning of focus.",
+        why: "Sorting is the earliest form of staying with one thing, the beginning of focus.",
         durationMins: 10,
         materials: "A bowl and two spoons",
       },
@@ -289,7 +289,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Cognitive",
         title: "The mystery bag",
-        why: "Reaching in without looking makes them predict before they see — ten quiet minutes of curiosity.",
+        why: "Reaching in without looking makes them predict before they see, ten quiet minutes of curiosity.",
         durationMins: 10,
         materials: "A bag and 3 objects",
       },
@@ -346,12 +346,12 @@ const RAW_BANDS: RawBand[] = [
         title: "The 'and then?' game",
         why: "One extra question at a time stretches a two-word answer into a sentence.",
         durationMins: 15,
-        materials: "Nothing — a walk works",
+        materials: "Nothing, a walk works",
       },
       {
         domain: "Cognitive",
         title: "Sort by one thing",
-        why: "Choosing a single rule — all the red ones — is the start of real categorising.",
+        why: "Choosing a single rule (all the red ones)is the start of real categorising.",
         durationMins: 15,
         materials: "Socks, blocks, or buttons",
       },
@@ -392,7 +392,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Motor",
         title: "Cut along the line",
-        why: "Scissors ask each hand to do a different job at once — harder than it looks, and worth practising.",
+        why: "Scissors ask each hand to do a different job at once. Harder than it looks, and worth practising.",
         durationMins: 15,
         materials: "Safety scissors, old paper",
       },
@@ -401,7 +401,7 @@ const RAW_BANDS: RawBand[] = [
         title: "The question game",
         why: "Letting them ask you the questions flips the usual direction and stretches how they build ideas.",
         durationMins: 15,
-        materials: "Nothing — a walk works",
+        materials: "Nothing, a walk works",
       },
       {
         domain: "Communication",
@@ -413,7 +413,7 @@ const RAW_BANDS: RawBand[] = [
       {
         domain: "Cognitive",
         title: "What floats, what sinks?",
-        why: "They're old enough to guess before they test — that's the beginning of real reasoning.",
+        why: "They're old enough to guess before they test. That's the beginning of real reasoning.",
         durationMins: 15,
         materials: "A bowl of water, small things",
       },
@@ -522,14 +522,14 @@ if (__DEV__) {
   const ids = new Set<string>();
   for (const band of BANDS) {
     for (const a of band.activities) {
-      if (ids.has(a.id)) console.warn(`[todaysPlan] duplicate activity id "${a.id}" — titles must be unique`);
+      if (ids.has(a.id)) console.warn(`[todaysPlan] duplicate activity id "${a.id}", titles must be unique`);
       ids.add(a.id);
     }
     for (const domain of DOMAINS) {
       const count = band.activities.filter((a) => a.domain === domain).length;
       if (count < 2) {
         console.warn(
-          `[todaysPlan] band ${band.label} has ${count} "${domain}" activities — needs 2 so a swap can stay in band`
+          `[todaysPlan] band ${band.label} has ${count} "${domain}" activities. Needs 2 so a swap can stay in band`
         );
       }
     }
@@ -545,8 +545,14 @@ function bandFor(totalMonths: number): Band {
   return match;
 }
 
+/**
+ * Corrected where prematurity applies. Activities are pitched at a
+ * developmental band (see bandFor), so a preterm baby handed activities
+ * for their chronological age gets ones they can't yet do — which reads
+ * as failure rather than as a mismatched suggestion.
+ */
 function ageInMonths(child: Child): number {
-  return computeAge(child.date_of_birth)?.totalMonths ?? 0;
+  return developmentalAgeMonths(child);
 }
 
 /** Whole days since epoch — stable within a calendar day, local time. */

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { BornEarlyQuestion } from "../../components/BornEarlyQuestion";
 import { DateWheel, MONTHS, isComplete, type DateParts } from "../../components/DateWheel";
 import {
   DisplayField,
@@ -12,7 +13,7 @@ import {
 } from "../../components/onboarding";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
-import { computeAge } from "../../lib/childAge";
+import { CORRECTION_UNTIL_MONTHS, computeAge } from "../../lib/childAge";
 import * as family from "../../lib/db/family";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
@@ -49,6 +50,7 @@ export default function AddChild() {
   const [parts, setParts] = useState<DateParts>({ year: null, month: null, day: null });
   const [gender, setGender] = useState<string | null>(null);
   const [birthMethod, setBirthMethod] = useState<BirthMethod | null>(null);
+  const [gestationalWeeks, setGestationalWeeks] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
@@ -65,12 +67,21 @@ export default function AddChild() {
   const age = iso && !inFuture ? computeAge(iso) : null;
   const ready = name.trim().length > 0 && dateComplete && !inFuture && !saving;
 
+  // Same rule as onboarding/birthday.tsx — only asked while correction
+  // still applies, so it stays invisible for an older sibling.
+  const asksBornEarly = !!age && age.totalMonths < CORRECTION_UNTIL_MONTHS;
+
   const handleSave = async () => {
     if (!ready || !iso) return;
     setSaving(true);
     setSaveError(false);
     try {
-      await addChild({ name: name.trim(), dateOfBirth: iso, gender });
+      await addChild({
+        name: name.trim(),
+        dateOfBirth: iso,
+        gender,
+        gestationalWeeks: asksBornEarly ? gestationalWeeks : null,
+      });
       if (asksBirthMethod && birthMethod && session?.user?.id) {
         await family.updateProfile(session.user.id, { birth_method: birthMethod });
         await refreshFamily();
@@ -89,7 +100,7 @@ export default function AddChild() {
     >
       <FadeIn>
         <Prompt>Add another child</Prompt>
-        <Hint>Their own activities, discoveries and vaccinations — kept separate from the rest.</Hint>
+        <Hint>Their own activities, discoveries and vaccinations. Kept separate from the rest.</Hint>
 
         <DisplayField
           label="Their name"
@@ -109,9 +120,17 @@ export default function AddChild() {
           dateComplete &&
           age && (
             <Text style={styles.echo}>
-              {parts.day} {MONTHS[parts.month]} {parts.year} — that makes them {age.label}.
+              {parts.day} {MONTHS[parts.month]} {parts.year}, that makes them {age.label}.
             </Text>
           )
+        )}
+
+        {asksBornEarly && (
+          <BornEarlyQuestion
+            value={gestationalWeeks}
+            onChange={setGestationalWeeks}
+            childName={name}
+          />
         )}
 
         <View style={styles.spacer} />

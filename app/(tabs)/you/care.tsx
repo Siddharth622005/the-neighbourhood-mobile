@@ -83,7 +83,7 @@ function fatherReassurance(weeksPostpartum: number): { eyebrow: string; body: st
   return {
     eyebrow: `${elapsedPhrase(weeksPostpartum)} in`,
     body:
-      "She's healing from things that don't fully show. Your part right now is steady, practical support — and finding your own footing matters too.",
+      "She's healing from things that don't fully show. Your part right now is steady, practical support. And finding your own footing matters too.",
   };
 }
 
@@ -164,7 +164,7 @@ export default function Recovery() {
             <Chevron />
           </View>
           <Text style={[styles.stageBody, { color: p.text }]}>
-            A quick, private check-in — not a form, not a score.
+            A quick, private check-in. Not a form, not a score.
           </Text>
         </Card>
       )}

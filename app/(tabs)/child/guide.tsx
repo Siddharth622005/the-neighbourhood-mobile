@@ -82,7 +82,7 @@ export default function Guide() {
           </Pressable>
         </View>
         {nextWorkshops.length === 0 ? (
-          <Text style={styles.emptyText}>Nothing scheduled right now — check back soon.</Text>
+          <Text style={styles.emptyText}>Nothing scheduled right now. Check back soon.</Text>
         ) : (
           nextWorkshops.map((workshop) => (
             <WorkshopCard

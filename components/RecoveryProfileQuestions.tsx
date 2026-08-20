@@ -164,7 +164,7 @@ export function RecoveryProfileQuestions({
         value={allergiesText}
         onChangeText={onAllergiesTextChange}
         onBlur={onAllergiesBlur}
-        placeholder="e.g. peanuts, shellfish — separate with commas"
+        placeholder="e.g. peanuts, shellfish (separate with commas)"
         placeholderTextColor={p.textMuted}
         style={[styles.allergiesInput, { color: p.text, borderColor: p.border, backgroundColor: p.surface }]}
       />

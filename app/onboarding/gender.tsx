@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../../components/ui";
 import { FadeIn, Hint, OnboardingScreen, Prompt } from "../../components/onboarding";
-import { useOnboarding } from "../../lib/OnboardingProvider";
+import { useDraftState, useOnboarding } from "../../lib/OnboardingProvider";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
 
 const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
@@ -11,7 +11,10 @@ const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
 export default function Gender() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
-  const [gender, setGender] = useState(draft.gender);
+  const [gender, setGender] = useDraftState(
+    (d) => d.gender,
+    (v) => v === ""
+  );
   const [navError, setNavError] = useState(false);
   const childName = draft.childName || "your child";
 
@@ -63,7 +66,7 @@ export default function Gender() {
         </View>
         {navError && (
           <Text style={styles.error}>
-            That didn&rsquo;t go through — tap Continue again.
+            That didn&rsquo;t go through. Tap Continue again.
           </Text>
         )}
       </FadeIn>

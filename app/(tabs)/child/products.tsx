@@ -10,7 +10,7 @@ export default function Products() {
     <SectionScaffold
       eyebrow="PRODUCT GUIDE"
       title="A short list, not a catalogue."
-      body="A few things genuinely worth having at their age, and why. Deliberately small — if everything is recommended, nothing is."
+      body="A few things genuinely worth having at their age, and why. Deliberately small. If everything is recommended, nothing is."
       needs={[
         "A curated products dataset with age bands and an honest rationale per item",
         "A disclosure position on affiliate/commercial relationships",

@@ -34,12 +34,12 @@ export default function Workshops() {
         <Text style={styles.eyebrow}>WORKSHOPS</Text>
         <Text style={styles.title}>Live sessions, worth clearing time for.</Text>
         <Text style={styles.body}>
-          Hosted by real practitioners. Join online or in person — whichever suits.
+          Hosted by real practitioners. Join online or in person, whichever suits.
         </Text>
 
         <View style={styles.list}>
           {workshops.length === 0 && (
-            <Text style={styles.empty}>Nothing scheduled right now — check back soon.</Text>
+            <Text style={styles.empty}>Nothing scheduled right now. Check back soon.</Text>
           )}
           {workshops.map((workshop) => (
             <WorkshopCard

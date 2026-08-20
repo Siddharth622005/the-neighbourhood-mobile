@@ -79,6 +79,8 @@ export async function createChild(input: {
   name: string;
   dateOfBirth: string; // YYYY-MM-DD
   gender?: string | null;
+  /** 40 = full term, lower = preterm, null/undefined = not asked. */
+  gestationalWeeks?: number | null;
 }): Promise<Child> {
   return unwrap<Child>(
     "family.createChild",
@@ -89,6 +91,7 @@ export async function createChild(input: {
         name: input.name,
         date_of_birth: input.dateOfBirth,
         gender: input.gender ?? null,
+        gestational_weeks: input.gestationalWeeks ?? null,
       })
       .select()
       .single()
@@ -98,7 +101,9 @@ export async function createChild(input: {
 /** Update the MVP child when onboarding is completed again. */
 export async function updateChild(
   childId: string,
-  patch: Partial<Pick<Child, "name" | "date_of_birth" | "gender">>
+  patch: Partial<
+    Pick<Child, "name" | "date_of_birth" | "gender" | "gestational_weeks" | "allergies">
+  >
 ): Promise<Child> {
   return unwrap<Child>(
     "family.updateChild",

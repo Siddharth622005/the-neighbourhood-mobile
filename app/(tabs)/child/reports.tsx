@@ -15,7 +15,7 @@ export default function Reports() {
     <SectionScaffold
       eyebrow="REPORTS"
       title="How the last few weeks actually went."
-      body="Quiet summaries of what you did together and what shifted — written for you, not for comparison. They start appearing once there's enough of a pattern to be honest about."
+      body="Quiet summaries of what you did together and what shifted. Written for you, not for comparison. They start appearing once there's enough of a pattern to be honest about."
       needs={[
         "An activity/interaction log to summarise (nothing persists server-side yet)",
         "Report generation + storage, weekly and monthly cadence",

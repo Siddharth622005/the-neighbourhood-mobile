@@ -68,13 +68,13 @@ export default function WorkshopDetail() {
           <DetailRow label="Duration" value={`${workshop.durationMinutes} min`} />
           <DetailRow
             label="Hosted by"
-            value={`${workshop.instructor.name} — ${workshop.instructor.credential}`}
+            value={`${workshop.instructor.name}, ${workshop.instructor.credential}`}
           />
           <DetailRow
             label="Where"
             value={
               workshop.location.mode === "online"
-                ? "Online — link shared after registration"
+                ? "Online. Link shared after registration"
                 : workshop.location.venue
             }
           />
@@ -86,7 +86,7 @@ export default function WorkshopDetail() {
           onPress={toggleRegistered}
         >
           <Text style={[styles.registerButtonText, registered && styles.registerButtonTextDone]}>
-            {registered ? "You're registered ✓" : "Register — free"}
+            {registered ? "You're registered ✓" : "Register (free)"}
           </Text>
         </Pressable>
 

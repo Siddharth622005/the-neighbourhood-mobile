@@ -10,7 +10,7 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 if (!isSupabaseConfigured) {
   // Loud in dev, harmless in prod builds where env vars are always set.
   console.warn(
-    "Supabase env vars are missing — copy .env.example to .env and fill them in."
+    "Supabase env vars are missing. Copy .env.example to .env and fill them in."
   );
 }
 

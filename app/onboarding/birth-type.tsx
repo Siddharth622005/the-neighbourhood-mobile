@@ -1,9 +1,14 @@
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback } from "react";
 import { View } from "react-native";
 import { PrimaryButton } from "../../components/ui";
 import { FadeIn, Hint, OnboardingScreen, Prompt, SelectableCard } from "../../components/onboarding";
-import { resumeFromDraft, useOnboarding, type OnboardingDraft } from "../../lib/OnboardingProvider";
+import {
+  resumeFromDraft,
+  useDraftState,
+  useOnboarding,
+  type OnboardingDraft,
+} from "../../lib/OnboardingProvider";
 import { spacing } from "../../lib/theme";
 
 const OPTIONS: { value: OnboardingDraft["birthMethod"]; label: string; gloss: string }[] = [
@@ -20,15 +25,32 @@ const OPTIONS: { value: OnboardingDraft["birthMethod"]; label: string; gloss: st
  */
 export default function BirthType() {
   const router = useRouter();
-  const { draft, update } = useOnboarding();
-  const [birthMethod, setBirthMethod] = useState<OnboardingDraft["birthMethod"]>(draft.birthMethod);
+  const { draft, hydrated, update } = useOnboarding();
+  const [birthMethod, setBirthMethod] = useDraftState<OnboardingDraft["birthMethod"]>(
+    (d) => d.birthMethod,
+    (v) => v === ""
+  );
 
   // A father who somehow lands here (e.g. a restored deep link) has
   // nothing to answer — send them straight to whatever's actually next
   // for their draft rather than showing a question that doesn't apply.
-  useEffect(() => {
-    if (draft.role === "father") router.replace(resumeFromDraft(draft));
-  }, [draft, router]);
+  // Gated on `hydrated`: before the AsyncStorage read lands the draft is
+  // empty, and an empty draft resolves to the very first step — which
+  // would bounce a parent reloading this screen back to the start.
+  //
+  // useFocusEffect, not useEffect: see the identical comment in
+  // feeding.tsx. A Stack push leaves this screen mounted underneath
+  // whatever comes next, so a plain useEffect re-fires this guard on every
+  // later draft change too (e.g. answering Gender) and can clobber a
+  // forward navigation with a stale replace. Scoping to focus means it
+  // only runs while this screen is actually the one on screen.
+  useFocusEffect(
+    useCallback(() => {
+      if (!hydrated) return;
+      if (draft.role === "father") router.replace(resumeFromDraft(draft));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [draft, hydrated, router])
+  );
 
   const handleContinue = () => {
     const next = { ...draft, birthMethod };

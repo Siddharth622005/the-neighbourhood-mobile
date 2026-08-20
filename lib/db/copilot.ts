@@ -16,6 +16,8 @@ export type CopilotMessageRow = {
   role: "parent" | "copilot";
   content: string;
   created_at: string;
+  context_mode: string | null;
+  context_topic: string | null;
 };
 
 /** The child's most recent conversation, or a fresh one if none exists yet. */
@@ -55,16 +57,29 @@ export async function getMessages(conversationId: string): Promise<CopilotMessag
   );
 }
 
-/** Appends one turn and bumps the conversation's last_message_at so the
- *  "most recent conversation" lookup above stays accurate. */
+/**
+ * Appends one turn and bumps the conversation's last_message_at so the
+ * "most recent conversation" lookup above stays accurate.
+ *
+ * `context` tags the message with whatever mode/topic was active when it
+ * was sent — "family" mode is left untagged (see the migration comment)
+ * since it's the default, not a topic worth surfacing later. This is what
+ * lets ask.tsx build "recent chats" out of one continuous thread instead
+ * of needing separate conversations per topic.
+ */
 export async function appendMessage(
   conversationId: string,
   role: "parent" | "copilot",
-  content: string
+  content: string,
+  context?: { mode: "family" | "child" | "parent"; topic?: string | null }
 ): Promise<void> {
-  await supabase
-    .from("copilot_messages")
-    .insert({ conversation_id: conversationId, role, content });
+  await supabase.from("copilot_messages").insert({
+    conversation_id: conversationId,
+    role,
+    content,
+    context_mode: context && context.mode !== "family" ? context.mode : null,
+    context_topic: context?.topic ?? null,
+  });
   await supabase
     .from("copilot_conversations")
     .update({ last_message_at: new Date().toISOString() })

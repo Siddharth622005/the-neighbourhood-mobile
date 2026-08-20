@@ -69,7 +69,7 @@ export default function Welcome() {
     try {
       await session.signInWithApple();
       await refreshFamily();
-      router.replace(resumeHref);
+      router.replace("/");
     } catch (err) {
       setAuthError(
         err instanceof Error ? err.message : "Apple sign-in didn't go through."
@@ -85,7 +85,7 @@ export default function Welcome() {
     try {
       await session.signInWithGoogle();
       await refreshFamily();
-      router.replace(resumeHref);
+      router.replace("/");
     } catch (err) {
       setAuthError(
         err instanceof Error ? err.message : "Google sign-in didn't go through."
@@ -174,7 +174,7 @@ export default function Welcome() {
       >
         {hasProgress && (
           <Text style={styles.resumeHint}>
-            Welcome back — we saved your place.
+            Welcome back, we saved your place.
           </Text>
         )}
 
@@ -241,7 +241,7 @@ export default function Welcome() {
           style={({ pressed }) => [styles.laterWrap, pressed && { opacity: 0.6 }]}
         >
           <Text style={styles.laterText}>
-            {hasProgress ? "Pick up where you left off" : "Not now — just let me in"}
+            {hasProgress ? "Pick up where you left off" : "Not now, just let me in"}
           </Text>
         </Pressable>
 
@@ -343,6 +343,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.xl + 4,
     justifyContent: "center",
+    alignItems: "center",
   },
   overline: {
     fontFamily: fonts.bodySemiBold,
@@ -350,6 +351,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2.5,
     color: colors.warmTaupe,
     marginTop: spacing.xl,
+    textAlign: "center",
   },
   headline: {
     fontFamily: fonts.bodyBold,
@@ -357,6 +359,7 @@ const styles = StyleSheet.create({
     lineHeight: 46,
     color: colors.charcoal,
     marginTop: spacing.md,
+    textAlign: "center",
   },
   headlineAccent: {
     fontFamily: fonts.serifItalic,
@@ -369,6 +372,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.md,
     maxWidth: 320,
+    textAlign: "center",
   },
 
   // ── Auth Card ──

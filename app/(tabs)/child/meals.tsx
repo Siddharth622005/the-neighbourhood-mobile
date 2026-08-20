@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Card, CareNote, Chip, PageHeading, SectionLabel } from "../../../components/parentUI";
 import { useAuth } from "../../../lib/AuthProvider";
-import { computeAge } from "../../../lib/childAge";
+import { developmentalAgeMonths } from "../../../lib/childAge";
+import { formatAllergies, matchedAllergen, parseAllergies } from "../../../lib/childAllergies";
+import * as family from "../../../lib/db/family";
 import {
   MEAL_SLOTS,
   STAGE_HEADLINE,
@@ -36,13 +38,16 @@ import { fonts, spacing, typeScale } from "../../../lib/theme";
  */
 export default function MealPlanner() {
   const p = usePalette();
-  const { child, profile: authProfile } = useAuth();
+  const { child, profile: authProfile, refreshFamily } = useAuth();
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openGroceries, setOpenGroceries] = useState(false);
   const [openTips, setOpenTips] = useState(false);
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
 
-  const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
+  // Solids readiness follows corrected age, not the calendar — a baby born
+  // at 32 weeks is ready for first foods around six months corrected. See
+  // lib/childAge.ts developmentalAge.
+  const ageMonths = developmentalAgeMonths(child);
   const stage = useMemo(() => stageForAgeMonths(ageMonths), [ageMonths]);
   const nutrients = useMemo(() => nutrientsForStage(stage), [stage]);
   const groceries = useMemo(() => groceriesForStage(stage), [stage]);
@@ -51,6 +56,60 @@ export default function MealPlanner() {
   const upcoming = nextStage(stage);
 
   const hasTimeline = stage !== "m0_6";
+
+  // --- The child's allergens -------------------------------------------
+  // Asked here rather than in onboarding: it's free text (the heaviest
+  // input there is), it's empty for most children, and nothing before this
+  // screen needs it. Not a dismissible prompt either — a quiet row that
+  // reads as an invitation when empty and a status when filled, so it
+  // never nags and never disappears when the answer changes.
+  const allergies = child?.allergies ?? [];
+  const allergyKey = allergies.join(",");
+  const [editingAllergies, setEditingAllergies] = useState(false);
+  const [allergyDraft, setAllergyDraft] = useState("");
+  const [savingAllergies, setSavingAllergies] = useState(false);
+
+  const beginEditAllergies = () => {
+    setAllergyDraft(formatAllergies(allergies));
+    setEditingAllergies(true);
+  };
+
+  const saveAllergies = async () => {
+    if (!child) return;
+    setSavingAllergies(true);
+    try {
+      await family.updateChild(child.id, { allergies: parseAllergies(allergyDraft) });
+      await refreshFamily();
+      setEditingAllergies(false);
+    } catch {
+      // Leave the editor open with their text intact — silently closing
+      // would look like it saved.
+    } finally {
+      setSavingAllergies(false);
+    }
+  };
+
+  // Meals are filtered, not merely flagged: an allergen listed here should
+  // not be a thing the parent has to notice in an ingredient list.
+  const { slotMeals, hiddenCount } = useMemo(() => {
+    let hidden = 0;
+    const bySlot = slots.map((slot) => {
+      const options = mealsFor(stage, slot.key).filter((meal) => {
+        const hit = matchedAllergen(meal.ingredients, allergies);
+        if (hit) hidden += 1;
+        return !hit;
+      });
+      return { slot, options };
+    });
+    return { slotMeals: bySlot, hiddenCount: hidden };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots, stage, allergyKey]);
+
+  const safeGroceries = useMemo(
+    () => groceries.filter((item) => !matchedAllergen([item], allergies)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groceries, allergyKey]
+  );
 
   return (
     <ScrollView
@@ -69,11 +128,26 @@ export default function MealPlanner() {
         {upcoming && <Chip label={`Next: ${STAGE_LABEL[upcoming]}`} />}
       </View>
 
+      {hasTimeline && (
+        <View style={styles.block}>
+          <AllergyRow
+            allergies={allergies}
+            childName={child?.name ?? "your child"}
+            editing={editingAllergies}
+            draft={allergyDraft}
+            saving={savingAllergies}
+            onDraftChange={setAllergyDraft}
+            onBeginEdit={beginEditAllergies}
+            onCancel={() => setEditingAllergies(false)}
+            onSave={saveAllergies}
+          />
+        </View>
+      )}
+
       {hasTimeline ? (
         <View style={styles.block}>
           <SectionLabel>Today</SectionLabel>
-          {slots.map((slot) => {
-            const options = mealsFor(stage, slot.key);
+          {slotMeals.map(({ slot, options }) => {
             if (options.length === 0) return null;
             const meal = options[0];
             const alternative = options[1];
@@ -114,11 +188,18 @@ export default function MealPlanner() {
               </View>
             );
           })}
+
+          {hiddenCount > 0 && (
+            <Text style={[styles.hiddenNote, { color: p.textMuted }]}>
+              {hiddenCount} {hiddenCount === 1 ? "idea is" : "ideas are"} hidden because of the
+              allergens you listed.
+            </Text>
+          )}
         </View>
       ) : (
         <View style={styles.block}>
           <Card>
-            <Text style={[styles.discTitle, { color: p.text }]}>No timeline yet — and that's right</Text>
+            <Text style={[styles.discTitle, { color: p.text }]}>No timeline yet, and that's right</Text>
             <Text style={[styles.discHint, { color: p.textMuted, marginTop: spacing.xs }]}>
               There's nothing to plan around meals for a while yet. This screen will fill in with a
               real "Today" once first solids are close, around six months.
@@ -167,8 +248,10 @@ export default function MealPlanner() {
               </View>
             ))}
             <CareNote>
-              General guidance, not a prescription — your paediatrician knows your child and any
-              allergy history; this doesn&rsquo;t.
+              General guidance, not a prescription. We leave out anything matching the allergens
+              you&rsquo;ve listed, but your paediatrician knows {child?.name ?? "your child"}
+              &rsquo;s full history and this doesn&rsquo;t. Check with them before introducing a
+              known allergen.
             </CareNote>
           </Card>
         )}
@@ -212,12 +295,12 @@ export default function MealPlanner() {
             <View style={styles.rowBetween}>
               <Text style={[styles.discTitle, { color: p.text }]}>What to have in</Text>
               <Text style={[styles.discToggle, { color: p.primary }]}>
-                {openGroceries ? "Hide" : `${groceries.length} things`}
+                {openGroceries ? "Hide" : `${safeGroceries.length} things`}
               </Text>
             </View>
             {openGroceries && (
               <View style={styles.groceryList}>
-                {groceries.map((item) => (
+                {safeGroceries.map((item) => (
                   <View key={item} style={styles.groceryRow}>
                     <View style={[styles.groceryDot, { backgroundColor: p.secondary }]} />
                     <Text style={[styles.groceryText, { color: p.textMuted }]}>{item}</Text>
@@ -229,6 +312,95 @@ export default function MealPlanner() {
         </View>
       )}
     </ScrollView>
+  );
+}
+
+/**
+ * The child's allergens, asked where they're actually used.
+ *
+ * Two states, no third: empty reads as an invitation, filled reads as a
+ * status you can tap to change. There's deliberately no dismiss — a
+ * "hide this forever" on an allergy question is exactly the wrong thing
+ * to offer, and a row this quiet doesn't need one.
+ */
+function AllergyRow({
+  allergies,
+  childName,
+  editing,
+  draft,
+  saving,
+  onDraftChange,
+  onBeginEdit,
+  onCancel,
+  onSave,
+}: {
+  allergies: string[];
+  childName: string;
+  editing: boolean;
+  draft: string;
+  saving: boolean;
+  onDraftChange: (t: string) => void;
+  onBeginEdit: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  const p = usePalette();
+  const name = childName.trim().split(" ")[0] || "your child";
+
+  if (editing) {
+    return (
+      <Card>
+        <Text style={[styles.discTitle, { color: p.text }]}>Anything to leave out?</Text>
+        <TextInput
+          value={draft}
+          onChangeText={onDraftChange}
+          placeholder="e.g. peanut, egg, dairy"
+          placeholderTextColor={p.textMuted}
+          autoCapitalize="none"
+          autoFocus
+          editable={!saving}
+          style={[
+            styles.allergyInput,
+            { color: p.text, borderBottomColor: p.border },
+            // RN web draws its own focus ring, which fights the hairline.
+            Platform.OS === "web" && ({ outlineStyle: "none" } as any),
+          ]}
+          onSubmitEditing={onSave}
+          returnKeyType="done"
+        />
+        <Text style={[styles.discHint, { color: p.textMuted }]}>
+          Separate with commas. Meals containing these are left out.
+        </Text>
+        <View style={styles.allergyActions}>
+          <Pressable onPress={onCancel} hitSlop={8} disabled={saving}>
+            <Text style={[styles.allergyAction, { color: p.textMuted }]}>Cancel</Text>
+          </Pressable>
+          <Pressable onPress={onSave} hitSlop={8} disabled={saving}>
+            <Text style={[styles.allergyAction, { color: p.primary }]}>
+              {saving ? "Saving…" : "Save"}
+            </Text>
+          </Pressable>
+        </View>
+      </Card>
+    );
+  }
+
+  return (
+    <Card onPress={onBeginEdit}>
+      <View style={styles.rowBetween}>
+        <Text style={[styles.discTitle, { color: p.text }]}>
+          {allergies.length ? "Left out of these plans" : "Anything to leave out?"}
+        </Text>
+        <Text style={[styles.discToggle, { color: p.primary }]}>
+          {allergies.length ? "Edit" : "Add"}
+        </Text>
+      </View>
+      <Text style={[styles.discHint, { color: p.textMuted }]}>
+        {allergies.length
+          ? allergies.join(", ")
+          : `Tell us ${name}'s allergies and we'll keep them off the plan.`}
+      </Text>
+    </Card>
   );
 }
 
@@ -406,6 +578,29 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: spacing.sm,
+  },
+  hiddenNote: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.55,
+    marginTop: spacing.xs,
+  },
+  allergyInput: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: typeScale.body,
+    borderBottomWidth: 1,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  allergyActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: spacing.lg,
+    marginTop: spacing.md,
+  },
+  allergyAction: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: typeScale.bodySmall,
   },
   discOpen: {
     marginBottom: spacing.sm,

@@ -54,8 +54,8 @@ export default function Contact() {
         <Eyebrow>Takes less than 30 seconds</Eyebrow>
         <Prompt>How can we reach you?</Prompt>
         <Hint>
-          Your mobile gets today&rsquo;s plan the moment it&rsquo;s ready. Email is just a backup —
-          neither is ever used for spam.
+          Your mobile gets today&rsquo;s plan the moment it&rsquo;s ready. Email is just a backup.
+          Neither is ever used for spam.
         </Hint>
         <DisplayField
           label="Mobile number"

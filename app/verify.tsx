@@ -39,7 +39,7 @@ export default function Verify() {
         await session.confirmEmailLink(String(email), token);
       } catch {
         setBusy(false);
-        setError("That code didn't match — try once more, or resend a fresh one.");
+        setError("That code didn't match. Try once more, or resend a fresh one.");
         setCode("");
         return;
       }
@@ -59,7 +59,7 @@ export default function Verify() {
     });
     if (error || !data.session) {
       setBusy(false);
-      setError("That code didn't match — try once more, or resend a fresh one.");
+      setError("That code didn't match. Try once more, or resend a fresh one.");
       setCode("");
       return;
     }
@@ -103,7 +103,7 @@ export default function Verify() {
         <Hint>
           {linking
             ? `We sent a six-digit code to ${email}. Enter it and your family is safe on any device.`
-            : `We sent a six-digit code to ${email}. Enter it here — no password to remember.`}
+            : `We sent a six-digit code to ${email}. Enter it here, no password to remember.`}
         </Hint>
         <OtpInput value={code} onChange={setCode} onComplete={submit} />
         {busy && <Body muted>Just a moment…</Body>}

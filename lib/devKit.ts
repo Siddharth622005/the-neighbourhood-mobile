@@ -46,7 +46,7 @@ const KIT: KitItem[] = [
     bands: ["m0_3", "m4_6"],
     matches: ["high-contrast", "contrast card", "black and white"],
     household:
-      "Any bold black-and-white pattern works — a book cover, or shapes drawn on paper.",
+      "Any bold black-and-white pattern works. A book cover, or shapes drawn on paper.",
     whyOurs: "Ours are wipe-clean and sized to prop up during tummy time.",
   },
   {
@@ -79,7 +79,7 @@ const KIT: KitItem[] = [
     name: "First board book",
     bands: ["m4_6", "m7_12", "m13_24"],
     matches: ["book"],
-    household: "Any book you already own — at this age your voice matters more than the pages.",
+    household: "Any book you already own. At this age your voice matters more than the pages.",
     whyOurs: "Thick pages that survive being chewed, with one image per spread.",
   },
   {
@@ -87,7 +87,7 @@ const KIT: KitItem[] = [
     name: "Baby-safe mirror",
     bands: ["m4_6", "m7_12"],
     matches: ["mirror"],
-    household: "A wardrobe or bathroom mirror is perfect — just sit together in front of it.",
+    household: "A wardrobe or bathroom mirror is perfect. Just sit together in front of it.",
     whyOurs: "Shatterproof and stands on its own during tummy time.",
   },
   {

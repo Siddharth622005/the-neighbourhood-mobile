@@ -189,7 +189,7 @@ export async function signInWithGoogle(): Promise<void> {
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== "success" || !("url" in result)) {
-    return; // cancel / dismiss — the parent backed out, not an error
+    return; // cancel / dismiss. The parent backed out, not an error
   }
 
   // Supabase appends the session as a URL fragment, not a query string

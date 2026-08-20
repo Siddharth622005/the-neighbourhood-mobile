@@ -56,16 +56,22 @@ export default function Community() {
   // explicit opt-in, never the starting view.
   const [browseAllStages, setBrowseAllStages] = useState(false);
   const [menuDiscussion, setMenuDiscussion] = useState<Discussion | null>(null);
+  // Its own mode, not a topic — a save isn't scoped to a topic or a
+  // stage, so it sits outside the topic-pill filtering below rather than
+  // being shoehorned into `selectedTopic`.
+  const [showSaved, setShowSaved] = useState(false);
 
   const loadDiscussions = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
     try {
-      const data = await communityDb.getDiscussionsForAge(
-        ageMonths,
-        selectedTopic,
-        browseAllStages ? 1200 : 3
-      );
+      const data = showSaved
+        ? await communityDb.getSavedDiscussions()
+        : await communityDb.getDiscussionsForAge(
+            ageMonths,
+            selectedTopic,
+            browseAllStages ? 1200 : 3
+          );
       setDiscussions(data);
     } catch {
       // A real load failure must not look identical to "no discussions
@@ -77,7 +83,7 @@ export default function Community() {
     } finally {
       setLoading(false);
     }
-  }, [ageMonths, selectedTopic, browseAllStages]);
+  }, [ageMonths, selectedTopic, browseAllStages, showSaved]);
 
   useEffect(() => {
     void loadDiscussions();
@@ -96,7 +102,12 @@ export default function Community() {
   const handleToggleSave = async (id: string) => {
     const newSavedState = await communityDb.toggleSaveDiscussion(id);
     setDiscussions((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, saved: newSavedState } : d))
+      // Unsaving while looking at the Saved list should drop the card
+      // immediately rather than leave an unsaved-looking thread sitting
+      // in a list titled "Saved".
+      showSaved && !newSavedState
+        ? prev.filter((d) => d.id !== id)
+        : prev.map((d) => (d.id === id ? { ...d, saved: newSavedState } : d))
     );
   };
 
@@ -130,7 +141,7 @@ export default function Community() {
             ]
           : []),
         {
-          label: "Escalate — needs urgent attention",
+          label: "Escalate: needs urgent attention",
           destructive: true,
           onPress: async () => {
             await communityDb.reportDiscussion(menuDiscussion.id, "escalated");
@@ -141,8 +152,14 @@ export default function Community() {
     : [];
 
   const childStageName = stageLabel(ageMonths);
-  const ageContextText = age
-    ? `Parents of ${age.label}-olds`
+  // age.label is pluralised for standalone use ("5 months old"), but as a
+  // compound adjective the unit goes singular and hyphenated — appending
+  // "-olds" to it directly produced "Parents of 5 months-olds". Compound
+  // labels ("2 years, 3 months") don't fit the pattern at all, so those
+  // fall back to the stage wording rather than being forced into it.
+  const peerGroup = age?.label.match(/^(\d+)\s+(day|week|month|year)s?$/);
+  const ageContextText = peerGroup
+    ? `Parents of ${peerGroup[1]}-${peerGroup[2]}-olds`
     : `Parents in ${childStageName}`;
 
   return (
@@ -154,30 +171,46 @@ export default function Community() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.headerArea}>
-            <Text style={styles.eyebrow}>COMMUNITY</Text>
+            {/* No "COMMUNITY" eyebrow here: the tab bar's own header already
+                says Community directly above this, and a third restatement of
+                the word pushed the first real post below the fold. */}
             <Text style={styles.title}>Where parents share & connect</Text>
             <Text style={styles.subtitle}>
               No loud feeds, no algorithmic hype. Just real parents navigating the same stage.
             </Text>
 
-            {/* Stage Context Hero Banner */}
-            <View style={styles.stageBanner}>
-              <View style={styles.stageBannerHeader}>
-                <View style={styles.stageDot} />
-                <Text style={styles.stageBannerTitle}>
-                  {browseAllStages ? "All parents" : `${ageContextText} are discussing`}
-                </Text>
-              </View>
-              <Text style={styles.stageBannerSub}>
-                {browseAllStages
-                  ? "Browsing every stage, not just yours."
-                  : `Surfaced for ${child?.name ?? "your child"}’s stage (${age?.label ?? "this month"}).`}
+            {/* Which slice of the feed you're looking at, as one quiet line
+                rather than a filled card. It's filter state, not a headline —
+                the previous banner spent 82px and three stacked lines saying
+                what fits on one. */}
+            <View style={styles.stageLine}>
+              <View style={styles.stageDot} />
+              <Text style={styles.stageLineText} numberOfLines={1}>
+                {showSaved
+                  ? "Discussions you've saved"
+                  : browseAllStages
+                    ? "All stages"
+                    : ageContextText}
               </Text>
-              <Pressable onPress={() => setBrowseAllStages((v) => !v)} hitSlop={6}>
-                <Text style={styles.stageBannerToggle}>
-                  {browseAllStages ? "Back to my stage" : "Browse all stages"}
-                </Text>
-              </Pressable>
+              {!showSaved && (
+                <>
+                  <Text style={styles.stageLineDivider}>·</Text>
+                  <Pressable
+                    onPress={() => setBrowseAllStages((v) => !v)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      browseAllStages
+                        ? "Back to my child's stage"
+                        : "Browse discussions from all stages"
+                    }
+                  >
+                    <Text style={styles.stageLineToggle}>
+                      {browseAllStages ? "Back to my stage" : "All stages"}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
             </View>
 
             {/* Search Input */}
@@ -201,27 +234,46 @@ export default function Community() {
               contentContainerStyle={styles.topicContainer}
             >
               <Pressable
-                onPress={() => setSelectedTopic("all")}
+                onPress={() => setShowSaved((v) => !v)}
+                style={[styles.topicChip, styles.savedChip, showSaved && styles.topicChipSelected]}
+                accessibilityRole="button"
+                accessibilityLabel={showSaved ? "Showing saved discussions" : "Show saved discussions"}
+              >
+                <BookmarkIcon saved={showSaved} small />
+                <Text
+                  style={[styles.topicChipText, showSaved && styles.topicChipTextSelected]}
+                >
+                  Saved
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setShowSaved(false);
+                  setSelectedTopic("all");
+                }}
                 style={[
                   styles.topicChip,
-                  selectedTopic === "all" && styles.topicChipSelected,
+                  !showSaved && selectedTopic === "all" && styles.topicChipSelected,
                 ]}
               >
                 <Text
                   style={[
                     styles.topicChipText,
-                    selectedTopic === "all" && styles.topicChipTextSelected,
+                    !showSaved && selectedTopic === "all" && styles.topicChipTextSelected,
                   ]}
                 >
                   All Topics
                 </Text>
               </Pressable>
               {COMMUNITY_TOPICS.map((topic) => {
-                const isSelected = selectedTopic === topic;
+                const isSelected = !showSaved && selectedTopic === topic;
                 return (
                   <Pressable
                     key={topic}
-                    onPress={() => setSelectedTopic(topic)}
+                    onPress={() => {
+                      setShowSaved(false);
+                      setSelectedTopic(topic);
+                    }}
                     style={[styles.topicChip, isSelected && styles.topicChipSelected]}
                   >
                     <Text
@@ -237,11 +289,9 @@ export default function Community() {
               })}
             </ScrollView>
 
-            <Text style={styles.sectionHeading}>
-              {selectedTopic === "all"
-                ? "Recent Discussions"
-                : TOPIC_LABEL[selectedTopic]}
-            </Text>
+            {/* No section heading: the selected pill directly above already
+                names what's below it, and "Recent Discussions" over an
+                already-highlighted "All Topics" pill was the same word twice. */}
           </View>
         }
         renderItem={({ item }) => (
@@ -262,7 +312,7 @@ export default function Community() {
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyTitle}>We couldn&rsquo;t load the feed.</Text>
               <Text style={styles.emptyText}>
-                Check your connection and try again — anything you&rsquo;ve posted or saved is
+                Check your connection and try again. Anything you&rsquo;ve posted or saved is
                 safe.
               </Text>
               <Pressable
@@ -272,6 +322,13 @@ export default function Community() {
               >
                 <Text style={styles.retryButtonText}>Try again</Text>
               </Pressable>
+            </View>
+          ) : showSaved ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyTitle}>Nothing saved yet</Text>
+              <Text style={styles.emptyText}>
+                Tap the bookmark on any discussion to keep it here for later.
+              </Text>
             </View>
           ) : (
             <View style={styles.emptyWrap}>
@@ -386,9 +443,10 @@ function DiscussionCard({
           <View style={styles.authorCircle}>
             <Text style={styles.authorInitial}>{discussion.author_initial}</Text>
           </View>
-          <Text style={styles.authorMeta}>
-            Parent of {discussion.author_child_age_months}m old · {discussion.created_at}
-          </Text>
+          {/* Just the timestamp — the poster's child age is already the
+              "8m stage" tag in this card's header, and saying it twice on
+              one card was the densest thing on the screen. */}
+          <Text style={styles.authorMeta}>{discussion.created_at}</Text>
         </View>
 
         <View style={styles.replyCountBadge}>
@@ -429,12 +487,17 @@ function PlusIcon() {
   );
 }
 
-function BookmarkIcon({ saved }: { saved: boolean }) {
+function BookmarkIcon({ saved, small }: { saved: boolean; small?: boolean }) {
+  // On the "Saved" filter pill, `saved` means "this filter is active" —
+  // once that pill's background goes warmTaupe (see styles.topicChipSelected),
+  // the icon needs to flip to white to stay legible, same as the pill's text.
+  const color = small && saved ? colors.white : colors.warmTaupe;
+  const size = small ? 14 : 18;
   return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill={saved ? colors.warmTaupe : "none"}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={saved ? color : "none"}>
       <Path
         d="M17.5 21l-5.5-3.5L6.5 21V5a2 2 0 012-2h7a2 2 0 012 2v16z"
-        stroke={colors.warmTaupe}
+        stroke={color}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -493,13 +556,6 @@ const styles = StyleSheet.create({
   headerArea: {
     marginBottom: spacing.md,
   },
-  eyebrow: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.5,
-    color: colors.warmTaupe,
-    marginBottom: spacing.xs,
-  },
   title: {
     fontFamily: fonts.bodyBold,
     fontSize: typeScale.h1,
@@ -514,42 +570,34 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 
-  // Stage Banner
-  stageBanner: {
-    marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: "rgba(139, 115, 85, 0.08)",
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: "rgba(139, 115, 85, 0.14)",
-  },
-  stageBannerHeader: {
+  // Stage line — one row, no fill, no border.
+  stageLine: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs + 2,
+    marginTop: spacing.md,
   },
   stageDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: colors.sage,
   },
-  stageBannerTitle: {
+  stageLineText: {
     fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
+    fontSize: typeScale.caption,
     color: colors.charcoal,
+    flexShrink: 1,
   },
-  stageBannerSub: {
+  stageLineDivider: {
     fontFamily: fonts.body,
     fontSize: typeScale.caption,
-    color: colors.textMuted,
-    marginTop: 2,
+    color: colors.border,
   },
-  stageBannerToggle: {
+  stageLineToggle: {
     fontFamily: fonts.bodySemiBold,
     fontSize: typeScale.caption,
     color: colors.warmTaupe,
-    marginTop: spacing.sm,
   },
 
   // Search Bar
@@ -590,6 +638,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  savedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
   topicChipSelected: {
     backgroundColor: colors.warmTaupe,
     borderColor: colors.warmTaupe,
@@ -604,13 +657,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
   },
 
-  sectionHeading: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.h3,
-    color: colors.charcoal,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
 
   // Discussion Card
   card: {

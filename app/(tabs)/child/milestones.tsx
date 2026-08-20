@@ -18,7 +18,7 @@ import { GhostButton, PrimaryButton } from "../../../components/ui";
 import { useAuth } from "../../../lib/AuthProvider";
 import {
   canShowMilestones,
-  computeAge,
+  developmentalAge,
   isBeyondMilestoneRange,
   MILESTONES_START_MONTHS,
 } from "../../../lib/childAge";
@@ -103,7 +103,13 @@ export default function Milestones() {
     });
   };
 
-  const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
+  // Corrected where prematurity applies — this whole screen is a
+  // developmental question, so which stage is "current" has to follow
+  // corrected age or a preterm child is measured against a timeline that
+  // was never theirs. See lib/childAge.ts developmentalAge.
+  const devAge = developmentalAge(child);
+  const ageMonths = devAge?.totalMonths ?? 0;
+  const usingCorrectedAge = devAge?.corrected ?? false;
   const milestonesAvailable = canShowMilestones(ageMonths);
   const beyondRange = isBeyondMilestoneRange(ageMonths);
   const currentStage = getStageLabelForAge(ageMonths);
@@ -235,7 +241,7 @@ export default function Milestones() {
     return (
       <EmptyState
         title="We couldn't load milestones."
-        body="Check your connection and try again — nothing you've marked is lost."
+        body="Check your connection and try again. Nothing you've marked is lost."
       />
     );
   }
@@ -423,11 +429,11 @@ export default function Milestones() {
           <Text style={styles.initialEyebrow}>A gentle beginning</Text>
           <Text style={styles.initialTitle}>Where is {child?.name ?? "your child"} today?</Text>
           <Text style={styles.initialBody}>
-            Tell us what you've noticed — there's no pass or fail here, just a starting point.
+            Tell us what you've noticed. There's no pass or fail here, just a starting point.
           </Text>
           <Text style={styles.initialAgeNote}>
             {beyondRange
-              ? "Discovery tracking here covers birth to 6 years — nothing further to check for now."
+              ? "Discovery tracking here covers birth to 6 years. Nothing further to check for now."
               : `Showing a few discoveries for the ${currentStage} stage.`}
           </Text>
 
@@ -477,7 +483,7 @@ export default function Milestones() {
                       {!isAchieved && notYetOpen && (
                         <View style={styles.initialNotYetPanel}>
                           <Text style={styles.initialNotYetIntro}>
-                            Completely normal — here's a little to go on.
+                            Completely normal. Here's a little to go on.
                           </Text>
                           {guide?.try && (
                             <View style={styles.initialNotYetRow}>
@@ -539,11 +545,18 @@ export default function Milestones() {
           {child
             ? milestonesAvailable
               ? beyondRange
-                ? `${child.name} has grown past what we track here — the last stage was ${currentStage}.`
+                ? `${child.name} has grown past what we track here. The last stage was ${currentStage}.`
                 : `${child.name} is in the ${currentStage} stage.`
               : `${child.name}'s discoveries start at 3 months.`
             : "Your child's developmental journey."}
         </Text>
+
+        {usingCorrectedAge && child && (
+          <Text style={styles.correctedNote}>
+            Matched to {child.name}&rsquo;s corrected age ({devAge!.label})because they arrived{" "}
+            {devAge!.correctionWeeks} weeks early.
+          </Text>
+        )}
 
         {/* scrap-book styling for total progress */}
         <View style={styles.progressBanner}>
@@ -597,10 +610,22 @@ export default function Milestones() {
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
         {!milestonesAvailable ? (
           <View style={styles.notYetCard}>
-            <Text style={styles.notYetTitle}>Nothing to complete yet.</Text>
+            <Text style={styles.notYetTitle}>So much is happening already. Just notice.</Text>
             <Text style={styles.notYetBody}>
-              Discovery tracking will open when {child?.name ?? "your child"} reaches 3 months.
-              Until then, Home keeps daily ideas soft and newborn-friendly.
+              The first three months are full of rapid growth and change. From 3 months,
+              we&rsquo;ll help you notice the little things that start to emerge: new
+              movements, sounds, connections and moments worth remembering.
+            </Text>
+            <Text style={styles.notYetBody}>
+              Until then, find{" "}
+              <Text style={styles.notYetLink} onPress={() => router.push("/home")}>
+                simple, newborn-friendly ideas
+              </Text>{" "}
+              or learn more in{" "}
+              <Text style={styles.notYetLink} onPress={() => router.push("/child")}>
+                the Child section
+              </Text>
+              .
             </Text>
           </View>
         ) : activeTab === "journey" ? (
@@ -1385,6 +1410,10 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.sm,
   },
+  notYetLink: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.warmTaupe,
+  },
   initialFooter: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
@@ -1415,6 +1444,13 @@ const styles = StyleSheet.create({
     fontSize: typeScale.h3,
     color: colors.warmTaupe,
     marginTop: 4,
+  },
+  correctedNote: {
+    fontFamily: fonts.body,
+    fontSize: typeScale.caption,
+    lineHeight: typeScale.caption * 1.55,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
   },
   progressBanner: {
     backgroundColor: "rgba(139, 115, 85, 0.08)",

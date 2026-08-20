@@ -1,8 +1,7 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { PrimaryButton } from "../../components/ui";
 import { DisplayField, FadeIn, Hint, OnboardingScreen, Prompt } from "../../components/onboarding";
-import { useOnboarding } from "../../lib/OnboardingProvider";
+import { useDraftState, useOnboarding } from "../../lib/OnboardingProvider";
 
 /**
  * Child name — the last identity fact the app ever asks for outright.
@@ -15,7 +14,10 @@ import { useOnboarding } from "../../lib/OnboardingProvider";
 export default function ChildName() {
   const router = useRouter();
   const { draft, update } = useOnboarding();
-  const [name, setName] = useState(draft.childName);
+  const [name, setName] = useDraftState(
+    (d) => d.childName,
+    (v) => v.trim() === ""
+  );
 
   const ready = name.trim().length > 0;
 
@@ -35,7 +37,7 @@ export default function ChildName() {
         <Prompt>
           {draft.parentName ? `And who are we here for, ${draft.parentName}?` : "And who are we here for?"}
         </Prompt>
-        <Hint>Your child&rsquo;s first name — it&rsquo;s how we&rsquo;ll refer to them from here on.</Hint>
+        <Hint>Your child&rsquo;s first name. It&rsquo;s how we&rsquo;ll refer to them from here on.</Hint>
         <DisplayField
           label="Your child's name"
           value={name}

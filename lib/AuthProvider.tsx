@@ -49,7 +49,12 @@ type AuthState = {
   /** Switches which child `child` points to, and remembers the choice. */
   setActiveChild: (childId: string) => void;
   /** Adds a new child and makes it the active one. */
-  addChild: (input: { name: string; dateOfBirth: string; gender?: string | null }) => Promise<Child>;
+  addChild: (input: {
+    name: string;
+    dateOfBirth: string;
+    gender?: string | null;
+    gestationalWeeks?: number | null;
+  }) => Promise<Child>;
   connectionError: string | null;
   /**
    * True once an email is confirmed on this account. Until then the family
@@ -193,6 +198,7 @@ export function AuthProvider({ children: appChildren }: { children: React.ReactN
     name: string;
     dateOfBirth: string;
     gender?: string | null;
+    gestationalWeeks?: number | null;
   }): Promise<Child> => {
     const userId = session?.user?.id;
     if (!userId) throw new Error("addChild requires a signed-in parent");

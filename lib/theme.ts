@@ -120,3 +120,46 @@ export const typeScale = {
   bodySmall: 13,
   caption: 11,
 } as const;
+
+/**
+ * The semantic type scale. Screens pick a ROLE, never a size — which is
+ * what keeps hierarchy consistent across surfaces that were previously
+ * each inventing their own 10px/11px/13px eyebrow.
+ *
+ * Eight roles, three weights (400/600/700), one serif size. Medium (500)
+ * is deliberately absent: it sat between Regular and SemiBold doing no
+ * distinct work, and every extra weight costs hierarchy legibility.
+ *
+ * Line heights are absolute rather than multipliers so a role reads the
+ * same wherever it lands.
+ */
+export const type = {
+  /** The one hero per screen. Never two. */
+  display: { fontFamily: fonts.bodyBold, fontSize: 26, lineHeight: 31 },
+  /**
+   * The editorial voice — the app speaking rather than labelling.
+   * Deliberately ONE size: the serif previously appeared at 17 and 20,
+   * and that inconsistency is what made it read as decoration instead of
+   * a device. Sized to match `title` so serif and sans headings sit on
+   * the same optical line.
+   */
+  serif: { fontFamily: fonts.serifItalic, fontSize: 17, lineHeight: 24 },
+  /** Card and module headings. */
+  title: { fontFamily: fonts.bodyBold, fontSize: 17, lineHeight: 22 },
+  /** The deck beneath a display or title — the missing middle step. */
+  lead: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22 },
+  /** Paragraphs and card descriptions. */
+  body: { fontFamily: fonts.body, fontSize: 13, lineHeight: 20 },
+  /** Row titles, buttons, links — anything actionable or scannable. */
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 13, lineHeight: 18 },
+  /** The single uppercase eyebrow. Section labels and card kickers alike. */
+  eyebrow: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
+  /** Metadata and fine print. Never body copy. */
+  meta: { fontFamily: fonts.body, fontSize: 11, lineHeight: 16 },
+} as const;

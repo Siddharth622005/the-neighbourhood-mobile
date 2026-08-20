@@ -325,6 +325,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 38,
     color: colors.charcoal,
+    textAlign: "center",
   },
   hint: {
     fontFamily: fonts.body,
@@ -332,6 +333,7 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.body * 1.5,
     color: colors.textMuted,
     marginTop: spacing.md,
+    textAlign: "center",
   },
   displayField: {
     fontFamily: fonts.bodyMedium,

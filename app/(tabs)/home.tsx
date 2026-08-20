@@ -14,11 +14,11 @@ import {
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard, EndOfDay } from "../../components/ActivityCard";
+import { ActivityCollapsedRow, ActivityDoneRow, ActivityExpandedCard, EndOfDay, FeaturedActivityCard } from "../../components/ActivityCard";
 import { GuidedTourDialog } from "../../components/GuidedTourDialog";
 import { PrimaryButton } from "../../components/ui";
 import { useAuth, type Child, type Profile } from "../../lib/AuthProvider";
-import { computeAge, stageLabel } from "../../lib/childAge";
+import { computeAge, developmentalAgeMonths, stageLabel } from "../../lib/childAge";
 import * as growth from "../../lib/db/growth";
 import { DOMAIN_LABEL, type Domain, type Milestone, type VaccinationScheduleItem } from "../../lib/db/types";
 import {
@@ -45,7 +45,7 @@ import {
 } from "../../lib/parentCare";
 import { useGuidedTourStep } from "../../lib/useGuidedTourStep";
 import { useTodaysPlan } from "../../lib/useTodaysPlan";
-import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
+import { colors, radius, spacing, type } from "../../lib/theme";
 
 function greetingWord(hour: number): string {
   if (hour < 5) return "Good night";
@@ -167,7 +167,9 @@ export default function Home() {
   useEffect(() => {
     if (!child) return;
     let alive = true;
-    const ageMonths = computeAge(child.date_of_birth)?.totalMonths ?? 0;
+    // Corrected, not chronological: which discoveries are "current" is a
+    // developmental question. See lib/childAge.ts developmentalAge.
+    const ageMonths = developmentalAgeMonths(child);
     Promise.all([growth.getMilestonesForCurrentAge(ageMonths), growth.getAchievedMilestones(child.id)])
       .then(([current, achieved]) => {
         if (!alive) return;
@@ -253,7 +255,7 @@ export default function Home() {
   const reminder = vaccinationDueSoon
     ? {
         title: vaccinationTitle(vaccinationDueSoon),
-        body: `Due around ${vaccinationDueSoon.age_label} — worth booking ahead.`,
+        body: `Due around ${vaccinationDueSoon.age_label}, worth booking ahead.`,
         onPress: () => router.push("/child/vaccinations"),
       }
     : null;
@@ -285,7 +287,7 @@ export default function Home() {
       ? {
           eyebrow: `WATCH FOR · ${DOMAIN_LABEL[nextMilestone.domain].toUpperCase()}`,
           title: nextMilestone.description,
-          body: "Typical for this age — no rush, just something to notice.",
+          body: "Typical for this age. No rush, just something to notice.",
           onPress: () => router.push("/child/milestones"),
         }
       : null;
@@ -388,7 +390,7 @@ export default function Home() {
           eyebrow="Home"
           focus="Your family, at a glance"
           title="Start here each day."
-          body="What matters today for your family — activities, discoveries, vaccinations, and support for you."
+          body="What matters today for your family. Activities, discoveries, vaccinations, and support for you."
           step={0}
           total={5}
           primaryTitle="Continue"
@@ -435,6 +437,7 @@ function ChildDayActivities({
 }) {
   const { plan, completed, complete, swap } = useTodaysPlan(child.id);
   const [expandedDomain, setExpandedDomain] = useState<Domain | null>(null);
+  const [moreIdeasOpen, setMoreIdeasOpen] = useState(false);
   const cardOpacity = useRef(new Animated.Value(1)).current;
 
   const fadeSwap = useCallback(
@@ -469,6 +472,62 @@ function ChildDayActivities({
     }
   }, [allDone]);
 
+  // The one activity Home leads with: the next undone activity in
+  // orderDomains' order (see lib/todaysPlan.ts) -- exactly the hook that
+  // order exists for. As recency signals get wired in there, this picks
+  // up whichever domain most deserves attention today without this
+  // screen needing to know why. The allDone fallback keeps the type
+  // non-null; that branch is never reached once allDone is true, since
+  // the surrounding render swaps to the finished-day view first.
+  const featured = activities.find((a) => !completed.includes(a.domain)) ?? activities[0];
+  const otherActivities = activities.filter((a) => a.domain !== featured?.domain);
+
+  // Shared by the all-done recap below and the "More ideas" list: same
+  // collapsed/expanded/done switch either way, just over a different
+  // subset of `activities`.
+  const renderActivityRow = (activity: (typeof activities)[number]) => {
+    const isDone = completed.includes(activity.domain);
+
+    // Expansion is checked before completion so a done activity can still
+    // be reopened — see ActivityDoneRow.
+    if (activity.domain === expandedDomain) {
+      return (
+        <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
+          <ActivityExpandedCard
+            activity={activity}
+            canSwap
+            highlighted={guidedTour}
+            isDone={isDone}
+            onComplete={() => {
+              complete(activity);
+              setExpandedDomain(null);
+            }}
+            onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
+            onCollapse={() => setExpandedDomain(null)}
+          />
+        </Animated.View>
+      );
+    }
+
+    if (isDone) {
+      return (
+        <ActivityDoneRow
+          key={activity.domain}
+          activity={activity}
+          onPress={() => setExpandedDomain(activity.domain)}
+        />
+      );
+    }
+
+    return (
+      <ActivityCollapsedRow
+        key={activity.domain}
+        activity={activity}
+        onPress={() => setExpandedDomain(activity.domain)}
+      />
+    );
+  };
+
   return (
     <View style={{ width }}>
       <View style={styles.childSection}>
@@ -476,12 +535,15 @@ function ChildDayActivities({
             the hero switches to acknowledging the day instead. */}
         <View style={styles.planHero}>
           <Text style={styles.planTitle}>
-            {allDone ? "Nicely done today." : `A few good things for ${child.name}.`}
+            {allDone ? "Nicely done today." : `A moment with ${child.name}.`}
           </Text>
+          {/* "whenever it suits" rather than "for today" — the plan is valid
+              whenever the parent opens the app, and the section label above
+              already says TODAY. Opening at 9pm must not read as late. */}
           <Text style={styles.subline}>
             {allDone
               ? `You and ${child.name} got through all four.`
-              : "Pick one that feels right today."}
+              : "One small idea, whenever it suits."}
           </Text>
         </View>
 
@@ -489,66 +551,64 @@ function ChildDayActivities({
           <EmptyPlan childName={child.name} />
         ) : allDone && dayCollapsed ? (
           <EndOfDay childName={child.name} collapsed onToggle={() => setDayCollapsed(false)} />
-        ) : (
+        ) : allDone ? (
+          // The moment the last activity is marked done, before the
+          // collapse effect above folds this into the EndOfDay recap —
+          // brief enough that it keeps the plain four-row view rather
+          // than switching layouts out from under the parent mid-tap.
           <>
-            <View style={styles.list}>
-              {activities.map((activity) => {
-                const isDone = completed.includes(activity.domain);
-
-                // Expansion is checked before completion so a done activity
-                // can still be reopened — see ActivityDoneRow.
-                if (activity.domain === expandedDomain) {
-                  return (
-                    <Animated.View key={activity.domain} style={{ opacity: cardOpacity }}>
-                      <ActivityExpandedCard
-                        activity={activity}
-                        canSwap
-                        highlighted={guidedTour}
-                        isDone={isDone}
-                        ageLabel={age?.label}
-                        onComplete={() => {
-                          complete(activity);
-                          setExpandedDomain(null);
-                        }}
-                        onSwap={() => fadeSwap(activity.domain, () => swap(activity.domain))}
-                        onCollapse={() => setExpandedDomain(null)}
-                      />
-                    </Animated.View>
-                  );
-                }
-
-                if (isDone) {
-                  return (
-                    <ActivityDoneRow
-                      key={activity.domain}
-                      activity={activity}
-                      onPress={() => setExpandedDomain(activity.domain)}
-                    />
-                  );
-                }
-
-                return (
-                  <ActivityCollapsedRow
-                    key={activity.domain}
-                    activity={activity}
-                    onPress={() => setExpandedDomain(activity.domain)}
-                  />
-                );
-              })}
-            </View>
+            <View style={styles.list}>{activities.map(renderActivityRow)}</View>
 
             <Text style={styles.safetyNote}>
-              General ideas for typical development, not instructions to follow exactly — stay
-              close, and skip anything that doesn&rsquo;t feel right for {child.name} today.
+              General guidance, not exact instructions, stay close, and skip whatever
+              doesn&rsquo;t feel right for {child.name}.
             </Text>
 
-            {allDone && (
-              <EndOfDay
-                childName={child.name}
-                collapsed={false}
-                onToggle={() => setDayCollapsed(true)}
-              />
+            <EndOfDay
+              childName={child.name}
+              collapsed={false}
+              onToggle={() => setDayCollapsed(true)}
+            />
+          </>
+        ) : (
+          <>
+            {featured &&
+              (featured.domain === expandedDomain ? (
+                <Animated.View style={{ opacity: cardOpacity, marginTop: spacing.lg }}>
+                  <ActivityExpandedCard
+                    activity={featured}
+                    canSwap
+                    highlighted={guidedTour}
+                    isDone={completed.includes(featured.domain)}
+                    onComplete={() => {
+                      complete(featured);
+                      setExpandedDomain(null);
+                    }}
+                    onSwap={() => fadeSwap(featured.domain, () => swap(featured.domain))}
+                    onCollapse={() => setExpandedDomain(null)}
+                  />
+                </Animated.View>
+              ) : (
+                <View style={styles.featuredWrap}>
+                  <FeaturedActivityCard
+                    activity={featured}
+                    highlighted={guidedTour}
+                    moreIdeasCount={otherActivities.length}
+                    moreIdeasOpen={moreIdeasOpen}
+                    onOpen={() => setExpandedDomain(featured.domain)}
+                    onToggleMoreIdeas={() => setMoreIdeasOpen((v) => !v)}
+                  />
+                </View>
+              ))}
+
+            {otherActivities.length > 0 && moreIdeasOpen && (
+              <View style={styles.list}>{otherActivities.map(renderActivityRow)}</View>
             )}
+
+            <Text style={styles.safetyNote}>
+              General guidance, not exact instructions, stay close, and skip whatever
+              doesn&rsquo;t feel right for {child.name}.
+            </Text>
           </>
         )}
       </View>
@@ -565,7 +625,7 @@ function EmptyPlan({ childName }: { childName: string }) {
       <Text style={styles.emptyPlanTitle}>Nothing planned for today.</Text>
       <Text style={styles.emptyPlanBody}>
         We don&rsquo;t have activities queued up for {childName} right now. This is usually
-        temporary — check back shortly, or look at Discoveries for what to try next.
+        temporary. Check back shortly, or look at Discoveries for what to try next.
       </Text>
     </View>
   );
@@ -954,23 +1014,19 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   loading: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.body,
+    ...type.body,
     color: colors.textMuted,
     paddingTop: spacing.lg,
   },
 
   // Header — stepped down so the activity title is the largest text here.
   dateLine: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
-    letterSpacing: 0.5,
+    ...type.meta,
     color: colors.textMuted,
     marginBottom: 2,
   },
   greeting: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.charcoal,
   },
   introRow: {
@@ -981,9 +1037,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   familyIntro: {
-    fontFamily: fonts.serifItalic,
-    fontSize: typeScale.h3,
-    lineHeight: typeScale.h3 * 1.3,
+    ...type.serif,
     color: colors.charcoal,
   },
   stageChip: {
@@ -993,8 +1047,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(137, 116, 91, 0.1)",
   },
   stageChipText: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.warmTaupe,
   },
 
@@ -1017,9 +1070,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   sectionLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.4,
+    ...type.eyebrow,
     color: colors.warmTaupe,
   },
 
@@ -1037,28 +1088,27 @@ const styles = StyleSheet.create({
   },
   planHero: { paddingHorizontal: spacing.xs },
   planTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.h1,
-    lineHeight: typeScale.h1 * 1.16,
+    ...type.display,
     color: colors.charcoal,
     marginTop: spacing.xs,
   },
   subline: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    lineHeight: typeScale.caption * 1.45,
+    ...type.lead,
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: 6,
   },
 
 
   list: {
     marginTop: spacing.lg,
   },
-
+  featuredWrap: {
+    marginTop: spacing.lg,
+  },
+  // A real bordered pill rather than a text link — the previous plain
+  // "More ideas →" line read as ambient copy, not something to tap.
   pagerHint: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.warmTaupe,
     marginBottom: spacing.sm,
   },
@@ -1079,9 +1129,7 @@ const styles = StyleSheet.create({
   },
 
   safetyNote: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    lineHeight: typeScale.caption * 1.45,
+    ...type.meta,
     color: colors.textMuted,
     marginTop: spacing.md,
   },
@@ -1094,14 +1142,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(96, 79, 60, 0.1)",
   },
   emptyPlanTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.h3,
+    ...type.title,
     color: colors.charcoal,
   },
   emptyPlanBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
+    ...type.body,
     color: colors.textMuted,
     marginTop: 4,
   },
@@ -1114,13 +1159,11 @@ const styles = StyleSheet.create({
   },
   askText: { flexShrink: 1 },
   askTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.charcoal,
   },
   askSub: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.textMuted,
     marginTop: 2,
   },
@@ -1139,41 +1182,31 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   forYouEyebrow: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.4,
+    ...type.eyebrow,
     color: "#5E7360",
   },
   forYouTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.h3,
-    lineHeight: typeScale.h3 * 1.3,
+    ...type.title,
     color: colors.charcoal,
-    marginTop: spacing.sm,
+    marginTop: 6,
   },
   forYouBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
+    ...type.body,
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: 6,
   },
   forYouLink: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
+    ...type.label,
     color: "#5E7360",
     marginTop: spacing.md,
   },
   forYouWhyThis: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.caption,
+    ...type.meta,
     color: colors.textMuted,
     marginTop: spacing.sm,
   },
   forYouWhyThisText: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    lineHeight: typeScale.caption * 1.5,
+    ...type.meta,
     color: colors.textMuted,
     marginTop: spacing.xs,
   },
@@ -1190,28 +1223,21 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   mealIdeaEyebrow: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.4,
+    ...type.eyebrow,
     color: colors.warmTaupe,
   },
   mealIdeaTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.h3,
-    lineHeight: typeScale.h3 * 1.3,
+    ...type.title,
     color: colors.charcoal,
-    marginTop: spacing.sm,
+    marginTop: 6,
   },
   mealIdeaBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.55,
+    ...type.body,
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: 6,
   },
   mealIdeaLink: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
+    ...type.label,
     color: colors.warmTaupe,
     marginTop: spacing.md,
   },
@@ -1224,15 +1250,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(96, 79, 60, 0.12)",
   },
   copilotEyebrow: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.3,
+    ...type.eyebrow,
     color: colors.warmTaupe,
   },
   copilotQuestion: {
-    fontFamily: fonts.serifItalic,
-    fontSize: typeScale.h2,
-    lineHeight: typeScale.h2 * 1.25,
+    ...type.serif,
     color: colors.charcoal,
     marginTop: spacing.xs,
   },
@@ -1251,8 +1273,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 40,
     paddingHorizontal: spacing.sm,
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
+    ...type.body,
     color: colors.charcoal,
   },
   copilotAskButton: {
@@ -1264,8 +1285,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warmTaupe,
   },
   copilotAskText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.white,
   },
   discoveryRow: {
@@ -1282,21 +1302,20 @@ const styles = StyleSheet.create({
   },
   discoveryText: { flex: 1 },
   discoveryEyebrow: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 10,
-    letterSpacing: 1.2,
+    ...type.eyebrow,
     color: colors.warmTaupe,
     marginBottom: 2,
   },
   discoveryRowTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.charcoal,
   },
+  // `meta`, not `body`: in a compact row the title is only `label` size,
+  // so a 13px description sits at the same size as its own heading and
+  // flattens the pair. Dropping to meta restores the contrast and keeps
+  // these one-liners from wrapping.
   discoveryRowBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.caption,
-    lineHeight: typeScale.caption * 1.4,
+    ...type.meta,
     color: colors.textMuted,
     marginTop: 3,
   },
@@ -1320,27 +1339,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   coachLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: typeScale.caption,
-    letterSpacing: 1.3,
-    textTransform: "uppercase",
+    ...type.eyebrow,
     color: colors.warmTaupe,
   },
   coachSkip: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: typeScale.bodySmall,
+    ...type.label,
     color: colors.textMuted,
   },
   coachTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.h2,
-    lineHeight: typeScale.h2 * 1.25,
+    ...type.title,
     color: colors.charcoal,
   },
   coachBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
-    lineHeight: typeScale.bodySmall * 1.5,
+    ...type.body,
     color: colors.textMuted,
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
@@ -1377,13 +1388,11 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   tourDoneTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: typeScale.body,
+    ...type.label,
     color: colors.charcoal,
   },
   tourDoneBody: {
-    fontFamily: fonts.body,
-    fontSize: typeScale.bodySmall,
+    ...type.body,
     color: colors.textMuted,
     marginTop: 2,
   },

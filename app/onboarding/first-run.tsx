@@ -13,7 +13,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { FadeIn, OnboardingScreen } from "../../components/onboarding";
 import { GhostButton, PrimaryButton } from "../../components/ui";
 import { useAuth } from "../../lib/AuthProvider";
-import { canShowMilestones, computeAge } from "../../lib/childAge";
+import { canShowMilestones, developmentalAge } from "../../lib/childAge";
 import * as growth from "../../lib/db/growth";
 import { DOMAIN_LABEL, DOMAINS, type Domain, type Milestone } from "../../lib/db/types";
 import { colors, fonts, radius, spacing, typeScale } from "../../lib/theme";
@@ -58,7 +58,12 @@ export default function FirstRun() {
   const [planLineIndex, setPlanLineIndex] = useState(0);
 
   const childName = firstName(child?.name);
-  const ageMonths = child ? computeAge(child.date_of_birth)?.totalMonths ?? 0 : 0;
+  // The whole reason gestational age is collected: this screen is the
+  // first thing a parent sees after setup, and checking a preterm baby
+  // against chronological age marks them "not yet" on nearly everything.
+  const devAge = developmentalAge(child);
+  const ageMonths = devAge?.totalMonths ?? 0;
+  const usingCorrectedAge = devAge?.corrected ?? false;
   const pulse = useRef(new Animated.Value(0)).current;
   const lineOpacity = useRef(new Animated.Value(1)).current;
 
@@ -269,9 +274,15 @@ export default function FirstRun() {
         <FadeIn>
           <Text style={styles.title}>Tell us what you&rsquo;ve noticed.</Text>
           <Text style={styles.bodyMuted}>
-            Not a test — just a starting point. "Not yet" is completely normal and gets you a
+            Not a test. Just a starting point. "Not yet" is completely normal and gets you a
             few ideas to try, not a red flag.
           </Text>
+          {usingCorrectedAge && (
+            <Text style={styles.correctedNote}>
+              Because {childName} arrived {devAge!.correctionWeeks} weeks early, these are matched
+              to their corrected age ({devAge!.label})not the calendar.
+            </Text>
+          )}
         </FadeIn>
 
         {loadingMilestones ? (
@@ -335,7 +346,7 @@ export default function FirstRun() {
                         {showingNotYet && !noticed && (
                           <View style={styles.notYetPanel}>
                             <Text style={styles.notYetIntro}>
-                              Totally normal — here&rsquo;s something to try, and what to watch for.
+                              Totally normal. Here&rsquo;s something to try, and what to watch for.
                             </Text>
                             {milestone.guide?.try && (
                               <View style={styles.notYetRow}>
@@ -495,6 +506,14 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.body * 1.5,
     color: colors.textMuted,
     textAlign: "center",
+  },
+  correctedNote: {
+    fontFamily: fonts.serifItalic,
+    fontSize: typeScale.bodySmall,
+    lineHeight: typeScale.bodySmall * 1.55,
+    color: colors.warmTaupe,
+    textAlign: "center",
+    marginTop: spacing.md,
   },
   statusCard: {
     flexDirection: "row",

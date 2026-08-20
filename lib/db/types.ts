@@ -163,9 +163,21 @@ export const VACCINE_TIER_LABEL: Record<VaccineTier, string> = {
 };
 
 export const VACCINE_TIER_BLURB: Record<VaccineTier, string> = {
-  essential: "Part of India's Universal Immunisation Programme — free at government centres.",
+  essential: "Part of India's Universal Immunisation Programme.",
   recommended: "Advised by the Indian Academy of Pediatrics for broader protection.",
   situational: "Only needed for specific risks, places or medical conditions. Ask your doctor.",
+};
+
+/**
+ * The one clause per tier worth emphasising, split out of the blurb so the
+ * UI can weight it. Cost is the thing a family most needs to know and most
+ * often assumes wrongly — that the UIP schedule is free at government
+ * centres shouldn't be buried mid-sentence in muted grey.
+ */
+export const VACCINE_TIER_HIGHLIGHT: Record<VaccineTier, string | null> = {
+  essential: "Free at government centres.",
+  recommended: null,
+  situational: null,
 };
 
 export type VaccinationScheduleItem = {
@@ -210,6 +222,16 @@ export type Child = {
   name: string;
   date_of_birth: string; // YYYY-MM-DD
   gender: string | null;
+  /**
+   * Weeks of gestation at birth: 40 = full term, lower = preterm, null =
+   * never asked. Drives corrected age on the developmental surfaces only
+   * — see lib/childAge.ts. Vaccination schedules deliberately stay on
+   * chronological age, which is what they're actually written against.
+   */
+  gestational_weeks: number | null;
+  /** The child's own allergens, lowercased. NOT the parent's — that's
+   *  Profile.allergies, a separate fact used for the parent's meals. */
+  allergies: string[];
   created_at: string;
 };
 

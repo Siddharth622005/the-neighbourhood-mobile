@@ -89,15 +89,15 @@ export function stageDescription(stage: KidFeedingStage, feeding: string | null)
 
   switch (stage) {
     case "m0_6":
-      return `${milk[0].toUpperCase()}${milk.slice(1)} is the whole diet right now, and that's exactly right — nothing else is needed, water included. Feeding on cue rather than a clock is normal and healthy at this stage.`;
+      return `${milk[0].toUpperCase()}${milk.slice(1)} is the whole diet right now, and that's exactly right. Nothing else is needed, water included. Feeding on cue rather than a clock is normal and healthy at this stage.`;
     case "m6_8":
-      return `${milk[0].toUpperCase()}${milk.slice(1)} is still the main event — solids are practice, not replacement. One or two small tastes a day is plenty; most of it will end up on the floor, and that's fine.`;
+      return `${milk[0].toUpperCase()}${milk.slice(1)} is still the main event. Solids are practice, not replacement. One or two small tastes a day is plenty; most of it will end up on the floor, and that's fine.`;
     case "m8_10":
       return "Solids are becoming a real second source of nutrition alongside milk, which is why texture and iron both start to matter more here.";
     case "m10_12":
       return "Most of what they eat can now look like small versions of family food. Milk is still important, but food is doing more of the nutritional work.";
     case "m12_24":
-      return "Whole milk, real meals, and a seat at the table. Appetite will vary wildly day to day — that's a normal toddler pattern, not a feeding problem.";
+      return "Whole milk, real meals, and a seat at the table. Appetite will vary wildly day to day. That's a normal toddler pattern, not a feeding problem.";
     case "y2_5":
       return "The food itself matters less now than the habits forming around it: variety, pace, and a calm table that doesn't turn into a negotiation.";
   }
@@ -139,7 +139,7 @@ export function nutrientsForStage(stage: KidFeedingStage): KidNutrient[] {
   const IRON: KidNutrient = {
     key: "iron",
     label: "Iron",
-    why: "The iron a baby is born with runs low around six months, right as milk alone stops being enough — this is the single biggest reason solids start when they do.",
+    why: "The iron a baby is born with runs low around six months, right as milk alone stops being enough. This is the single biggest reason solids start when they do.",
     sources: ["Iron-fortified infant cereal", "Puréed meat or lentils", "Beans", "Dark leafy greens"],
   };
   const ZINC: KidNutrient = {
@@ -157,13 +157,13 @@ export function nutrientsForStage(stage: KidFeedingStage): KidNutrient[] {
   const PROTEIN: KidNutrient = {
     key: "protein",
     label: "Protein",
-    why: "Growth at this pace has real building-block requirements — a toddler's tiny stomach needs it in small, frequent amounts rather than one big serving.",
+    why: "Growth at this pace has real building-block requirements. A toddler's tiny stomach needs it in small, frequent amounts rather than one big serving.",
     sources: ["Egg", "Yoghurt", "Lentils and beans", "Soft-cooked meat or fish"],
   };
   const HEALTHY_FATS: KidNutrient = {
     key: "healthy_fats",
     label: "Healthy fats",
-    why: "A young child's brain is growing faster than at any later point in life, and it runs substantially on fat — this is not the age for low-fat anything.",
+    why: "A young child's brain is growing faster than at any later point in life, and it runs substantially on fat. This is not the age for low-fat anything.",
     sources: ["Avocado", "Whole-milk yoghurt", "Ghee or olive oil", "Nut butter, thinned"],
   };
   const CALCIUM: KidNutrient = {
@@ -213,7 +213,7 @@ export function tipsForStage(stage: KidFeedingStage): FeedingTip[] {
       return [
         {
           title: "Feed on cue, not a clock",
-          body: "Hunger cues — rooting, hands to mouth, fussing — are a more reliable guide than a feeding schedule at this age.",
+          body: "Hunger cues (rooting, hands to mouth, fussing)are a more reliable guide than a feeding schedule at this age.",
         },
         {
           title: "Watch for readiness, not a date",
@@ -232,7 +232,7 @@ export function tipsForStage(stage: KidFeedingStage): FeedingTip[] {
         },
         {
           title: "Let them get messy",
-          body: "Touching, squishing and dropping food is how texture gets explored at this age — a food-covered high chair is a sign it's working, not going wrong.",
+          body: "Touching, squishing and dropping food is how texture gets explored at this age. A food-covered high chair is a sign it's working, not going wrong.",
         },
       ];
     case "m8_10":
@@ -243,14 +243,14 @@ export function tipsForStage(stage: KidFeedingStage): FeedingTip[] {
         },
         {
           title: "Gagging isn't choking",
-          body: "A gag pushes food forward and is loud — it's the airway protecting itself and usually resolves alone. Choking is silent. Knowing the difference stops a normal gag from becoming a scare.",
+          body: "A gag pushes food forward and is loud. It's the airway protecting itself and usually resolves alone. Choking is silent. Knowing the difference stops a normal gag from becoming a scare.",
         },
       ];
     case "m10_12":
       return [
         {
           title: "Cut the known choking hazards",
-          body: "Whole grapes, nuts, popcorn, and hard raw vegetables are genuine risks at this age. Grapes quartered lengthwise, nuts ground into butter — same food, safe shape.",
+          body: "Whole grapes, nuts, popcorn, and hard raw vegetables are genuine risks at this age. Grapes quartered lengthwise, nuts ground into butter, same food, safe shape.",
         },
         {
           title: "Let them drive the spoon",
@@ -261,18 +261,18 @@ export function tipsForStage(stage: KidFeedingStage): FeedingTip[] {
       return [
         {
           title: "Offer, don't pressure",
-          body: "Appetite swings hard at this age — a huge lunch and a one-bite dinner in the same day is normal. Repeated calm offering works better than encouragement to finish.",
+          body: "Appetite swings hard at this age. A huge lunch and a one-bite dinner in the same day is normal. Repeated calm offering works better than encouragement to finish.",
         },
         {
           title: "Whole milk, not low-fat",
-          body: "Unless a doctor has said otherwise, whole milk is recommended until at least two — this is not the age to switch to skim for anyone's sake.",
+          body: "Unless a doctor has said otherwise, whole milk is recommended until at least two. This is not the age to switch to skim for anyone's sake.",
         },
       ];
     case "y2_5":
       return [
         {
           title: "It can take ten tries, not two",
-          body: "A food refused the first few times isn't necessarily disliked — repeated, pressure-free exposure is what usually gets a new food accepted.",
+          body: "A food refused the first few times isn't necessarily disliked. Repeated, pressure-free exposure is what usually gets a new food accepted.",
         },
         {
           title: "You decide what and when, they decide how much",
@@ -280,7 +280,7 @@ export function tipsForStage(stage: KidFeedingStage): FeedingTip[] {
         },
         {
           title: "A calm table beats a clean plate",
-          body: "Screens off, short and unhurried, no bargaining over bites — the atmosphere around eating shapes their relationship with food more than any single meal does.",
+          body: "Screens off, short and unhurried, no bargaining over bites. The atmosphere around eating shapes their relationship with food more than any single meal does.",
         },
       ];
   }
@@ -314,7 +314,7 @@ const MEALS: KidMeal[] = [
     stage: "m6_8",
     slot: "lunch",
     title: "Iron-fortified cereal, milk-loosened",
-    blurb: "The classic first food, for a reason — iron is the priority right now.",
+    blurb: "The classic first food, for a reason. Iron is the priority right now.",
     minutes: 3,
     texture: "Smooth, runny purée",
     delivers: ["iron", "zinc"],
@@ -322,7 +322,7 @@ const MEALS: KidMeal[] = [
     steps: [
       "Mix a spoonful of cereal with milk until it drips off the spoon rather than holding a shape.",
       "Offer a few small spoonfuls, following their cues for more or done.",
-      "Loosen further as needed — thick and sticky is harder to manage than it looks.",
+      "Loosen further as needed. Thick and sticky is harder to manage than it looks.",
     ],
   },
   {
@@ -355,7 +355,7 @@ const MEALS: KidMeal[] = [
     ingredients: ["Red lentils", "Rice", "A little ghee", "Cumin"],
     steps: [
       "Cook lentils and rice together until both fall apart easily.",
-      "Mash with a fork rather than blending — leave some texture in.",
+      "Mash with a fork rather than blending, leave some texture in.",
       "Stir through a little ghee for both flavour and healthy fat.",
     ],
   },
@@ -405,24 +405,24 @@ const MEALS: KidMeal[] = [
     ingredients: ["Soft wholegrain bread", "Smooth nut butter"],
     steps: [
       "Toast bread lightly so it holds together but isn't hard.",
-      "Spread a thin, smooth layer of nut butter — thick blobs can stick to the roof of the mouth.",
+      "Spread a thin, smooth layer of nut butter. Thick blobs can stick to the roof of the mouth.",
       "Cut into finger-width strips.",
     ],
-    safetyNote: "Use smooth nut butter only, spread thin — never a spoonful on its own.",
+    safetyNote: "Use smooth nut butter only, spread thin. Never a spoonful on its own.",
   },
   {
     id: "k-soft-veg-sticks",
     stage: "m10_12",
     slot: "lunch",
     title: "Soft-cooked vegetable sticks",
-    blurb: "Steamed until it squashes between two fingers — that's the readiness test.",
+    blurb: "Steamed until it squashes between two fingers, that's the readiness test.",
     minutes: 15,
     texture: "Soft finger food",
     delivers: ["vitamin_c", "fibre"],
     ingredients: ["Carrot", "Broccoli", "Zucchini"],
     steps: [
       "Cut vegetables into stick shapes, thicker than a finger.",
-      "Steam until a piece squashes easily between two fingers — this is the actual safety test, not a timer.",
+      "Steam until a piece squashes easily between two fingers. This is the actual safety test, not a timer.",
       "Serve warm or at room temperature.",
     ],
   },
@@ -439,7 +439,7 @@ const MEALS: KidMeal[] = [
     steps: [
       "Mix mashed potato with finely chopped, well-cooked vegetables.",
       "Bind with a spoon of besan or oats, shape into small soft patties.",
-      "Pan-cook gently in a little oil until just set — keep the inside soft, not crisp.",
+      "Pan-cook gently in a little oil until just set. Keep the inside soft, not crisp.",
     ],
   },
   {
@@ -447,7 +447,7 @@ const MEALS: KidMeal[] = [
     stage: "m10_12",
     slot: "afternoon_snack",
     title: "Ripe soft fruit, finger-cut",
-    blurb: "Whatever's ripest — banana, papaya, mango, ripe pear.",
+    blurb: "Whatever's ripest, banana, papaya, mango, ripe pear.",
     minutes: 3,
     texture: "Soft finger food",
     delivers: ["fibre", "vitamin_c"],
@@ -482,7 +482,7 @@ const MEALS: KidMeal[] = [
     stage: "m12_24",
     slot: "morning_snack",
     title: "Whole milk with chopped fruit",
-    blurb: "Whole milk stays the recommendation here — this isn't the age for low-fat.",
+    blurb: "Whole milk stays the recommendation here. This isn't the age for low-fat.",
     minutes: 2,
     texture: "Chopped family food",
     delivers: ["calcium", "healthy_fats"],
@@ -571,7 +571,7 @@ const MEALS: KidMeal[] = [
     stage: "y2_5",
     slot: "lunch",
     title: "Rajma and rice",
-    blurb: "A real family plate — the food itself barely differs from an adult portion now.",
+    blurb: "A real family plate. The food itself barely differs from an adult portion now.",
     minutes: 30,
     texture: "Regular family meal",
     delivers: ["iron", "fibre", "protein"],
@@ -612,7 +612,7 @@ const MEALS: KidMeal[] = [
       "Check thoroughly for bones before serving.",
       "Serve with soft-cooked vegetables and a squeeze of lemon.",
     ],
-    safetyNote: "Check carefully for bones — flake the fish apart before serving, don't assume it's clear.",
+    safetyNote: "Check carefully for bones. Flake the fish apart before serving, don't assume it's clear.",
   },
 ];
 

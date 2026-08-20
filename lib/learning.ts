@@ -114,7 +114,7 @@ export const COURSES: Course[] = [
     slug: "sleep-foundations",
     title: "Sleep Foundations",
     description:
-      "A practical, judgment-free walkthrough of infant sleep — what's typical, what's safe, and what actually helps on hard nights.",
+      "A practical, judgment-free walkthrough of infant sleep. What's typical, what's safe, and what actually helps on hard nights.",
     thumbnailIcon: "sleep",
     category: "sleep",
     difficulty: "beginner",
@@ -134,7 +134,7 @@ export const COURSES: Course[] = [
         durationMinutes: 5,
         type: "text",
         body:
-          "The handful of choices with real evidence behind them — back to sleep, a firm flat surface, room-sharing without bed-sharing, and avoiding overheating — and why everything beyond that list is optional.",
+          "The handful of choices with real evidence behind them (back to sleep, a firm flat surface, room-sharing without bed-sharing, and avoiding overheating)and why everything beyond that list is optional.",
       },
       {
         id: "sf-3",
@@ -169,7 +169,7 @@ export const COURSES: Course[] = [
     slug: "starting-solids",
     title: "Starting Solids, Step by Step",
     description:
-      "From first purées to family meals — textures, timing, allergens, and the questions every parent has before that first spoon.",
+      "From first purées to family meals. Textures, timing, allergens, and the questions every parent has before that first spoon.",
     thumbnailIcon: "feeding",
     category: "feeding",
     difficulty: "beginner",
@@ -180,7 +180,7 @@ export const COURSES: Course[] = [
         durationMinutes: 5,
         type: "text",
         body:
-          "The real readiness signs — sitting with support, losing the tongue-thrust reflex, showing interest in food — matter more than hitting six months on the calendar exactly.",
+          "The real readiness signs (sitting with support, losing the tongue-thrust reflex, showing interest in food)matter more than hitting six months on the calendar exactly.",
       },
       {
         id: "ss-2",
@@ -205,7 +205,7 @@ export const COURSES: Course[] = [
         durationMinutes: 5,
         type: "text",
         body:
-          "Purées give way to mashed, then soft finger foods — usually across a few months, driven by what your baby handles well rather than a fixed schedule.",
+          "Purées give way to mashed, then soft finger foods. Usually across a few months, driven by what your baby handles well rather than a fixed schedule.",
       },
     ],
   },
@@ -239,7 +239,7 @@ export const COURSES: Course[] = [
         durationMinutes: 4,
         type: "text",
         body:
-          "Losing a skill they'd already gained, or missing several milestones across more than one domain at once, are the patterns worth raising — not a single late milestone on its own.",
+          "Losing a skill they'd already gained, or missing several milestones across more than one domain at once, are the patterns worth raising. Not a single late milestone on its own.",
       },
     ],
   },
@@ -247,7 +247,7 @@ export const COURSES: Course[] = [
     slug: "positive-discipline-basics",
     title: "Positive Discipline Basics",
     description:
-      "Boundaries that hold without shame or shouting — for the toddler stage and beyond.",
+      "Boundaries that hold without shame or shouting. For the toddler stage and beyond.",
     thumbnailIcon: "behaviour",
     category: "behaviour",
     difficulty: "intermediate",
@@ -265,7 +265,7 @@ export const COURSES: Course[] = [
         durationMinutes: 5,
         type: "text",
         body:
-          "Your own regulation is the model they're learning from in the moment — not the words you use once everyone's calm again.",
+          "Your own regulation is the model they're learning from in the moment. Not the words you use once everyone's calm again.",
       },
       {
         id: "pd-3",
@@ -300,7 +300,7 @@ export const COURSES: Course[] = [
     slug: "parent-wellbeing-essentials",
     title: "Parent Wellbeing Essentials",
     description:
-      "Practical tools for stress, sleep debt, and the emotional weight of early parenting — for either parent, any stage.",
+      "Practical tools for stress, sleep debt, and the emotional weight of early parenting, for either parent, any stage.",
     thumbnailIcon: "wellbeing",
     category: "wellbeing",
     difficulty: "beginner",
@@ -311,7 +311,7 @@ export const COURSES: Course[] = [
         durationMinutes: 4,
         type: "text",
         body:
-          "Overwhelm, resentment, grief for your old life alongside love for your new one — all of these are common and none of them mean you're doing it wrong.",
+          "Overwhelm, resentment, grief for your old life alongside love for your new one. All of these are common and none of them mean you're doing it wrong.",
       },
       {
         id: "pw-2",
@@ -326,7 +326,7 @@ export const COURSES: Course[] = [
         durationMinutes: 4,
         type: "text",
         body:
-          "Low mood or anxiety lasting more than two weeks is worth raising with a GP — asking early is not an overreaction.",
+          "Low mood or anxiety lasting more than two weeks is worth raising with a GP. Asking early is not an overreaction.",
       },
     ],
   },
@@ -337,7 +337,7 @@ export const WORKSHOPS: Workshop[] = [
     slug: "live-sleep-qa",
     title: "Live Q&A: Surviving the Sleep Regression",
     description:
-      "Bring your specific situation — a paediatric sleep consultant takes real questions live for an hour.",
+      "Bring your specific situation. A paediatric sleep consultant takes real questions live for an hour.",
     instructor: { name: "Dr. Meera Nair", credential: "Paediatric Sleep Consultant" },
     startsAt: "2026-08-14T17:00:00.000Z",
     durationMinutes: 60,
@@ -359,7 +359,7 @@ export const WORKSHOPS: Workshop[] = [
     slug: "toddler-behaviour-clinic",
     title: "Toddler Behaviour Clinic",
     description:
-      "Tantrums, boundaries, and what's developmentally normal — an open clinic-style session for parents of 1–3 year olds.",
+      "Tantrums, boundaries, and what's developmentally normal. An open clinic-style session for parents of 1–3 year olds.",
     instructor: { name: "Arjun Mehta", credential: "Child Psychologist" },
     startsAt: "2026-09-03T18:30:00.000Z",
     durationMinutes: 75,
@@ -369,7 +369,7 @@ export const WORKSHOPS: Workshop[] = [
     slug: "new-parent-wellbeing-circle",
     title: "New Parent Wellbeing Circle",
     description:
-      "A guided peer-support circle for parents in the first year — practical tools, held space, and no cameras required.",
+      "A guided peer-support circle for parents in the first year. Practical tools, held space, and no cameras required.",
     instructor: { name: "Fatima Rizvi", credential: "Perinatal Mental Health Counsellor" },
     startsAt: "2026-08-18T16:00:00.000Z",
     durationMinutes: 60,
