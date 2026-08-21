@@ -6,15 +6,13 @@ click the clock to start timing.
 
 ---
 
-## Two things to do before you present
+## One thing left to do before you present
 
-1. **Add four phone screenshots to slide 5** — Home, Child, You, Ask.
-   Take them on your phone and drop them in. Right now they're empty boxes
-   with red dashed borders.
-2. **Add photos of Yati, Muskan and Tejas** to slides 7, 8 and 9. Same
-   thing — red dashed boxes waiting.
+**Add photos of Yati, Muskan and Tejas** to slides 7, 8 and 9. They're
+red dashed boxes right now — you can't miss them.
 
-Everything else is done.
+Slide 5's screenshots are done — real screens captured from the app
+itself (with sample data standing in for a live account), not mockups.
 
 ---
 
@@ -72,17 +70,19 @@ left to right and point at what changed.**
 
 ---
 
-## Slide 5 — Then it gets to work 📱 DEMO
+## Slide 5 — Then it gets to work 📱
 
-**Put the slides down and pick up the phone. Open it from your home
-screen — that's better than any slide.**
+The slide already has real screenshots of Home, Child, You and Ask, so
+you're covered either way. But if you can, **put the slides down and pick
+up the actual phone** — that beats any screenshot. Open it from your home
+screen.
 
 Order: **Home** → **Child** → **You** → **Ask**. About a minute each.
 
 - **Home** — tap into an activity, finish it, show the ring fill up.
   *"Four out of four is a day you can actually finish. An app you fail
   every day is an app you delete."*
-- **Child** — Discoveries, then Vaccinations.
+- **Child** — the hub, then tap into Discoveries or Vaccinations.
   *"The vaccine list is split three ways: what the government gives free,
   what the paediatric association adds, and what depends on where you
   live. Most lists just show you twenty vaccines and you can't tell
@@ -93,8 +93,8 @@ Order: **Home** → **Child** → **You** → **Ask**. About a minute each.
   are. So they get their own half."*
 - **Ask** — type a real question, wait for the answer.
 
-**Don't talk over a loading screen.** If it breaks, use the pictures on
-the slide and keep going. Don't debug in front of people.
+**Don't talk over a loading screen.** If the live demo breaks, the slide's
+screenshots already have you covered — just move on to the next point.
 
 ---
 
