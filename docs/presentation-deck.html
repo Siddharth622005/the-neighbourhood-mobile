@@ -5,16 +5,19 @@
 
 <style>
   /* ============================================================
-     THE NEIGHBOURHOOD — presentation deck
-     Palette is the product's own token set (lib/theme.ts):
-     cream / charcoal / warm taupe / soft sand, plus the app's
-     eucalyptus. Slides about the parent side shift to eucalyptus,
-     mirroring the app's Child/You palette mechanic — the colour
-     carries the subject, it isn't decoration.
+     THE NEIGHBOURHOOD — end-of-internship deck
+     Structured as a progress lifecycle: six phases derived from
+     the actual commit history across two repositories.
+
+     Palette is the product's own token set (lib/theme.ts).
+     Three voices, each earning its change of ground:
+       default      — the app's Child palette (cream)
+       voice-parent — the app's eucalyptus, on parent-side slides
+       voice-people — inverted ground, for the slides about people
+                      rather than product
      ============================================================ */
 
   :root {
-    /* light — the app's Child palette */
     --ground:      #F3EEE7;
     --ground-deep: #EAE2D7;
     --surface:     #FFFDFC;
@@ -36,7 +39,6 @@
     --rail: 232px;
   }
 
-  /* the parent voice — same lightness, rotated to eucalyptus */
   .slide.voice-parent {
     --ground:      #EBF0EB;
     --ground-deep: #DDE6DE;
@@ -49,6 +51,15 @@
     --rule:        rgba(60, 80, 62, 0.18);
     --rule-soft:   rgba(60, 80, 62, 0.09);
     --shadow:      rgba(36, 55, 38, 0.08);
+  }
+
+  /* people, not product — the ground darkens a step and cards lift out of it */
+  .slide.voice-people {
+    --ground:      #E4DACB;
+    --ground-deep: #D8CBB8;
+    --surface:     #FFFDFA;
+    --rule:        rgba(96, 79, 60, 0.22);
+    --rule-soft:   rgba(96, 79, 60, 0.13);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -80,6 +91,13 @@
       --rule-soft:   rgba(157, 176, 160, 0.11);
       --shadow:      rgba(0, 0, 0, 0.45);
     }
+    :root:not([data-theme="light"]) .slide.voice-people {
+      --ground:      #221E19;
+      --ground-deep: #171410;
+      --surface:     #2E2921;
+      --rule:        rgba(201, 165, 142, 0.3);
+      --rule-soft:   rgba(201, 165, 142, 0.15);
+    }
   }
 
   :root[data-theme="dark"] {
@@ -110,6 +128,13 @@
     --rule-soft:   rgba(157, 176, 160, 0.11);
     --shadow:      rgba(0, 0, 0, 0.45);
   }
+  :root[data-theme="dark"] .slide.voice-people {
+    --ground:      #221E19;
+    --ground-deep: #171410;
+    --surface:     #2E2921;
+    --rule:        rgba(201, 165, 142, 0.3);
+    --rule-soft:   rgba(201, 165, 142, 0.15);
+  }
 
   * { box-sizing: border-box; }
 
@@ -125,15 +150,8 @@
 
   /* ---------- deck mechanics ---------- */
 
-  #deck {
-    height: 100dvh;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    #deck { scroll-behavior: auto; }
-  }
+  #deck { height: 100dvh; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { #deck { scroll-behavior: auto; } }
 
   .slide {
     position: relative;
@@ -150,283 +168,163 @@
     overflow: hidden;
   }
 
-  /* left rail: section + cumulative clock. Encodes real pacing data. */
   .rail {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    display: flex; flex-direction: column; justify-content: space-between;
     border-right: 1px solid var(--rule-soft);
     padding-right: clamp(16px, 2vw, 32px);
   }
   .rail-top { display: flex; flex-direction: column; gap: 14px; }
-  .rail-sec {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--primary);
-  }
-  .rail-clock {
-    font-family: var(--mono);
-    font-size: 30px;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .rail-dur {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-faint);
-    letter-spacing: 0.04em;
-  }
-  .rail-num {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-faint);
-    font-variant-numeric: tabular-nums;
-  }
+  .rail-sec { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary); }
+  .rail-clock { font-family: var(--mono); font-size: 30px; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .rail-dur { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; }
+  .rail-num { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 
-  .stage {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-width: 0;
-    padding-block: clamp(8px, 2vh, 28px);
-  }
+  .stage { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding-block: clamp(8px, 2vh, 28px); }
 
   /* ---------- type ---------- */
 
   h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 400; }
-
-  h1 {
-    font-family: var(--display);
-    font-size: clamp(44px, 6.4vw, 104px);
-    line-height: 0.98;
-    letter-spacing: -0.025em;
-  }
-  h2 {
-    font-family: var(--display);
-    font-size: clamp(30px, 3.9vw, 60px);
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.5em;
-  }
-  h3 {
-    font-family: var(--body);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--primary);
-  }
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
-    margin-bottom: 1.4em;
-    display: block;
-  }
+  h1 { font-family: var(--display); font-size: clamp(44px, 6.4vw, 104px); line-height: 0.98; letter-spacing: -0.025em; }
+  h2 { font-family: var(--display); font-size: clamp(30px, 3.9vw, 60px); line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 0.5em; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 1.4em; display: block; }
   p { margin: 0 0 0.9em; max-width: 62ch; color: var(--ink-soft); }
-  p.lead {
-    font-size: clamp(19px, 1.7vw, 25px);
-    line-height: 1.45;
-    color: var(--ink);
-    max-width: 34ch;
-  }
+  p.lead { font-size: clamp(19px, 1.7vw, 25px); line-height: 1.45; color: var(--ink); max-width: 34ch; }
   strong { color: var(--ink); font-weight: 700; }
   em { font-style: italic; }
   .quiet { color: var(--ink-faint); }
 
-  /* a pulled statement — the deck's one loud gesture, used sparingly */
-  .pull {
-    font-family: var(--display);
-    font-size: clamp(26px, 3.1vw, 46px);
-    line-height: 1.16;
-    letter-spacing: -0.018em;
-    color: var(--ink);
-    max-width: 22ch;
-    font-style: italic;
-  }
+  .pull { font-family: var(--display); font-size: clamp(26px, 3.1vw, 46px); line-height: 1.16; letter-spacing: -0.018em; color: var(--ink); max-width: 22ch; font-style: italic; }
   .pull .hi { color: var(--primary); font-style: normal; }
 
-  /* ---------- structures ---------- */
+  /* ---------- the lifecycle diagram ---------- */
 
-  .cols {
+  .tl {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: clamp(18px, 2.4vw, 40px);
-    margin-top: 8px;
+    grid-template-columns: 92px repeat(6, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 10px;
+    border-top: 1px solid var(--rule);
   }
+  .tl-cell { border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); padding: 12px 12px 14px; min-width: 0; }
+  .tl-cell:last-child { border-right: none; }
+  .tl-lab {
+    border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule-soft);
+    padding: 12px 12px 14px 0;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint);
+    display: flex; align-items: center;
+  }
+  .tl-head .tl-cell { padding-top: 16px; }
+  .tl-n { font-family: var(--mono); font-size: 10px; color: var(--primary); letter-spacing: 0.1em; font-weight: 600; display: block; margin-bottom: 5px; }
+  .tl-name { font-weight: 700; font-size: 15px; color: var(--ink); line-height: 1.2; display: block; }
+  .tl-date { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); display: block; margin-top: 5px; }
+  /* a track cell that was active in that phase */
+  .tl-on { background: var(--surface); }
+  .tl-on .tl-what { font-size: 13.5px; color: var(--ink-soft); line-height: 1.4; }
+  .tl-off { display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-family: var(--mono); font-size: 13px; }
+  .tl-bar { height: 3px; background: var(--primary); margin-bottom: 9px; }
+  .tl-bar.alt { background: var(--accent); }
+
+  /* ---------- phase slides ---------- */
+
+  .phase-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  .phase-n { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 0.16em; color: var(--primary); }
+  .phase-date { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); letter-spacing: 0.06em; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: clamp(18px, 2.4vw, 40px); margin-top: 8px; }
   .cols.two { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--rule-soft);
-    padding: clamp(16px, 1.6vw, 24px);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-  }
-  .panel h4 {
-    margin: 0;
-    font-family: var(--body);
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--ink);
-    letter-spacing: -0.005em;
-  }
+  .panel { background: var(--surface); border: 1px solid var(--rule-soft); padding: clamp(16px, 1.6vw, 24px); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .panel h4 { margin: 0; font-family: var(--body); font-size: 16px; font-weight: 700; color: var(--ink); }
   .panel p { margin: 0; font-size: 15px; line-height: 1.5; }
 
-  /* domain strip — four developmental domains, the product's core idea */
-  .domains { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 20px; }
-  .domain {
-    background: var(--surface);
-    border-top: 3px solid var(--primary);
-    padding: 18px 16px 20px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .domain:nth-child(2) { border-top-color: var(--accent); }
-  .domain:nth-child(3) { border-top-color: var(--positive); }
-  .domain:nth-child(4) { border-top-color: var(--ink-soft); }
-  .domain .d-name { font-weight: 700; font-size: 15px; color: var(--ink); }
-  .domain .d-ex { font-size: 14px; color: var(--ink-soft); line-height: 1.45; }
-
-  /* metric rows */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); margin-top: 10px; }
   .metric { background: var(--ground); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 3px; }
-  .metric .m-val {
-    font-family: var(--mono);
-    font-size: clamp(24px, 2.6vw, 38px);
-    font-weight: 600;
-    color: var(--ink);
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-  }
+  .metric .m-val { font-family: var(--mono); font-size: clamp(24px, 2.6vw, 38px); font-weight: 600; color: var(--ink); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
   .metric .m-lab { font-size: 13px; color: var(--ink-soft); line-height: 1.35; }
 
-  /* status list — built / scaffold / needs outside input */
-  .status { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
-  .status-row {
-    display: grid;
-    grid-template-columns: 132px minmax(0, 1fr);
-    gap: 20px;
-    padding: 13px 0;
-    border-bottom: 1px solid var(--rule-soft);
-    align-items: baseline;
-  }
+  .status { display: flex; flex-direction: column; margin-top: 6px; }
+  .status-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 20px; padding: 13px 0; border-bottom: 1px solid var(--rule-soft); align-items: baseline; }
   .status-row:first-child { border-top: 1px solid var(--rule-soft); }
-  .chip {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 4px 9px;
-    border: 1px solid currentColor;
-    justify-self: start;
-    white-space: nowrap;
-  }
-  .chip.ok   { color: var(--positive); }
+  .chip { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 9px; border: 1px solid currentColor; justify-self: start; white-space: nowrap; }
+  .chip.ok { color: var(--positive); }
   .chip.part { color: var(--accent); }
-  .chip.gap  { color: var(--attention); }
+  .chip.gap { color: var(--attention); }
   .status-row p { margin: 0; font-size: 15.5px; max-width: 70ch; }
-
-  /* numbered sequence — used ONLY where order is real (the IA rewrite) */
-  .seq { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; margin-top: 18px; border-left: 1px solid var(--rule-soft); }
-  .seq-step { padding: 0 clamp(14px, 1.6vw, 26px); border-right: 1px solid var(--rule-soft); display: flex; flex-direction: column; gap: 8px; }
-  .seq-n { font-family: var(--mono); font-size: 11px; color: var(--primary); letter-spacing: 0.1em; font-weight: 600; }
-  .seq-t { font-weight: 700; font-size: 15.5px; color: var(--ink); }
-  .seq-d { font-size: 14.5px; color: var(--ink-soft); line-height: 1.45; }
-  .seq-step.now .seq-t { color: var(--primary); }
 
   ul.tight { margin: 6px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; }
   ul.tight li { position: relative; padding-left: 20px; color: var(--ink-soft); font-size: 15.5px; line-height: 1.5; max-width: 66ch; }
   ul.tight li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 8px; height: 1px; background: var(--primary); }
 
-  code, .kbd {
-    font-family: var(--mono);
-    font-size: 0.87em;
-    background: var(--ground-deep);
-    padding: 2px 6px;
-    color: var(--ink);
-    border: 1px solid var(--rule-soft);
-  }
+  code { font-family: var(--mono); font-size: 0.87em; background: var(--ground-deep); padding: 2px 6px; color: var(--ink); border: 1px solid var(--rule-soft); }
 
-  .demo-flag {
-    display: inline-flex; align-items: center; gap: 9px;
-    font-family: var(--mono); font-size: 11px; font-weight: 600;
-    letter-spacing: 0.13em; text-transform: uppercase;
-    color: var(--attention); border: 1px solid var(--attention);
-    padding: 6px 12px; margin-bottom: 22px;
-  }
+  .demo-flag { display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--attention); border: 1px solid var(--attention); padding: 6px 12px; margin-bottom: 22px; align-self: flex-start; }
   .demo-flag::before { content: ""; width: 6px; height: 6px; background: var(--attention); border-radius: 50%; }
 
-  .title-mark {
-    font-family: var(--display);
-    font-size: clamp(15px, 1.3vw, 19px);
-    font-style: italic;
-    color: var(--primary);
-    margin-bottom: 28px;
-  }
+  .title-mark { font-family: var(--display); font-size: clamp(15px, 1.3vw, 19px); font-style: italic; color: var(--primary); margin-bottom: 28px; }
   .byline { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 10px 30px; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); letter-spacing: 0.05em; }
 
-  /* ---------- chrome: progress, notes, controls ---------- */
+  /* ---------- people slides ---------- */
 
-  #progress {
-    position: fixed; left: 0; top: 0; height: 2px; width: 0%;
-    background: var(--primary); z-index: 60; transition: width 0.25s ease;
+  .person { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(24px, 3vw, 56px); align-items: start; }
+  .person-id { display: flex; flex-direction: column; gap: 10px; }
+  .person-name { font-family: var(--display); font-size: clamp(34px, 4.2vw, 62px); line-height: 1.0; letter-spacing: -0.02em; color: var(--ink); }
+  .person-role { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary); }
+  .person-line { font-size: 16px; color: var(--ink-soft); line-height: 1.5; max-width: 34ch; margin-top: 4px; }
+  .facts { display: flex; flex-direction: column; gap: 0; }
+  .fact { padding: 15px 0; border-bottom: 1px solid var(--rule-soft); display: flex; flex-direction: column; gap: 5px; }
+  .fact:first-child { border-top: 1px solid var(--rule-soft); }
+  .fact-k { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+  .fact-v { font-size: 16px; color: var(--ink); line-height: 1.5; }
+
+  /* impossible-to-miss placeholder — must never be presented as-is */
+  .todo {
+    display: inline-block;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    color: var(--attention); background: transparent;
+    border: 1px dashed var(--attention); padding: 3px 8px;
+    letter-spacing: 0.04em;
   }
+
+  .seq { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; margin-top: 18px; border-left: 1px solid var(--rule-soft); }
+  .seq-step { padding: 0 clamp(14px, 1.6vw, 26px); border-right: 1px solid var(--rule-soft); display: flex; flex-direction: column; gap: 8px; }
+  .seq-n { font-family: var(--mono); font-size: 11px; color: var(--primary); letter-spacing: 0.1em; font-weight: 600; }
+  .seq-t { font-weight: 700; font-size: 15.5px; color: var(--ink); }
+  .seq-d { font-size: 14.5px; color: var(--ink-soft); line-height: 1.45; }
+
+  /* ---------- chrome ---------- */
+
+  #progress { position: fixed; left: 0; top: 0; height: 2px; width: 0%; background: var(--primary); z-index: 60; transition: width 0.25s ease; }
   @media (prefers-reduced-motion: reduce) { #progress { transition: none; } }
 
-  #controls {
-    position: fixed; right: 18px; bottom: 16px; z-index: 61;
-    display: flex; gap: 8px; align-items: center;
-  }
-  .ctl {
-    font-family: var(--mono); font-size: 11px; font-weight: 600;
-    letter-spacing: 0.09em; text-transform: uppercase;
-    background: var(--surface); color: var(--ink-soft);
-    border: 1px solid var(--rule); padding: 7px 11px; cursor: pointer;
-    line-height: 1;
-  }
+  #controls { position: fixed; right: 18px; bottom: 16px; z-index: 61; display: flex; gap: 8px; align-items: center; }
+  .ctl { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; background: var(--surface); color: var(--ink-soft); border: 1px solid var(--rule); padding: 7px 11px; cursor: pointer; line-height: 1; }
   .ctl:hover { color: var(--ink); border-color: var(--primary); }
   .ctl:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   .ctl[aria-pressed="true"] { background: var(--primary); color: var(--ground); border-color: var(--primary); }
   #timer.running { color: var(--ink); border-color: var(--primary); }
   #timer.over { color: var(--attention); border-color: var(--attention); }
 
-  #notes {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
-    background: var(--ground-deep);
-    border-top: 1px solid var(--rule);
-    padding: 18px 22px 20px;
-    max-height: 34dvh; overflow-y: auto;
-    display: none;
-    box-shadow: 0 -10px 30px var(--shadow);
-  }
+  #notes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: var(--ground-deep); border-top: 1px solid var(--rule); padding: 18px 22px 20px; max-height: 34dvh; overflow-y: auto; display: none; box-shadow: 0 -10px 30px var(--shadow); }
   #notes.on { display: block; }
-  #notes .n-head {
-    font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em;
-    text-transform: uppercase; color: var(--primary); margin-bottom: 8px;
-  }
+  #notes .n-head { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--primary); margin-bottom: 8px; }
   #notes .n-body { font-size: 15px; line-height: 1.6; color: var(--ink); max-width: 100ch; }
   #notes .n-body em { color: var(--primary); font-style: normal; font-weight: 700; }
 
-  /* ---------- responsive ---------- */
+  @media (max-width: 980px) {
+    .tl { grid-template-columns: 76px repeat(6, minmax(0, 1fr)); }
+    .tl-name { font-size: 13px; }
+    .tl-on .tl-what { font-size: 12px; }
+    .person { grid-template-columns: 1fr; gap: 22px; }
+  }
   @media (max-width: 860px) {
     .slide { grid-template-columns: 1fr; gap: 18px; padding: 24px 22px 84px; }
-    .rail { flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 16px;
-            border-right: none; border-bottom: 1px solid var(--rule-soft); padding: 0 0 12px; }
+    .rail { flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 16px; border-right: none; border-bottom: 1px solid var(--rule-soft); padding: 0 0 12px; }
     .rail-top { flex-direction: row; align-items: baseline; gap: 14px; }
     .rail-clock { font-size: 18px; }
-    .domains { grid-template-columns: repeat(2, 1fr); }
+    .tl { grid-template-columns: 1fr; border-top: none; }
+    .tl-lab { border-right: none; border-bottom: 1px solid var(--rule); padding-left: 0; }
+    .tl-cell { border-right: none; }
     .seq { grid-template-columns: 1fr; border-left: none; }
     .seq-step { border-right: none; border-left: 1px solid var(--rule-soft); padding: 10px 0 10px 16px; }
     .status-row { grid-template-columns: 1fr; gap: 7px; }
@@ -439,12 +337,12 @@
 
   <!-- 1 ───────────────────────────────────────────── -->
   <section class="slide" data-sec="Open" data-t="0:00" data-dur="40s"
-    data-notes="Don't rush this. Let the title sit for a beat. <em>Two products, six weeks, one summer.</em> Say the sentence, then move — the thesis is the next slide, not this one.">
+    data-notes="Let the title sit for a beat before you speak. You're not opening with a feature list — you're opening with a story that has a shape. Say the dates out loud; six weeks is the frame for everything after.">
     <div class="rail"></div>
     <div class="stage">
       <div class="title-mark">The Neighbourhood</div>
-      <h1>A parenting app<br>for the first<br>seven years.</h1>
-      <p class="lead" style="margin-top:32px">A live website, a working app, and a production database underneath both — built over six weeks.</p>
+      <h1>Six weeks,<br>six phases,<br>one product.</h1>
+      <p class="lead" style="margin-top:32px">How a parenting app went from an idea on a landing page to something you can install on your phone.</p>
       <div class="byline">
         <span>SIDDHARTH · SUMMER INTERNSHIP 2026</span>
         <span>11 JUL — 21 AUG</span>
@@ -454,344 +352,312 @@
   </section>
 
   <!-- 2 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Open" data-t="0:40" data-dur="55s"
-    data-notes="This is the whole product in one sentence. If you blank at any point in the next 30 minutes, come back to this line. Everything in the deck hangs off it.">
+  <section class="slide" data-sec="Open" data-t="0:40" data-dur="50s"
+    data-notes="One sentence for what the product is, so the phases have something to be about. Don't elaborate — the whole talk elaborates. Then move straight to the arc.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">The premise</span>
+      <span class="eyebrow">What it is, in one sentence</span>
       <div class="pull">The app answers <span class="hi">one question a day</span> — what should I actually do with my child today?</div>
-      <p style="margin-top:28px;max-width:44ch">Four things. One for each area of development. Sized for the age they are this week. If you do nothing else in the app, you've had a good day.</p>
+      <p style="margin-top:28px;max-width:46ch">Four activities, one for each area of development, sized for the age they are this week. That's the product. Everything I built over six weeks was in service of making that one screen true.</p>
     </div>
   </section>
 
-  <!-- 3 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Problem" data-t="1:35" data-dur="1:10"
-    data-notes="Keep this crisp — it's setup, not the substance. The point that lands: <em>both existing categories hand the parent work.</em> A library makes you search. A tracker makes you log. Neither one tells you what to do.">
+  <!-- 3 ── THE SPINE ────────────────────────────────── -->
+  <section class="slide" data-sec="The arc" data-t="1:30" data-dur="1:30"
+    data-notes="⭐ THIS IS THE SPINE OF THE TALK. Walk the six phase names left to right with your hand, then say the two things that matter: <em>the two tracks ran in parallel</em>, and <em>each phase only became possible because the one before it finished.</em> Tell the room you'll take these one at a time — that's the promise that makes the next six slides easy to follow.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">Why this, and not the alternatives</span>
-      <h2>Every parenting app<br>hands you more work.</h2>
-      <div class="cols two">
-        <div class="panel">
-          <h4>The content library</h4>
-          <p>BabyCenter, What to Expect. Thousands of articles you never read. The work is search — you have to already know what your problem is called.</p>
-        </div>
-        <div class="panel">
-          <h4>The tracker</h4>
-          <p>Feeds, naps, nappies. Turns your baby into a spreadsheet, and the work is data entry. Miss two days and it becomes a guilt machine.</p>
-        </div>
-        <div class="panel" style="border-color:var(--primary)">
-          <h4 style="color:var(--primary)">The third option</h4>
-          <p>Tell the parent four things to do today, sized to their child's exact age, and then get out of the way. No searching. No logging debt.</p>
-        </div>
+      <span class="eyebrow">The whole internship on one slide</span>
+      <h2 style="margin-bottom:0.35em">Six phases,<br>two parallel tracks.</h2>
+      <div class="tl">
+        <div class="tl-lab" style="border-bottom-color:var(--rule)"></div>
+        <div class="tl-cell tl-head" style="border-bottom-color:var(--rule)"><span class="tl-n">01</span><span class="tl-name">Prototype</span><span class="tl-date">11–12 Jul</span></div>
+        <div class="tl-cell tl-head" style="border-bottom-color:var(--rule)"><span class="tl-n">02</span><span class="tl-name">Position</span><span class="tl-date">22–23 Jul</span></div>
+        <div class="tl-cell tl-head" style="border-bottom-color:var(--rule)"><span class="tl-n">03</span><span class="tl-name">Shell</span><span class="tl-date">21–25 Jul</span></div>
+        <div class="tl-cell tl-head" style="border-bottom-color:var(--rule)"><span class="tl-n">04</span><span class="tl-name">Spine</span><span class="tl-date">26–27 Jul</span></div>
+        <div class="tl-cell tl-head" style="border-bottom-color:var(--rule)"><span class="tl-n">05</span><span class="tl-name">Widen</span><span class="tl-date">30 Jul–10 Aug</span></div>
+        <div class="tl-cell tl-head" style="border-bottom-color:var(--rule)"><span class="tl-n">06</span><span class="tl-name">Close the gap</span><span class="tl-date">12–21 Aug</span></div>
+
+        <div class="tl-lab">Website</div>
+        <div class="tl-cell tl-on"><div class="tl-bar alt"></div><span class="tl-what">Daily-activity idea tested in public</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar alt"></div><span class="tl-what">Editorial homepage, the argument</span></div>
+        <div class="tl-cell tl-off">—</div>
+        <div class="tl-cell tl-on"><div class="tl-bar alt"></div><span class="tl-what">Schema ownership handed to the app</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar alt"></div><span class="tl-what">Design system rebuilt, legal pages</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar alt"></div><span class="tl-what">Redesign promoted to the live site</span></div>
+
+        <div class="tl-lab">App</div>
+        <div class="tl-cell tl-off">—</div>
+        <div class="tl-cell tl-on"><div class="tl-bar"></div><span class="tl-what">Foundation and onboarding begin</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar"></div><span class="tl-what">Tabs, four activities, installable</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar"></div><span class="tl-what">Postgres, seeds, wired end to end</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar"></div><span class="tl-what">Parent side, whole family, multi-child</span></div>
+        <div class="tl-cell tl-on"><div class="tl-bar"></div><span class="tl-what">Community, Copilot, 1,149 activities</span></div>
       </div>
+      <p style="margin-top:22px;max-width:66ch">Each phase only became possible because the one before it finished. You can't widen a product that has no spine, and you can't give a spine to something that doesn't exist yet.</p>
     </div>
   </section>
 
   <!-- 4 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Scope" data-t="2:45" data-dur="1:10"
-    data-notes="This is your scale slide — the 'I actually built a lot' moment. Don't read every number out loud, that's deadly. Say: <em>two products, a real database, and about 33,000 lines.</em> Then point at the content row, because that's the one that surprises people.">
+  <section class="slide" data-sec="Phase 01" data-t="3:00" data-dur="1:15"
+    data-notes="The lesson here is the valuable part: I tested the core idea on a webpage before writing a single line of app code. Cheapest possible way to find out whether 'four things today' reads as helpful or as homework.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">What was actually shipped</span>
-      <h2>Two products, one database.</h2>
-      <div class="metrics">
-        <div class="metric"><span class="m-val">1,149</span><span class="m-lab">activities, 7 domains × 28 age bands</span></div>
-        <div class="metric"><span class="m-val">137</span><span class="m-lab">developmental milestones</span></div>
-        <div class="metric"><span class="m-val">54</span><span class="m-lab">vaccination entries, UIP + IAP</span></div>
-        <div class="metric"><span class="m-val">17</span><span class="m-lab">Postgres tables</span></div>
-        <div class="metric"><span class="m-val">26</span><span class="m-lab">migrations, all in source control</span></div>
-        <div class="metric"><span class="m-val">33k</span><span class="m-lab">lines across app, site and SQL</span></div>
+      <div class="phase-head"><span class="phase-n">PHASE 01</span><span class="phase-date">11–12 JULY · WEBSITE</span></div>
+      <h2>Prototype the idea<br>before building it.</h2>
+      <p style="max-width:60ch">The first thing I built wasn't the app. It was a page on the website — <code>/today</code> and <code>/day</code>, a "One Day, Lived" walkthrough — that showed a parent what a single day inside this product would feel like.</p>
+      <div class="cols two">
+        <div class="panel">
+          <h4>Why start there</h4>
+          <p>A webpage takes a day. An app takes weeks. If "four things to do today" reads as homework rather than help, I wanted to find that out on the cheap page, not after building the expensive thing.</p>
+        </div>
+        <div class="panel">
+          <h4>What it settled</h4>
+          <p>The daily-activity loop was worth building, and the tone had to be permission-giving rather than instructional. Both of those decisions survived all the way into the shipped app.</p>
+        </div>
       </div>
-      <p style="margin-top:22px">The website is live and taking signups. The app is installable to a phone home screen right now, from a link. Both talk to the same production Supabase project.</p>
     </div>
   </section>
 
   <!-- 5 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Demo · Home" data-t="3:55" data-dur="2:30"
-    data-notes="⭐ CENTREPIECE — SLOW DOWN. Get the phone out. Open Home. Tap into one activity, complete it, show the ring move. Then say the 'why four' argument while it's on screen. Do NOT talk over a loading screen — wait for it, then speak.">
+  <section class="slide" data-sec="Phase 02" data-t="4:15" data-dur="1:15"
+    data-notes="Eight commits in two days. The point to make: writing the pitch forced the product definition. You cannot write a homepage for something you can't explain — so the homepage became the spec.">
     <div class="rail"></div>
     <div class="stage">
-      <div class="demo-flag">Live demo — Home</div>
-      <h2>Four activities. Every day.<br>One per domain.</h2>
-      <div class="domains">
-        <div class="domain"><span class="d-name">Motor</span><span class="d-ex">Tummy time, climbing, grip and balance.</span></div>
-        <div class="domain"><span class="d-name">Communication</span><span class="d-ex">Naming, turn-taking, songs and sounds.</span></div>
-        <div class="domain"><span class="d-name">Cognitive</span><span class="d-ex">Cause and effect, sorting, hide-and-find.</span></div>
-        <div class="domain"><span class="d-name">Social &amp; emotional</span><span class="d-ex">Mirroring, sharing, naming feelings.</span></div>
-      </div>
-      <p style="margin-top:24px;max-width:60ch"><strong>Why four, and why those four.</strong> A parent doing plenty of talking and no crawling practice has a gap they can't see. One activity per domain makes the balance <em>structural</em> — you can't accidentally over-index on the thing you're already good at.</p>
+      <div class="phase-head"><span class="phase-n">PHASE 02</span><span class="phase-date">22–23 JULY · WEBSITE</span></div>
+      <h2>Writing the pitch<br>defined the product.</h2>
+      <p style="max-width:60ch">An editorial homepage, built in two days: a video hero, "Why We Exist", the developmental argument, and a milestone timeline. Values written around the TRICK framework. The AI companion named explicitly for the first time.</p>
+      <ul class="tight">
+        <li><strong>The homepage became the spec.</strong> You can't write a landing page for something you can't explain in a sentence. Forcing the copy forced the definition — and the definition is what the app was then built against.</li>
+        <li><strong>Structure emerged here too.</strong> Story, Values and FAQ moved off the homepage onto their own routes. The homepage's job is the pitch; those pages are for someone who wants more before committing.</li>
+      </ul>
     </div>
   </section>
 
   <!-- 6 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Demo · Home" data-t="6:25" data-dur="1:10"
-    data-notes="This is the engineering answer hiding inside a product slide — good for the technical half of the room without losing the rest. The killer line is the third one: <em>you and your partner see the same day.</em> That's a feature nobody asks for and everybody notices.">
+  <section class="slide" data-sec="Phase 03" data-t="5:30" data-dur="1:30"
+    data-notes="Four days from nothing to an app on a phone. Emphasise the distribution decision — turning auth off and shipping as an installable web build meant anyone could try it from a link on day five. That's a deliberate trade, not a shortcut.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">Four decisions behind one screen</span>
-      <h2>The plan is a row,<br>not a render.</h2>
-      <ul class="tight">
-        <li><strong>Generated once, then fixed.</strong> The four activities are written to <code>daily_plans</code> the first time you open the app that day. They don't reshuffle while you're looking at them.</li>
-        <li><strong>"Today" is family-local.</strong> Rollover uses the timezone captured at signup, not the server's. UTC would roll an Indian family over at 5:30am — mid-morning.</li>
-        <li><strong>Same on every device.</strong> Because it's persisted, you and your co-parent open the app to the identical day.</li>
-        <li><strong>Swap keeps the balance.</strong> Don't like one? You get a different activity <em>in the same domain</em>. You can never end up with two motor tasks and no talking.</li>
-      </ul>
+      <div class="phase-head"><span class="phase-n">PHASE 03</span><span class="phase-date">21–25 JULY · APP</span></div>
+      <h2>From nothing to<br>a phone in four days.</h2>
+      <p style="max-width:60ch">Foundation and onboarding, then the navigation, then the screen the whole product is built around: four activities a day, one per developmental domain.</p>
+      <div class="cols">
+        <div class="panel"><h4>One question per screen</h4><p>Onboarding was split so each screen asks one thing. The birthday gets its own screen — everything downstream is computed from that one date.</p></div>
+        <div class="panel"><h4>Auth turned off</h4><p>Onboarding silently creates a real account behind the scenes, so security still works — but the parent never sees a sign-up step.</p></div>
+        <div class="panel"><h4>Installable from a link</h4><p>Shipped as a web build you add to your home screen. No app store, no TestFlight. Testers were one link away by day five.</p></div>
+      </div>
+      <p style="margin-top:20px;max-width:64ch">This phase is where the product first existed as a thing you could hold. It was also entirely fake underneath — nothing was saved anywhere.</p>
     </div>
   </section>
 
   <!-- 7 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Demo · Child" data-t="7:35" data-dur="1:45"
-    data-notes="Demo Discoveries then Vaccinations. The tiering is the bit worth landing — most schedules show 20 vaccines as one undifferentiated wall and a parent can't tell what's non-negotiable from what's optional. Say the word <em>Discoveries</em> deliberately; explain the rename in one line.">
+  <section class="slide" data-sec="Phase 04" data-t="7:00" data-dur="1:45"
+    data-notes="This is the phase that separates a demo from a product. Two days. Say the snapshot decision out loud even to a non-technical room — 'your child's history doesn't rewrite itself when I edit the library' is understandable by anyone and sounds exactly as considered as it is.">
     <div class="rail"></div>
     <div class="stage">
-      <div class="demo-flag">Live demo — Child</div>
-      <h2>Reference material,<br>framed to reduce anxiety.</h2>
-      <div class="cols two">
-        <div class="panel">
-          <h4>Discoveries — 137 milestones</h4>
-          <p>Shown as ranges, never deadlines. I renamed this from "Milestones" late in the build: a milestone is something you can miss, a discovery is something that happens. Same data, different relationship.</p>
-        </div>
-        <div class="panel">
-          <h4>Vaccinations — 54 entries, three tiers</h4>
-          <p><strong>Essential (21)</strong> — the government UIP schedule, free at any public facility. <strong>Recommended (26)</strong> — what the IAP adds on top. <strong>Situational (7)</strong> — outbreak or geography dependent.</p>
-        </div>
-      </div>
-      <p style="margin-top:20px;max-width:64ch">Where the two schedules disagree, both entries are kept with a note rather than silently picking one. Rows say <em>"Due"</em> — never <em>"overdue"</em>. The app can't know what happened at the clinic.</p>
+      <div class="phase-head"><span class="phase-n">PHASE 04</span><span class="phase-date">26–27 JULY · APP</span></div>
+      <h2>Giving it a spine.</h2>
+      <p style="max-width:62ch">Two days that turned a demo into a product: a real Postgres schema, seeded content, and every screen rewired to read and write it. I probed the live database rather than trusting my own migration files — and found that the tables I thought existed had never actually been applied.</p>
+      <ul class="tight">
+        <li><strong>Plans are persisted, not regenerated.</strong> Today's four activities are a row. They don't reshuffle while you look at them, and they're identical on your partner's phone.</li>
+        <li><strong>Time is family-local.</strong> Rollover uses your timezone, not the server's. UTC would roll an Indian family over at 5:30 in the morning.</li>
+        <li><strong>History is snapshotted.</strong> Completing an activity stores what it said <em>at the time</em>. When I edit the content library next month, your child's history doesn't silently rewrite itself.</li>
+        <li><strong>Every row is locked to its family</strong> — in the database itself, so it holds regardless of what the app does.</li>
+      </ul>
     </div>
   </section>
 
-  <!-- 8 ── PARENT VOICE BEGINS ──────────────────────── -->
-  <section class="slide voice-parent" data-sec="Demo · You" data-t="9:20" data-dur="1:50"
-    data-notes="⭐ YOUR DIFFERENTIATOR. Switch tabs on the phone and let the colour change be visible before you say anything — the room will notice it. This is the emotional peak of the talk. Slow, quiet delivery. Don't oversell it; the idea is strong enough on its own.">
+  <!-- 8 ── PARENT VOICE ─────────────────────────────── -->
+  <section class="slide voice-parent" data-sec="Phase 05" data-t="8:45" data-dur="2:00"
+    data-notes="⭐ EMOTIONAL PEAK. Let the colour change land before you speak — the room will notice the slide has changed temperature, which is exactly what the app does. Then tell the onboarding story: the two questions moved, and why. Pause after the last line.">
     <div class="rail"></div>
     <div class="stage">
-      <div class="demo-flag">Live demo — You</div>
-      <span class="eyebrow">The part I'm proudest of</span>
-      <div class="pull">Every parenting app is about the child. The parent is treated as <span class="hi">a logistics layer.</span></div>
-      <p style="margin-top:26px;max-width:56ch">But in the first year the parent is also recovering — often badly, usually alone, and nobody is asking. So there's a whole tab for them: their own daily check-in, nutrition that accounts for feeding and recovery, and long-form care content. <strong>Seven care areas, 35 topics.</strong></p>
-      <p style="max-width:56ch">Watch the colour. The child side is warm cream; the parent side is a cooler eucalyptus at the same lightness. A parent opening it at 3am should feel the room change temperature — not the lights go out.</p>
+      <div class="phase-head"><span class="phase-n">PHASE 05</span><span class="phase-date">30 JULY – 10 AUGUST · APP</span></div>
+      <h2>The subject widened<br>from child to family.</h2>
+      <p style="max-width:60ch">Every parenting app treats the parent as a logistics layer — the person who administers the app to the baby. But in the first year the parent is also recovering, often badly, usually alone, and nobody is asking. So they got their own side of the product: seven care areas, 35 topics, a daily check-in, nutrition staged to how they're feeding and healing.</p>
+      <p style="max-width:60ch"><strong>And one decision I'd defend anywhere.</strong> Two questions shape that side: how you're feeding, and how your baby arrived. They used to be in onboarding, step five of six — the two most loaded questions in postpartum life, asked <em>before the parent had received a single thing from us.</em></p>
+      <p style="max-width:60ch">I moved them to the first time you deliberately step into your own space. Same two questions. Completely different relationship.</p>
     </div>
   </section>
 
   <!-- 9 ───────────────────────────────────────────── -->
-  <section class="slide voice-parent" data-sec="Demo · You" data-t="11:10" data-dur="1:40"
-    data-notes="⭐ THE BEST STORY IN THE DECK. This is the one that makes you sound like a product thinker rather than someone who can code. Tell it as a story with a turn in the middle: we asked them here → that was wrong → here's where they live now. Land the last line and pause.">
+  <section class="slide" data-sec="Phase 06" data-t="10:45" data-dur="1:45"
+    data-notes="This is the phase that shows judgement rather than output. I audited my own product, wrote down what was pretending, and then spent the last two weeks making it true. Say the word 'pretending' — it's honest and it lands.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">A product decision worth defending</span>
-      <h2>Same two questions.<br>Completely different<br>relationship.</h2>
-      <p style="max-width:60ch">Two questions shape the parent side: <strong>how you're feeding</strong>, and <strong>how your baby arrived</strong>. They used to sit in onboarding, step five of six.</p>
-      <p style="max-width:60ch">They are the two most loaded questions in postpartum life. A caesarean can carry real grief. Formula feeding carries stigma most parents have already been judged for. And we were asking both <em>before the parent had received a single thing from us</em> — at the last gate before the app even existed.</p>
-      <p style="max-width:60ch"><strong>So I moved them.</strong> They're now asked the first time you deliberately step into your own space. The parent has already chosen to be there, so the question has an obvious reason — and anyone who never opens that tab is never asked at all. Both optional. "Rather not say" is a real answer. The button is never disabled.</p>
+      <div class="phase-head"><span class="phase-n">PHASE 06</span><span class="phase-date">12–21 AUGUST · BOTH</span></div>
+      <h2>Making true the things<br>that were pretending.</h2>
+      <p style="max-width:62ch">In August I audited my own codebase and wrote down everything that looked finished but wasn't. Then I spent the last stretch closing it.</p>
+      <div class="cols two">
+        <div class="panel" style="border-color:var(--positive)">
+          <h4 style="color:var(--positive)">Community was fabricated</h4>
+          <p>An in-memory array of invented parents and invented expert replies, shipped to production and wiped on every reload. Now five real Postgres tables, with report, block and hide built in.</p>
+        </div>
+        <div class="panel" style="border-color:var(--positive)">
+          <h4 style="color:var(--positive)">The Copilot didn't answer</h4>
+          <p>It accepted a question and replied that it wasn't connected. It now runs a real model through a server-side function, scoped to your own child, with the conversation saved.</p>
+        </div>
+      </div>
+      <p style="margin-top:20px;max-width:64ch">Same phase: the activity library went from <strong>56 to 1,149</strong>, and "Milestones" became <strong>"Discoveries"</strong> — a milestone is something you can miss, a discovery is something that happens.</p>
     </div>
   </section>
 
-  <!-- 10 ── back to child voice ─────────────────────── -->
-  <section class="slide" data-sec="Demo · Ask" data-t="12:50" data-dur="1:20"
-    data-notes="Note for the technical half: the API key point is the interesting bit. Expo inlines every EXPO_PUBLIC_ var into the JS bundle — so a key in the client is a published key. Say that plainly, it's a real security decision, not a config detail.">
+  <!-- 10 ───────────────────────────────────────────── -->
+  <section class="slide" data-sec="Where it landed" data-t="12:30" data-dur="1:15"
+    data-notes="Don't read every number — that's deadly. Say 'two products, one database, about thirty-three thousand lines', then point at the content figure, because 1,149 is the number that actually surprises people.">
     <div class="rail"></div>
     <div class="stage">
-      <div class="demo-flag">Live demo — Ask</div>
-      <h2>The Copilot is real now.</h2>
-      <p style="max-width:62ch">A conversational layer that knows which child you're asking about and how old they are. It was a scaffold six weeks ago — it answers for real today.</p>
-      <div class="cols two" style="margin-top:14px">
-        <div class="panel">
-          <h4>The key can't live in the app</h4>
-          <p>Expo ships every <code>EXPO_PUBLIC_*</code> variable inside the JS bundle — readable by anyone who opens the app. So the model call goes through a Supabase Edge Function, and the API key stays a server-side secret that only that function ever sees.</p>
-        </div>
-        <div class="panel">
-          <h4>Ownership is proved by the database</h4>
-          <p>The function forwards the caller's own access token and builds a client scoped to that user. Row-level security — not the function's own logic — is what proves the child belongs to them. Same rule as every other table.</p>
-        </div>
+      <span class="eyebrow">End of the six phases</span>
+      <h2>Where it landed.</h2>
+      <div class="metrics">
+        <div class="metric"><span class="m-val">1,149</span><span class="m-lab">activities, 7 domains × 28 age bands</span></div>
+        <div class="metric"><span class="m-val">137</span><span class="m-lab">developmental milestones</span></div>
+        <div class="metric"><span class="m-val">54</span><span class="m-lab">vaccination entries, UIP + IAP</span></div>
+        <div class="metric"><span class="m-val">17</span><span class="m-lab">Postgres tables, 26 migrations</span></div>
+        <div class="metric"><span class="m-val">80</span><span class="m-lab">commits across two repositories</span></div>
+        <div class="metric"><span class="m-val">33k</span><span class="m-lab">lines across app, site and SQL</span></div>
       </div>
-      <p style="margin-top:18px;max-width:64ch">One running thread per child, persisted, so it survives a reload. The system prompt narrows its subject depending on whether you opened Ask from the Child side or the You side — one product, not two.</p>
+      <p style="margin-top:22px;max-width:64ch">A live website taking signups, an app installable from a link, and one production database underneath both.</p>
     </div>
   </section>
 
   <!-- 11 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Demo · Community" data-t="14:10" data-dur="55s"
-    data-notes="Short slide. The honest framing is the value here: it was fake, I said so in my own audit, then I fixed it. Mention the moderation primitives — report, block, hide — because that's the bit people assume you skipped.">
+  <section class="slide" data-sec="Demo" data-t="13:45" data-dur="4:00"
+    data-notes="⭐ GET THE PHONE OUT. Open from the home screen — physically doing that beats any slide. Order: Home (complete an activity, show the ring) → Child (Discoveries, then the vaccination tiers) → You (let the colour change) → Ask (type a real question). Don't talk over a loading screen. If it dies, switch to stills and keep moving — never debug on stage.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">The one deliberately shared corner</span>
-      <h2>Community, backed by Postgres.</h2>
-      <p style="max-width:62ch">Until two weeks ago this was an in-memory array. Nothing anyone posted survived a refresh, and no two parents ever saw each other's posts. It's now five real tables.</p>
-      <ul class="tight">
-        <li><strong>Different rules from the rest of the app.</strong> Any signed-in parent may read every discussion; they may only write their own. Enforced in RLS, so a bug in my query code can't become a way to edit someone else's post.</li>
-        <li><strong>Moderation exists.</strong> Report, block an author, hide a reply, and a verified-expert flag — built in from the start rather than retrofitted after the first incident.</li>
-        <li><strong>Posts are age-relevant.</strong> Discussions carry an age range, so a parent sees what's live for parents at their stage.</li>
-      </ul>
+      <div class="demo-flag">Live demo — about four minutes</div>
+      <h2>Let me show you<br>the actual thing.</h2>
+      <div class="seq">
+        <div class="seq-step"><span class="seq-n">HOME</span><span class="seq-t">Four activities</span><span class="seq-d">Tap in, complete one, watch the ring fill. Four out of four is an achievable day.</span></div>
+        <div class="seq-step"><span class="seq-n">CHILD</span><span class="seq-t">Discoveries · Vaccinations</span><span class="seq-d">Ranges never deadlines. Vaccines tiered essential / recommended / situational.</span></div>
+        <div class="seq-step"><span class="seq-n">YOU</span><span class="seq-t">The parent's side</span><span class="seq-d">Let the colour change happen in silence. Check-in, nutrition, recovery.</span></div>
+        <div class="seq-step"><span class="seq-n">ASK</span><span class="seq-t">The Copilot</span><span class="seq-d">Type a real question. It knows which child and how old they are.</span></div>
+      </div>
+      <p style="margin-top:24px;max-width:62ch" class="quiet">If the demo dies: switch to the screenshots, say the live one is being shy, and keep moving.</p>
     </div>
   </section>
 
   <!-- 12 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Website" data-t="15:05" data-dur="1:20"
-    data-notes="Switch to the website tab. Scroll slowly — pause at the growth animation and at the milestone timeline. The four-design-directions line is a good self-aware laugh; use it.">
+  <section class="slide" data-sec="What I learned" data-t="17:45" data-dur="1:30"
+    data-notes="Three lessons, each tied to a phase you just walked through — so they land as conclusions rather than platitudes. The middle one is the strongest: I shipped a concept users had to learn, and the fix was to delete the concept, not explain it better.">
     <div class="rail"></div>
     <div class="stage">
-      <div class="demo-flag">Live demo — the website</div>
-      <h2>The front door.</h2>
-      <p style="max-width:62ch">One page that does the whole argument — what we're building, the developmental case for it, and a waitlist. It ends on an invitation rather than a signup form, which is a better last impression.</p>
-      <div class="cols">
-        <div class="panel"><h4>Scroll-driven growth animation</h4><p>A child growing through the years, doing the emotional work the copy can't.</p></div>
-        <div class="panel"><h4>"Every child on their own clock"</h4><p>A milestone timeline using the same framing as the app — ranges, never deadlines.</p></div>
-        <div class="panel"><h4>Referral mechanic</h4><p>Signups land in the same Supabase project. Share your link, move up the queue.</p></div>
-        <div class="panel"><h4>Legal pages</h4><p>Privacy, terms, cookies and a disclaimer — canonical across every surface.</p></div>
-      </div>
-      <p style="margin-top:20px;max-width:64ch" class="quiet">50 commits, and four full design directions running in parallel at one point. I collapsed them to one and deleted the rest — maintaining four versions of a landing page is how you end up shipping none of them.</p>
+      <span class="eyebrow">What the six phases taught me</span>
+      <h2>Three things I'd<br>carry to the next build.</h2>
+      <ul class="tight">
+        <li><strong>Prototype in the cheapest medium that can still be wrong.</strong> A webpage answered the riskiest question about this product before any app code existed. <span class="quiet">— Phase 01</span></li>
+        <li><strong>If users have to learn your idea, delete the idea.</strong> The app briefly had two modes swapped by a toggle. It worked, but "which mode am I in" became something the user had to hold in their head. Five flat tabs replaced it and cost nothing. The toggle was a clever solution to a problem I had invented. <span class="quiet">— Phase 05</span></li>
+        <li><strong>Audit your own work before someone else does.</strong> Writing down what was pretending to be finished was uncomfortable, and it directly produced the last two weeks of real work. <span class="quiet">— Phase 06</span></li>
+      </ul>
     </div>
   </section>
 
   <!-- 13 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Engineering" data-t="16:25" data-dur="1:45"
-    data-notes="Adjust to the room. If the business half looks glazed, read the four bold openers only and move on — that's about 40 seconds. The snapshot decision is the one worth keeping either way; it's the most 'senior' idea in the build.">
+  <section class="slide" data-sec="Honest status" data-t="19:15" data-dur="1:45"
+    data-notes="⭐ DO NOT SKIP. Volunteering the gaps is what makes everything before it credible. Deliver it evenly — a status report, not a confession. Don't apologise for the scaffolds; 'routed and designed, not functional' is a state, not a failure.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">Under the app</span>
-      <h2>Four decisions that<br>shaped the schema.</h2>
-      <ul class="tight">
-        <li><strong>Plans are persisted, not regenerated.</strong> <code>daily_plans</code>, unique per child per date. The generator only runs when the row is absent.</li>
-        <li><strong>Dates are family-local.</strong> An IANA timezone on the profile, captured from the device. A plan rolls over at <em>your</em> midnight.</li>
-        <li><strong>The activity log snapshots its content.</strong> When you complete something, the title, domain and age band are stored as columns — not a pointer. So when I edit the content library next month, your child's history doesn't silently rewrite itself.</li>
-        <li><strong>Every row is locked to the family that owns it.</strong> 26 row-level security policies in the database itself, so ownership holds regardless of what the app does.</li>
-      </ul>
-      <p style="margin-top:16px;max-width:64ch" class="quiet">Plus: completion is offline-tolerant — tap with no signal, it looks instant and reconciles later, and the server always wins. And <code>started_at</code> is tracked separately from <code>completed_at</code>, so an abandoned activity is observable and starting something never inflates "2 of 4".</p>
+      <span class="eyebrow">Being straight about it</span>
+      <h2>What's real,<br>and what isn't.</h2>
+      <div class="status">
+        <div class="status-row"><span class="chip ok">Working</span><p>Onboarding, the four-activity Home, Discoveries, Vaccinations, the whole parent side, the Copilot, Community, and the entire data layer. Real accounts, real database, verified end to end against production.</p></div>
+        <div class="status-row"><span class="chip part">Scaffolded</span><p>Reports, the Development Kit and the Product Guide are routed and designed, with content still to come. Courses and Workshops have structure and seeded lessons, but placeholder video URLs.</p></div>
+        <div class="status-row"><span class="chip gap">Needs a clinician</span><p>The vaccination schedule is transcribed accurately from the UIP and IAP sources, but it's medical content. It needs a paediatrician to sign it off before anyone relies on it — I'm not qualified to be the last set of eyes on that.</p></div>
+        <div class="status-row"><span class="chip gap">Not yet built</span><p>No analytics, which means I cannot currently answer "did anyone come back on day two?". No payments. And the waitlist has 11 signups — it isn't a pipeline yet, it's a form on a page nobody visits.</p></div>
+      </div>
     </div>
   </section>
 
-  <!-- 14 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Engineering" data-t="18:10" data-dur="1:10"
-    data-notes="The number to say out loud is <em>1,149</em> — it's the single most impressive figure in the build, and it went from 56 in about three weeks. The point isn't the number though, it's that content is code: reviewable, diffable, and it can't drift.">
+  <!-- 14 ── PEOPLE ──────────────────────────────────── -->
+  <section class="slide voice-people" data-sec="The team" data-t="21:00" data-dur="30s"
+    data-notes="Change your register here — you're done presenting your own work. Slow down, warm up, look at the room rather than the screen. If the three of them are present, find them. This section is generous, not dutiful.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">Content as source code</span>
-      <h2>From 56 activities<br>to 1,149.</h2>
-      <p style="max-width:60ch">The library started at two activities per domain per age band — enough to demo, not enough to live with. One swap exhausted the pool.</p>
-      <div class="metrics">
-        <div class="metric"><span class="m-val">1,149</span><span class="m-lab">activities in the library</span></div>
-        <div class="metric"><span class="m-val">28</span><span class="m-lab">age bands, three months each, 0–7 years</span></div>
-        <div class="metric"><span class="m-val">7</span><span class="m-lab">developmental domains covered</span></div>
-        <div class="metric"><span class="m-val">41</span><span class="m-lab">activities available in every single band</span></div>
-      </div>
-      <p style="margin-top:20px;max-width:64ch">It's authored in a CSV, compiled into a migration by a script, and applied like any other schema change. So it's diffable, reviewable, version-controlled — and it <em>cannot</em> drift from its source, because the seed is generated rather than hand-maintained.</p>
+      <span class="eyebrow">Before I finish</span>
+      <div class="pull">I wasn't the only one here this summer. <span class="hi">Three other interns</span> shaped what I built.</div>
+      <p style="margin-top:28px;max-width:52ch">A minute each — what they worked on, and one thing about them worth knowing.</p>
     </div>
   </section>
 
   <!-- 15 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="What I learned" data-t="19:20" data-dur="1:20"
-    data-notes="This is a genuine sequence, which is why it's numbered. The lesson at the end is the payload: <em>I shipped a concept the user had to learn, and the fix was to delete the concept.</em> That's a real product lesson and it's yours.">
+  <section class="slide voice-people" data-sec="The team" data-t="21:30" data-dur="1:00"
+    data-notes="⚠ PLACEHOLDER — fill this in before presenting. Aim for: one line on what they worked on, then two or three specific facts. Specific beats flattering: a concrete thing they did or know beats 'was a great teammate'.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">The navigation was rebuilt three times</span>
-      <h2>I shipped an idea<br>users had to learn.</h2>
-      <div class="seq">
-        <div class="seq-step">
-          <span class="seq-n">FIRST</span>
-          <span class="seq-t">Three tabs</span>
-          <span class="seq-d">Home, Copilot, Growth. Clean, but the parent had nowhere to exist in it.</span>
+      <div class="person">
+        <div class="person-id">
+          <span class="person-role">Intern one</span>
+          <span class="person-name"><span class="todo">NAME</span></span>
+          <p class="person-line"><span class="todo">One line: what they worked on this summer.</span></p>
         </div>
-        <div class="seq-step">
-          <span class="seq-n">THEN</span>
-          <span class="seq-t">Two modes, one toggle</span>
-          <span class="seq-d">Child Mode and Parent Mode, each with four tabs, swapped by a header control. It worked — but "which mode am I in" became something the user had to hold in their head.</span>
-        </div>
-        <div class="seq-step now">
-          <span class="seq-n">NOW</span>
-          <span class="seq-t">Five tabs, no toggle</span>
-          <span class="seq-d">Home · Community · Ask · Child · You. The colour still shifts as a wayfinding cue, but nothing about it is a concept anyone has to learn. They just pick a tab.</span>
+        <div class="facts">
+          <div class="fact"><span class="fact-k">What they built</span><span class="fact-v"><span class="todo">The thing they owned</span></span></div>
+          <div class="fact"><span class="fact-k">Interesting fact</span><span class="fact-v"><span class="todo">Something specific and true</span></span></div>
+          <div class="fact"><span class="fact-k">What I took from them</span><span class="fact-v"><span class="todo">Something you actually learned</span></span></div>
         </div>
       </div>
-      <p style="margin-top:22px;max-width:60ch">The mode toggle was a clever solution to a problem I'd invented. Deleting it removed a concept from the product and cost nothing.</p>
     </div>
   </section>
 
   <!-- 16 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="What I learned" data-t="20:40" data-dur="1:00"
-    data-notes="Optional — cut this first if you're running long. But it's a strong slide for a technical listener: three real bugs, each found by measuring rather than guessing. The scrollHeight one is genuinely obscure and shows real debugging.">
+  <section class="slide voice-people" data-sec="The team" data-t="22:30" data-dur="1:00"
+    data-notes="⚠ PLACEHOLDER — fill this in before presenting. Vary the shape from the previous person so the three slides don't read as a template — a short anecdote lands better than a third list.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">Bugs that taught me something</span>
-      <h2>The first diagnosis<br>was wrong.</h2>
-      <ul class="tight">
-        <li><strong>A vocabulary that shrank.</strong> The website's timeline said "1–3 words" at 10–12 months and "1–2 words" at 12–15. Also, cognitive development was promised in the copy and silently dropped by a <code>slice(0, 3)</code> in the generator. Content bugs, not styling bugs — and invisible unless you actually read your own product.</li>
-        <li><strong>A card that scrolled inside itself.</strong> Decorative blobs positioned outside a card's edges still count toward <code>scrollHeight</code>. The card became scrollable despite <code>overflow-hidden</code>, and tabbing to the button scrolled it by exactly the blob's overshoot. It would have hit every keyboard user.</li>
-        <li><strong>I blamed the wrong thing first.</strong> I restructured a component around a theory about CSS filters. The measurements came back identical — which is what disproved it. The real cause only appeared because I kept measuring after I thought I'd found it.</li>
-      </ul>
+      <div class="person">
+        <div class="person-id">
+          <span class="person-role">Intern two</span>
+          <span class="person-name"><span class="todo">NAME</span></span>
+          <p class="person-line"><span class="todo">One line: what they worked on this summer.</span></p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span class="fact-k">What they built</span><span class="fact-v"><span class="todo">The thing they owned</span></span></div>
+          <div class="fact"><span class="fact-k">Interesting fact</span><span class="fact-v"><span class="todo">Something specific and true</span></span></div>
+          <div class="fact"><span class="fact-k">What I took from them</span><span class="fact-v"><span class="todo">Something you actually learned</span></span></div>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- 17 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Honest status" data-t="21:40" data-dur="1:40"
-    data-notes="⭐ DO NOT SKIP THIS. Volunteering your gaps is what makes everything before it credible. Deliver it evenly — this is a status report, not a confession. Don't apologise; 'routed and designed, not functional' is a state, not a failure.">
+  <section class="slide voice-people" data-sec="The team" data-t="23:30" data-dur="1:00"
+    data-notes="⚠ PLACEHOLDER — fill this in before presenting. End this one warmly; it's the last thing before your close, so it sets the temperature you finish on.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">Where it actually stands</span>
-      <h2>What's real, and<br>what isn't.</h2>
-      <div class="status">
-        <div class="status-row"><span class="chip ok">Working</span><p>Onboarding, the four-activity Home, Discoveries, Vaccinations, the whole parent side, the AI Copilot, Community, and the entire data layer. Real accounts, real database, verified end to end against production.</p></div>
-        <div class="status-row"><span class="chip part">Scaffolded</span><p>Reports, the Development Kit and the Product Guide are routed, designed and navigable, with content still to come. Courses and Workshops have structure and seeded lessons, but the video URLs are placeholders.</p></div>
-        <div class="status-row"><span class="chip gap">Needs a clinician</span><p>The vaccination schedule is transcribed accurately from the UIP and IAP sources, but it's medical content in a parenting app. It needs a paediatrician to sign it off before anyone relies on it. I'm not qualified to be the last set of eyes on that.</p></div>
-        <div class="status-row"><span class="chip gap">Not yet built</span><p>No analytics — which means I currently cannot answer "did anyone come back on day two?". No payments, no push infrastructure. Milestone coverage thins out after age five.</p></div>
-        <div class="status-row"><span class="chip gap">Known flaw</span><p>We ask how you gave birth without first establishing whether you're the birthing parent. For an adoptive parent or a father, that question is wrong on its face. The fix is small — ask the relationship first — and it's the kind of thing you only catch by reading your own product back slowly.</p></div>
+      <div class="person">
+        <div class="person-id">
+          <span class="person-role">Intern three</span>
+          <span class="person-name"><span class="todo">NAME</span></span>
+          <p class="person-line"><span class="todo">One line: what they worked on this summer.</span></p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span class="fact-k">What they built</span><span class="fact-v"><span class="todo">The thing they owned</span></span></div>
+          <div class="fact"><span class="fact-k">Interesting fact</span><span class="fact-v"><span class="todo">Something specific and true</span></span></div>
+          <div class="fact"><span class="fact-k">What I took from them</span><span class="fact-v"><span class="todo">Something you actually learned</span></span></div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- 18 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Honest status" data-t="23:20" data-dur="1:10"
-    data-notes="This shows you can audit your own work and then act on it — the strongest signal in the whole talk. Two of the five gaps I named in my own August audit are already closed. Say the waitlist number out loud; hiding it would undercut the honesty you just bought.">
+  <section class="slide" data-sec="Close" data-t="24:30" data-dur="50s"
+    data-notes="Bring it back to the arc — that's what makes this a story rather than a list. Then hold up the phone and offer the link. Getting the app onto someone's phone in the room is the best possible ending. Then stop talking and take questions.">
     <div class="rail"></div>
     <div class="stage">
-      <span class="eyebrow">I audited my own product in August</span>
-      <h2>Then I fixed<br>what I found.</h2>
-      <div class="cols two">
-        <div class="panel" style="border-color:var(--positive)">
-          <h4 style="color:var(--positive)">Closed since the audit</h4>
-          <p><strong>Community was mock data</strong> — fabricated parents and fabricated expert replies, shipped to production. Now real Postgres with moderation.</p>
-          <p style="margin-top:8px"><strong>Copilot forgot everything on reload.</strong> The tables existed; nothing wrote to them. Conversations now persist per child.</p>
-        </div>
-        <div class="panel">
-          <h4>Still open, and correctly so</h4>
-          <p>Zero analytics. No payments. Course videos are placeholders. And the waitlist has <strong>11 signups</strong> — it isn't a pipeline, it's a form on a page nobody visits yet.</p>
-        </div>
-      </div>
-      <p style="margin-top:20px;max-width:62ch">The strategic conclusion I reached, and still hold: <strong>don't build more features.</strong> The single question that decides whether this is a business is whether a parent opens it on day seven — and I have no instrumentation to answer that.</p>
-    </div>
-  </section>
-
-  <!-- 19 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Next" data-t="24:30" data-dur="55s"
-    data-notes="Keep it to the four headlines. Order is deliberate: instrument before you build, prove retention before you charge. Don't let this turn into a feature wishlist.">
-    <div class="rail"></div>
-    <div class="stage">
-      <span class="eyebrow">The next ninety days</span>
-      <h2>Instrument, then prove,<br>then charge.</h2>
-      <div class="seq">
-        <div class="seq-step"><span class="seq-n">01</span><span class="seq-t">Instrument</span><span class="seq-d">Analytics first. Nothing else can be evaluated without it.</span></div>
-        <div class="seq-step"><span class="seq-n">02</span><span class="seq-t">Fix integrity</span><span class="seq-d">No placeholder content anywhere a user can reach.</span></div>
-        <div class="seq-step"><span class="seq-n">03</span><span class="seq-t">Hand-recruit 100 parents</span><span class="seq-d">Enough real users to measure day-7 retention honestly.</span></div>
-        <div class="seq-step"><span class="seq-n">04</span><span class="seq-t">Sell one workshop</span><span class="seq-d">Prove willingness to pay before building a subscription.</span></div>
-      </div>
-      <p style="margin-top:22px;max-width:60ch">And the content library keeps growing — it's the thing that turns this from a schedule into something a parent can live inside for a year.</p>
-    </div>
-  </section>
-
-  <!-- 20 ───────────────────────────────────────────── -->
-  <section class="slide" data-sec="Close" data-t="25:25" data-dur="45s"
-    data-notes="Land it, then stop talking. Offer the link — getting the app onto someone's phone in the room is the best possible ending. Then open for questions.">
-    <div class="rail"></div>
-    <div class="stage">
-      <div class="pull" style="max-width:26ch">A live website. An app you can put on your phone right now. And a database built to hold <span class="hi">real families</span> rather than a demo.</div>
-      <p style="margin-top:34px;max-width:56ch">It's a web build, so distribution is a URL — no app store, no TestFlight, no invite list. Add to home screen and it's indistinguishable from a native app. Shipping to the App Store later is a packaging step, not a rewrite.</p>
-      <div class="byline" style="margin-top:36px"><span>THANK YOU — QUESTIONS?</span><span>HAPPY TO SEND THE LINK NOW</span></div>
+      <span class="eyebrow">Six weeks, six phases</span>
+      <div class="pull" style="max-width:26ch">Prototype, position, shell, spine, widen, and then <span class="hi">close the gap.</span></div>
+      <p style="margin-top:32px;max-width:58ch">That last phase is the one I'd want to be judged on. Anyone can add features. Going back through your own product, writing down what's pretending to be finished, and then making it true is the harder half.</p>
+      <p style="max-width:58ch">The app is a URL — if anyone wants it on their phone, I'll send the link now.</p>
+      <div class="byline" style="margin-top:34px"><span>THANK YOU — QUESTIONS?</span></div>
     </div>
   </section>
 
 </div>
 
 <div id="controls">
-  <button class="ctl" id="timer" aria-live="off" title="Click to start or pause your 30-minute clock">▶ 00:00</button>
+  <button class="ctl" id="timer" title="Click to start or pause your 30-minute clock">▶ 00:00</button>
   <button class="ctl" id="notesBtn" aria-pressed="false" title="Toggle speaker notes (S)">Notes</button>
   <button class="ctl" id="prev" title="Previous slide">←</button>
   <button class="ctl" id="next" title="Next slide">→</button>
@@ -814,9 +680,9 @@
   var timerBtn = document.getElementById("timer");
   var current = 0;
 
-  // Build each slide's rail from its own data attributes, so the pacing
-  // information lives with the slide it describes rather than in a
-  // separate table that can drift out of step with the deck.
+  // Each slide's rail is built from its own data attributes, so the pacing
+  // shown lives with the slide it describes and can't drift if the deck
+  // is reordered.
   slides.forEach(function (s, i) {
     var rail = s.querySelector(".rail");
     if (!rail) return;
@@ -845,14 +711,10 @@
     showNotes(i);
   }
 
-  // Track the slide filling most of the viewport rather than listening to
-  // scroll, so snap-scrolling and keyboard jumps agree on "current".
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
-        if (e.isIntersecting && e.intersectionRatio > 0.55) {
-          setCurrent(slides.indexOf(e.target));
-        }
+        if (e.isIntersecting && e.intersectionRatio > 0.55) setCurrent(slides.indexOf(e.target));
       });
     }, { root: deck, threshold: [0.55] });
     slides.forEach(function (s) { io.observe(s); });
@@ -881,8 +743,8 @@
     else if (e.key === "s" || e.key === "S") { notesBtn.click(); }
   });
 
-  // A 30-minute clock. It turns red past 30:00 so overrunning is visible
-  // at a glance instead of something you discover at the end.
+  // A 30-minute clock that turns red past 30:00, so overrunning is visible
+  // at a glance rather than something you discover at the end.
   var started = null, elapsed = 0, tick = null;
   function fmt(ms) {
     var t = Math.floor(ms / 1000);
