@@ -1,6 +1,6 @@
 # End of internship talk: what to say
 
-**11 slides. About 22 minutes of talking, plus the demo. 30 minute slot.**
+**12 slides. About 24 minutes of talking, plus the demo. 30 minute slot.**
 Deck: `docs/presentation-deck.html`. Arrow keys move, `S` opens notes,
 click the clock to start timing.
 
@@ -224,7 +224,33 @@ warm. This is the last thing before you close.**
 
 ---
 
-## Slide 11: That's it
+## Slide 11: What I'm taking with me
+
+**Tone shift again, forward-looking this time rather than warm. This is
+the one slide that's about you, not the product. Say it plainly, don't
+oversell it. The road2srcc line should land as a real intention, not a
+plug.**
+
+> Before I close, three things from this summer I want to actually carry
+> forward, not just say once and forget.
+>
+> **Iterate before it's final.** Four headline rewrites, four visual
+> redesigns, a feature I built and then deleted. Nothing here shipped
+> right the first time. I build assuming I'll redo it now, not hoping I
+> won't have to.
+>
+> **How you treat people shows in the work.** Yati, Muskan and Tejas did
+> their best work when they were trusted with real ownership, not managed
+> closely. That's the standard I want to run at road2srcc too.
+>
+> **Consistency beats cleverness.** The version that shipped wasn't my
+> best idea. It was the one I stayed with long enough to actually finish.
+> Devotion to one direction mattered more than any single decision inside
+> it.
+
+---
+
+## Slide 12: That's it
 
 > Everyday moments into meaningful childhood memories, with as little
 > friction as possible. That's still the whole point.
