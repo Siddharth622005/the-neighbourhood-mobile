@@ -155,6 +155,13 @@
   .tag.n { color: var(--accent); }
   .row p { margin: 0; font-size: 15px; line-height: 1.45; }
 
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); margin-top: 8px; }
+  .card { background: var(--ground); padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 7px; }
+  .card h4 { margin: 0; font-size: 15.5px; font-weight: 700; color: var(--ink); }
+  .card p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
+  .card.standout { background: var(--surface); }
+  .card.standout h4 { color: var(--primary); }
+
   /* ---- people ---- */
 
   .person { display: grid; grid-template-columns: clamp(220px, 22vw, 320px) minmax(0, 1fr); gap: clamp(30px, 4.5vw, 76px); align-items: center; }
@@ -199,6 +206,7 @@
     .photo, .photo-slot { max-width: 220px; }
     .nums { grid-template-columns: 1fr; }
     .row { grid-template-columns: 1fr; gap: 6px; }
+    .cards { grid-template-columns: 1fr; }
   }
 </style>
 
@@ -208,9 +216,9 @@
 
   <!-- 1 -->
   <section class="slide" data-t="0:00"
-    data-notes="Say the dates. Six weeks is the frame for everything that follows. Then go straight to the next slide — don't linger here.">
-    <h1>Six weeks.<br>A website<br>and an app.</h1>
-    <p style="margin-top:30px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--ink-faint)">SIDDHARTH · THE NEIGHBOURHOOD · 11 JULY — 21 AUGUST 2026</p>
+    data-notes="Say the dates. Two months is the frame for everything that follows. Then go straight to the next slide — don't linger here.">
+    <h1>Two months.<br>A website<br>and an app.</h1>
+    <p style="margin-top:30px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--ink-faint)">SIDDHARTH · THE NEIGHBOURHOOD · 22 JUNE — 22 AUGUST 2026</p>
   </section>
 
   <!-- 2 -->
@@ -303,8 +311,41 @@
     <p style="margin-top:24px;max-width:62ch">The bit I'm most proud of is <strong>You</strong>. Every other parenting app is about the child only. But the parent is recovering too, and nobody asks how they are. So they get their own half of the app.</p>
   </section>
 
-  <!-- 6 -->
+  <!-- 5b -->
   <section class="slide" data-t="12:00"
+    data-notes="Six decisions, one sentence each — don't slow down except on the fifth one. That one's the best story in the deck: something built because it felt clever, then deleted because parents never found it. Let that one land, then move on.">
+    <div class="kicker">How we decided what to build</div>
+    <h2>Six decisions behind it</h2>
+    <div class="cards">
+      <div class="card">
+        <h4>Fewer questions</h4>
+        <p>Onboarding only asks what actually changes something later. Nothing collected just in case.</p>
+      </div>
+      <div class="card">
+        <h4>Only what gets used</h4>
+        <p>Today shows four activities, not the whole library. A daily habit needs a short list, not a browse.</p>
+      </div>
+      <div class="card">
+        <h4>Call people by name</h4>
+        <p>The app says "Priya" and "Aanya," not "you" and "your child." It reads like a person, not a form.</p>
+      </div>
+      <div class="card">
+        <h4>One thumb, one hand</h4>
+        <p>Every screen has to work while holding a baby. Buttons sit low, and things you'd reach for are easy to find.</p>
+      </div>
+      <div class="card standout">
+        <h4>Cut what only made sense to us</h4>
+        <p>We built a whole separate "Parent Mode," switched from the top corner. Felt clever to build. Parents never found it. It's just a tab now.</p>
+      </div>
+      <div class="card">
+        <h4>Trust, shown not told</h4>
+        <p>Sources named, ranges instead of deadlines, "ask a doctor" where it matters. Small signals, everywhere.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide" data-t="14:00"
     data-notes="Don't read every number. Say 'about a thousand activities and a real database', then move to the right-hand column. Being straight about what isn't finished is what makes the rest believable — don't skip it and don't apologise for it.">
     <h2>What's in it, and what isn't</h2>
     <div class="split">
@@ -330,7 +371,7 @@
   </section>
 
   <!-- 7 -->
-  <section class="slide people" data-t="15:00"
+  <section class="slide people" data-t="17:00"
     data-notes="Change your tone here — you're done with your own work. Warm up, look at the room, not the screen. If Yati is here, look at her when you say the scared line. Say it with a smile so it lands as the compliment it is.">
     <div class="person">
       <div><div class="photo-slot">Photo of<br>Yati<br>goes here</div></div>
@@ -348,7 +389,7 @@
   </section>
 
   <!-- 8 -->
-  <section class="slide people" data-t="16:30"
+  <section class="slide people" data-t="18:30"
     data-notes="The medical reports story is the laugh — tell it simply and let the pause do the work. Nobody asked for proof. Then land the honest bit: she works hard without making noise about it.">
     <div class="person">
       <div><div class="photo-slot">Photo of<br>Muskan<br>goes here</div></div>
@@ -366,7 +407,7 @@
   </section>
 
   <!-- 9 -->
-  <section class="slide people" data-t="18:00"
+  <section class="slide people" data-t="20:00"
     data-notes="Keep the nephew line light and friendly — say it as the joke everyone's already made, then immediately land that he works as hard as anyone. End warm, because this is the last thing before you close.">
     <div class="person">
       <div><div class="photo-slot">Photo of<br>Tejas<br>goes here</div></div>
@@ -384,7 +425,7 @@
   </section>
 
   <!-- 10 -->
-  <section class="slide" data-t="19:30"
+  <section class="slide" data-t="21:30"
     data-notes="Short. Say thanks, offer the link, stop talking. Getting the app onto someone's phone in the room is the best possible ending.">
     <h2>That's it.</h2>
     <p class="big" style="max-width:30ch">A website that's live, and an app you can put on your phone right now.</p>

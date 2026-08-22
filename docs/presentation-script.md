@@ -1,6 +1,6 @@
 # End of internship talk — what to say
 
-**10 slides. About 20 minutes of talking, plus the demo. 30 minute slot.**
+**11 slides. About 22 minutes of talking, plus the demo. 30 minute slot.**
 Deck: `docs/presentation-deck.html` — arrow keys to move, `S` for notes,
 click the clock to start timing.
 
@@ -8,7 +8,7 @@ click the clock to start timing.
 
 ## One thing left to do before you present
 
-**Add photos of Yati, Muskan and Tejas** to slides 7, 8 and 9. They're
+**Add photos of Yati, Muskan and Tejas** to slides 8, 9 and 10. They're
 red dashed boxes right now — you can't miss them.
 
 Slide 5's screenshots are done — real screens captured from the app
@@ -16,11 +16,11 @@ itself (with sample data standing in for a live account), not mockups.
 
 ---
 
-## Slide 1 — Six weeks
+## Slide 1 — Two months
 
 Just say the dates and move on.
 
-> I spent six weeks building two things for The Neighbourhood. A website
+> I spent two months building two things for The Neighbourhood. A website
 > and an app. Here's how they came out.
 
 ---
@@ -98,7 +98,44 @@ screenshots already have you covered — just move on to the next point.
 
 ---
 
-## Slide 6 — What's in it, and what isn't
+## Slide 6 — Six decisions behind it
+
+**One sentence per card — six cards, six sentences, don't linger except on
+the fifth one.**
+
+> Quickly, on how we actually decided what to build. Six calls that shaped
+> everything you just saw.
+>
+> **Fewer questions.** Onboarding only asks what changes something later.
+> Nothing collected just in case.
+>
+> **Only what gets used.** Today shows four activities, not the whole
+> library. A daily habit needs a short list, not a browse.
+>
+> **Call people by name.** The app says Priya and Aanya, not "you" and
+> "your child." It reads like a person, not a form.
+>
+> **One thumb, one hand.** Every screen has to work while you're holding a
+> baby. Buttons sit low, and things are easy to find.
+
+**Slow down here — this is the best story in the deck.**
+
+> And this one I want to actually tell properly. We built a whole separate
+> "Parent Mode" — you switched into it from a toggle in the top corner.
+> It felt genuinely clever to build. And parents never found it. Nobody
+> tapped that corner.
+>
+> So it's not a mode anymore. It's just a tab, same as everything else.
+> Something can feel like good engineering and still be the wrong call for
+> the person using it. That's the one I'd want you to remember.
+
+> And last — **trust, shown, not told.** Sources named, ranges instead of
+> deadlines, "ask a doctor" where it actually matters. Small signals,
+> everywhere, that this isn't guessing.
+
+---
+
+## Slide 7 — What's in it, and what isn't
 
 **Don't read the numbers out one by one. Say the headline, then go
 straight to the right-hand column.**
@@ -116,7 +153,7 @@ straight to the right-hand column.**
 
 ---
 
-## Slides 7, 8, 9 — The other three interns
+## Slides 8, 9, 10 — The other three interns
 
 **Change your tone here. You're done with your own work. Slow down, look
 at the room instead of the screen. If they're in the room, look at them.**
@@ -158,7 +195,7 @@ warm — this is the last thing before you close.**
 
 ---
 
-## Slide 10 — That's it
+## Slide 11 — That's it
 
 > So: a website that's live, and an app you can put on your phone right
 > now. It's just a link — no app store, no invites.
@@ -198,7 +235,7 @@ Then stop talking and take questions.
 > step, not a rewrite.
 
 **How long did it take?**
-> Six weeks. 11th of July to yesterday. 172 commits — 30 on the app, 142 on the website.
+> Two months. 22nd of June to 22nd of August. 172 commits — 30 on the app, 142 on the website.
 
 **Only eleven sign-ups?**
 > Yes. I've been building it, not promoting it. That's the next job.
@@ -209,5 +246,5 @@ Then stop talking and take questions.
 
 ## If you forget everything else
 
-Four things to do today → the parent matters too → here's what's real and
-what isn't → and here are the three people I worked with.
+Four things to do today → build for the parent, not the engineer → here's
+what's real and what isn't → and here are the three people I worked with.
