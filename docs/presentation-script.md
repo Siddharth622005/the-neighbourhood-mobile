@@ -104,7 +104,8 @@ screenshots already have you covered — just move on to the next point.
 straight to the right-hand column.**
 
 > There's about a thousand activities in there now, covering birth to
-> seven years, and a proper database behind it.
+> seven years, and a proper database behind it. 172 commits across both
+> projects.
 >
 > Being straight about the rest: the daily four, discoveries,
 > vaccinations, the parent side, the AI and community all work with real
@@ -112,16 +113,6 @@ straight to the right-hand column.**
 >
 > Reports and the two guides are built and clickable but the content isn't
 > written yet.
->
-> The vaccination list needs a paediatrician to check it before anyone
-> relies on it. I copied it carefully from the official schedules, but I'm
-> not the right person to be the last check on medical information.
->
-> And there's no analytics yet, so I honestly can't tell you whether
-> anyone comes back on day two. The waitlist has eleven sign-ups. It's not
-> a pipeline yet.
-
-**Say the eleven out loud.** Hiding it would undo the honesty.
 
 ---
 
@@ -207,7 +198,7 @@ Then stop talking and take questions.
 > step, not a rewrite.
 
 **How long did it take?**
-> Six weeks. 11th of July to yesterday. Eighty commits.
+> Six weeks. 11th of July to yesterday. 172 commits — 30 on the app, 142 on the website.
 
 **Only eleven sign-ups?**
 > Yes. I've been building it, not promoting it. That's the next job.
