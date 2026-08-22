@@ -1,7 +1,7 @@
-# End of internship talk — what to say
+# End of internship talk: what to say
 
 **11 slides. About 22 minutes of talking, plus the demo. 30 minute slot.**
-Deck: `docs/presentation-deck.html` — arrow keys to move, `S` for notes,
+Deck: `docs/presentation-deck.html`. Arrow keys move, `S` opens notes,
 click the clock to start timing.
 
 ---
@@ -9,14 +9,14 @@ click the clock to start timing.
 ## One thing left to do before you present
 
 **Add photos of Yati, Muskan and Tejas** to slides 8, 9 and 10. They're
-red dashed boxes right now — you can't miss them.
+red dashed boxes right now. You can't miss them.
 
-Slide 5's screenshots are done — real screens captured from the app
+Slide 5's screenshots are done: real screens captured from the app
 itself (with sample data standing in for a live account), not mockups.
 
 ---
 
-## Slide 1 — Two months
+## Slide 1: Two months
 
 Just say the dates and move on.
 
@@ -25,35 +25,35 @@ Just say the dates and move on.
 
 ---
 
-## Slide 2 — What we're building
+## Slide 2: What we're building
 
-**Move quickly through all five — this is setup, not the centrepiece.
+**Move quickly through all five. This is setup, not the centrepiece.
 Same order as the tab bar, so it lines up with the demo later.**
 
 > Quickly, on the actual shape of it, because it's more than a to-do list.
 > Five things.
 >
-> **Home** — four development activities a day, one each for moving,
+> **Home**: four development activities a day, one each for moving,
 > talking, thinking, and feelings.
 >
-> **Community** — real parents at a similar stage, questions and answers,
+> **Community**: real parents at a similar stage, questions and answers,
 > with moderation built in.
 >
-> **Ask** — an AI that knows the child's age and the parent's own
+> **Ask**: an AI that knows the child's age and the parent's own
 > situation. One assistant, two audiences.
 >
-> **Child** — a hundred and thirty-seven milestones, a full vaccination
+> **Child**: a hundred and thirty-seven milestones, a full vaccination
 > schedule, meal planning, a development kit.
 >
-> **You** — the parent's own recovery, nutrition, and mental health. Not an
+> **You**: the parent's own recovery, nutrition, and mental health. Not an
 > afterthought. A whole side of the app.
 >
-> Home is the daily habit — the reason to open it again tomorrow. The
+> Home is the daily habit, the reason to open it again tomorrow. The
 > other four are why it's worth keeping open.
 
 ---
 
-## Slide 3 — The website, week by week ⭐
+## Slide 3: The website, week by week ⭐
 
 **These are real builds of the site from those dates. Not mockups. Walk
 left to right and point at what changed.**
@@ -64,7 +64,7 @@ left to right and point at what changed.**
 >
 > Second, ten days later. I rebuilt the layout. More space, softer shapes.
 >
-> Third, 2nd of August. New colours — cream and terracotta — and the text
+> Third, 2nd of August. New colours, cream and terracotta, and the text
 > moved to the middle.
 >
 > And that's it live today. Serif headline, one word in orange.
@@ -75,50 +75,54 @@ left to right and point at what changed.**
 
 ---
 
-## Slide 4 — The app starts with four questions
+## Slide 4: It only asks what applies to you
 
-> The app opens with four questions. Your name, your child's name, their
-> birthday, their gender.
+> Onboarding starts with your name, then asks who you are: mother,
+> father, or rather not say. That answer decides what comes next.
 >
-> One question per screen, not a long form. Takes under a minute.
+> A mother gets two more questions. What kind of birth she had, and
+> how she's feeding. A father skips both of those completely. And the
+> feeding question only shows up in the first year, so a parent of an
+> older child skips that one too.
 >
-> The birthday one matters most. Every activity you get, every discovery,
-> every vaccination date is worked out from that one date. So it gets its
-> own screen and a proper picker.
+> Up to six questions, one per screen, and nobody sees all six of them.
+>
+> The birthday still matters most. Every activity, every discovery, and
+> every vaccination date gets worked out from that one field.
 
 ---
 
-## Slide 5 — Then it gets to work 📱
+## Slide 5: Then it gets to work 📱
 
 The slide already has real screenshots of Home, Child, You and Ask, so
 you're covered either way. But if you can, **put the slides down and pick
-up the actual phone** — that beats any screenshot. Open it from your home
+up the actual phone**, that beats any screenshot. Open it from your home
 screen.
 
 Order: **Home** → **Child** → **You** → **Ask**. About a minute each.
 
-- **Home** — tap into an activity, finish it, show the ring fill up.
+- **Home**: tap into an activity, finish it, show the ring fill up.
   *"Four out of four is a day you can actually finish. An app you fail
   every day is an app you delete."*
-- **Child** — the hub, then tap into Discoveries or Vaccinations.
+- **Child**: the hub, then tap into Discoveries or Vaccinations.
   *"The vaccine list is split three ways: what the government gives free,
   what the paediatric association adds, and what depends on where you
   live. Most lists just show you twenty vaccines and you can't tell
   what's essential."*
-- **You** — let the colour change happen before you talk.
+- **You**: let the colour change happen before you talk.
   *"This is the bit I'm proudest of. Every other parenting app is about
   the child. But the parent is recovering too and nobody asks how they
   are. So they get their own half."*
-- **Ask** — type a real question, wait for the answer.
+- **Ask**: type a real question, wait for the answer.
 
 **Don't talk over a loading screen.** If the live demo breaks, the slide's
-screenshots already have you covered — just move on to the next point.
+screenshots already have you covered. Just move on to the next point.
 
 ---
 
-## Slide 6 — Six decisions behind it
+## Slide 6: Six decisions behind it
 
-**One sentence per card — six cards, six sentences, don't linger except on
+**One sentence per card. Six cards, six sentences, don't linger except on
 the fifth one.**
 
 > Quickly, on how we actually decided what to build. Six calls that shaped
@@ -136,10 +140,10 @@ the fifth one.**
 > **One thumb, one hand.** Every screen has to work while you're holding a
 > baby. Buttons sit low, and things are easy to find.
 
-**Slow down here — this is the best story in the deck.**
+**Slow down here. This is the best story in the deck.**
 
 > And this one I want to actually tell properly. We built a whole separate
-> "Parent Mode" — you switched into it from a toggle in the top corner.
+> "Parent Mode." You switched into it from a toggle in the top corner.
 > It felt genuinely clever to build. And parents never found it. Nobody
 > tapped that corner.
 >
@@ -147,20 +151,22 @@ the fifth one.**
 > Something can feel like good engineering and still be the wrong call for
 > the person using it. That's the one I'd want you to remember.
 
-> And last — **trust, shown, not told.** Sources named, ranges instead of
+> And last, **trust, shown, not told.** Sources named, ranges instead of
 > deadlines, "ask a doctor" where it actually matters. Small signals,
 > everywhere, that this isn't guessing.
 
 ---
 
-## Slide 7 — What's in it, and what isn't
+## Slide 7: What's in it, and what isn't
 
 **Don't read the numbers out one by one. Say the headline, then go
 straight to the right-hand column.**
 
 > There's about a thousand activities in there now, covering birth to
-> seven years, and a proper database behind it. 172 commits across both
-> projects.
+> seven years, and a proper database behind it. 142 commits on the
+> website. At least 30 more on the app, some of those pushed straight
+> through Vercel rather than git, so that number's a floor, not the
+> full count.
 >
 > Being straight about the rest: the daily four, discoveries,
 > vaccinations, the parent side, the AI and community all work with real
@@ -171,12 +177,12 @@ straight to the right-hand column.**
 
 ---
 
-## Slides 8, 9, 10 — The other three interns
+## Slides 8, 9, 10: The other three interns
 
 **Change your tone here. You're done with your own work. Slow down, look
 at the room instead of the screen. If they're in the room, look at them.**
 
-> Before I finish — I wasn't the only one here this summer.
+> Before I finish, I wasn't the only one here this summer.
 
 ### Yati
 
@@ -209,14 +215,14 @@ at the room instead of the screen. If they're in the room, look at them.**
 > And he still works as hard as anyone here, which he didn't have to.
 
 **Say the nephew line lightly and get straight to the last line. End
-warm — this is the last thing before you close.**
+warm. This is the last thing before you close.**
 
 ---
 
-## Slide 11 — That's it
+## Slide 11: That's it
 
 > So: a website that's live, and an app you can put on your phone right
-> now. It's just a link — no app store, no invites.
+> now. It's just a link. No app store, no invites.
 >
 > Happy to send it to anyone who wants it. Thank you.
 
@@ -228,8 +234,8 @@ Then stop talking and take questions.
 
 **How's it different from BabyCenter or What to Expect?**
 > Those are big libraries of articles. You have to go looking, and you
-> have to already know what your problem is called. We have a library too
-> — milestones, vaccinations, meals — but the app also hands you a short
+> have to already know what your problem is called. We have a library too,
+> milestones, vaccinations, meals, but the app also hands you a short
 > daily plan so you're never starting from a blank search. And they're
 > only about the child. We have a whole side for the parent.
 
@@ -254,7 +260,7 @@ Then stop talking and take questions.
 > step, not a rewrite.
 
 **How long did it take?**
-> Two months. 22nd of June to 22nd of August. 172 commits — 30 on the app, 142 on the website.
+> Two months. 22nd of June to 22nd of August. 142 commits on the website, and at least 30 more on the app.
 
 **Only eleven sign-ups?**
 > Yes. I've been building it, not promoting it. That's the next job.
@@ -265,5 +271,5 @@ Then stop talking and take questions.
 
 ## If you forget everything else
 
-Five things, not one → build for the parent, not the engineer → here's
+More than Home → build for the parent, not the engineer → here's
 what's real and what isn't → and here are the three people I worked with.
