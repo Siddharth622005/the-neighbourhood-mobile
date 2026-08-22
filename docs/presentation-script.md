@@ -18,10 +18,15 @@ itself (with sample data standing in for a live account), not mockups.
 
 ## Slide 1: Two months
 
-Just say the dates and move on.
+Say the dates, then the mission line, and let it sit for a second before
+moving on. It's the reason any of the rest of this exists.
 
 > I spent two months building two things for The Neighbourhood. A website
 > and an app. Here's how they came out.
+>
+> The Neighbourhood exists to turn everyday moments into meaningful
+> childhood memories, with as little friction as possible. Everything
+> I'm about to show you is in service of that one sentence.
 
 ---
 
@@ -221,10 +226,12 @@ warm. This is the last thing before you close.**
 
 ## Slide 11: That's it
 
-> So: a website that's live, and an app you can put on your phone right
-> now. It's just a link. No app store, no invites.
+> Everyday moments into meaningful childhood memories, with as little
+> friction as possible. That's still the whole point.
 >
-> Happy to send it to anyone who wants it. Thank you.
+> A website that's live, and an app you can put on your phone right now.
+> It's just a link. No app store, no invites. Happy to send it to anyone
+> who wants it. Thank you.
 
 Then stop talking and take questions.
 
