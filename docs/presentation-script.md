@@ -27,11 +27,29 @@ Just say the dates and move on.
 
 ## Slide 2 — What we're building
 
-> The app tells you four things to do with your child today. One for
-> moving, one for talking, one for thinking, one for feelings.
+**Move quickly through all five — this is setup, not the centrepiece.
+Same order as the tab bar, so it lines up with the demo later.**
+
+> Quickly, on the actual shape of it, because it's more than a to-do list.
+> Five things.
 >
-> Four cards, a few minutes each. You do them, you tick them off, you're
-> done for the day. That's the whole idea.
+> **Home** — four development activities a day, one each for moving,
+> talking, thinking, and feelings.
+>
+> **Community** — real parents at a similar stage, questions and answers,
+> with moderation built in.
+>
+> **Ask** — an AI that knows the child's age and the parent's own
+> situation. One assistant, two audiences.
+>
+> **Child** — a hundred and thirty-seven milestones, a full vaccination
+> schedule, meal planning, a development kit.
+>
+> **You** — the parent's own recovery, nutrition, and mental health. Not an
+> afterthought. A whole side of the app.
+>
+> Home is the daily habit — the reason to open it again tomorrow. The
+> other four are why it's worth keeping open.
 
 ---
 
@@ -210,9 +228,10 @@ Then stop talking and take questions.
 
 **How's it different from BabyCenter or What to Expect?**
 > Those are big libraries of articles. You have to go looking, and you
-> have to already know what your problem is called. This just tells you
-> four things to do today. And they're only about the child — we have a
-> whole side for the parent.
+> have to already know what your problem is called. We have a library too
+> — milestones, vaccinations, meals — but the app also hands you a short
+> daily plan so you're never starting from a blank search. And they're
+> only about the child. We have a whole side for the parent.
 
 **Where does the content come from?**
 > Written against standard child development frameworks. The vaccination
@@ -246,5 +265,5 @@ Then stop talking and take questions.
 
 ## If you forget everything else
 
-Four things to do today → build for the parent, not the engineer → here's
+Five things, not one → build for the parent, not the engineer → here's
 what's real and what isn't → and here are the three people I worked with.

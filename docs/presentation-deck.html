@@ -155,11 +155,17 @@
   .tag.n { color: var(--accent); }
   .row p { margin: 0; font-size: 15px; line-height: 1.45; }
 
-  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); margin-top: 8px; }
-  .card { background: var(--ground); padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 7px; }
+  /* Individually bordered cells rather than a shared-background grid: a
+     grid with gaps painted via the container's own background leaves a
+     phantom filled cell wherever the item count doesn't divide evenly
+     into the column count (5 cards in 3 columns, say) — the unfilled
+     track still shows the container's background. Bordering each card
+     itself sidesteps that regardless of how many cards there are. */
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--rule-soft); box-shadow: 0 4px 14px var(--shadow); padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 7px; }
   .card h4 { margin: 0; font-size: 15.5px; font-weight: 700; color: var(--ink); }
   .card p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-soft); }
-  .card.standout { background: var(--surface); }
+  .card.standout { border-color: var(--primary); box-shadow: 0 4px 14px var(--shadow), inset 0 0 0 1px var(--primary); }
   .card.standout h4 { color: var(--primary); }
 
   /* ---- people ---- */
@@ -223,16 +229,32 @@
 
   <!-- 2 -->
   <section class="slide" data-t="0:30"
-    data-notes="Keep this short. One sentence for what it does, then the four areas. If you only get one idea across today, this is it.">
+    data-notes="This is the real shape of the app — five destinations, same order as the tab bar, so it mirrors what they'll see in the demo later. Move quickly through all five; don't dwell on Home here, it gets its own slide next.">
     <div class="kicker">What we're building</div>
-    <p class="big">The app tells you four things to do with your child today.</p>
-    <ul class="plain" style="margin-top:26px">
-      <li>One for <strong>moving</strong> — crawling, climbing, balance.</li>
-      <li>One for <strong>talking</strong> — words, songs, taking turns.</li>
-      <li>One for <strong>thinking</strong> — sorting, hiding, figuring out.</li>
-      <li>One for <strong>feelings</strong> — sharing, comfort, naming moods.</li>
-    </ul>
-    <p style="margin-top:26px;max-width:48ch">Four cards. A few minutes each. You do them, you tick them off, you're done for the day.</p>
+    <h2>Five things, not one.</h2>
+    <div class="cards">
+      <div class="card">
+        <h4>Home</h4>
+        <p>Four development activities a day — one each for motor, communication, cognitive, and social skills.</p>
+      </div>
+      <div class="card">
+        <h4>Community</h4>
+        <p>Real parents at a similar stage. Questions, answers, and moderation built in.</p>
+      </div>
+      <div class="card">
+        <h4>Ask</h4>
+        <p>An AI that knows the child's age and the parent's own situation. One assistant, two audiences.</p>
+      </div>
+      <div class="card">
+        <h4>Child</h4>
+        <p>137 milestones, a full vaccination schedule, meal planning, and a development kit.</p>
+      </div>
+      <div class="card">
+        <h4>You</h4>
+        <p>The parent's own recovery, nutrition, and mental health. Not an afterthought — a whole side of the app.</p>
+      </div>
+    </div>
+    <p style="margin-top:20px;max-width:62ch">Home is the daily habit — the reason to open the app again tomorrow. The other four are why it's worth keeping open.</p>
   </section>
 
   <!-- 3 -->
